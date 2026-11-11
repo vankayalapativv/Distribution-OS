@@ -56,9 +56,9 @@ export async function login(set: AuthSet, identifier: string, password: string):
 
   // 2. Resolve the app role + user id — Neon tokens carry no role, so the API
   //    maps the Neon user id (sub) → users.app_login_id → role.
-  const me = await apiFetch<{ auth: { role: string | null; userId: string | null } }>("/me", {
-    token,
-  });
+  const me = await apiFetch<{
+    auth: { role: string | null; userId: string | null; enterpriseId: string | null };
+  }>("/me", { token });
   const role = me.auth.role;
 
   // This app serves field Sales Executives, Logistics, and (2026-08) SUPER_ADMIN
@@ -77,6 +77,7 @@ export async function login(set: AuthSet, identifier: string, password: string):
     name: neonUser.name,
     email: neonUser.email,
     role,
+    enterpriseId: me.auth.enterpriseId ?? null,
   };
 
   // Shared-device wipe: if a DIFFERENT user than last time is signing in, clear

@@ -39,6 +39,10 @@ export interface AuthUser {
   name: string;
   email: string;
   role: string | null;
+  /** The enterprise this user belongs to (multi-enterprise). Server-resolved;
+   *  the app's data is already enterprise-scoped server-side, this is for
+   *  reference/debugging and future per-enterprise client logic. */
+  enterpriseId: string | null;
 }
 
 export interface LoginResponse {

@@ -11,7 +11,7 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/558ffdd7-f55c-46e5-80f3-c2cba5a9c201",
+      "url": "https://u.expo.dev/7aa36c81-0594-4cc2-93df-e6879f101e5e",
       "fallbackToCacheTimeout": 0
     },
     "android": {
@@ -111,7 +111,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "558ffdd7-f55c-46e5-80f3-c2cba5a9c201"
+        "projectId": "7aa36c81-0594-4cc2-93df-e6879f101e5e"
       }
     },
     "owner": "vardhansystems_support"

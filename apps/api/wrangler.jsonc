@@ -2,6 +2,16 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "distribution-os-api",
   "main": "src/index.ts",
+  // Keep the workers.dev URL ENABLED alongside the custom domain — the mobile app
+  // (EAS builds / installed APKs) calls the api at its workers.dev URL, so adding
+  // a custom domain must NOT disable it.
+  "workers_dev": true,
+  // Branded custom domain (external callers, e.g. the web dashboard). The
+  // internal api→mcp call keeps using MCP_SERVER_ORIGIN on workers.dev for
+  // worker-to-worker reliability.
+  "routes": [
+    { "pattern": "api.distributionos.vardhansystems.in", "custom_domain": true }
+  ],
   "compatibility_date": "2026-07-03",
   // global_fetch_strictly_public: make fetch() to our MCP Worker (and any other
   // same-account workers.dev host) go out to the public edge instead of being

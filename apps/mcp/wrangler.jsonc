@@ -2,6 +2,15 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "distribution-os-mcp",
   "main": "src/index.ts",
+  // Keep the workers.dev URL ENABLED alongside the custom domain — the api reaches
+  // the MCP worker at its workers.dev URL (MCP_SERVER_ORIGIN) for worker-to-worker,
+  // so adding a custom domain must NOT disable it.
+  "workers_dev": true,
+  // Branded custom domain for external MCP clients (the workers.dev host keeps
+  // working too, so existing connections aren't broken).
+  "routes": [
+    { "pattern": "mcp.distributionos.vardhansystems.in", "custom_domain": true }
+  ],
   "compatibility_date": "2026-07-08",
   "compatibility_flags": ["nodejs_compat"],
   // Secrets (wrangler secret put / local .dev.vars): REPLICA_DATABASE_URL,
@@ -11,7 +20,7 @@
   // Object (fixes the cross-region KV race). No KV namespace needed anymore.
   "vars": {
     // Public origin used to build interactive map links; override per environment.
-    "PUBLIC_ORIGIN": "https://distribution-os-mcp.vardhansystems.workers.dev"
+    "PUBLIC_ORIGIN": "https://mcp.distributionos.vardhansystems.in"
   },
   "durable_objects": {
     "bindings": [

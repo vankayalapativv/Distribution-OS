@@ -1,23 +1,36 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { serverApiFetch } from "../../../lib/server-api";
 import { neonJwtFromSession, neonSignUp } from "../../../lib/neon-auth-server";
+import { OTP_COOKIE, verifyOtp } from "../../../lib/otp";
 
 const SESSION_COOKIE = "sa_session";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
+const OTP_ERRORS: Record<string, string> = {
+  missing: "Your verification code has expired. Please request a new one.",
+  expired: "Your verification code has expired. Please request a new one.",
+  email_mismatch: "This code was sent to a different email. Request a new one.",
+  too_many: "Too many incorrect attempts. Please request a new code.",
+  mismatch: "That code is incorrect. Please check and try again.",
+};
+
 /**
- * Self-serve sign-up for a new distribution business. Creates the Neon Auth
- * account, signs them in, bootstraps the app `users` row (enterprise-less), and
- * sets the session cookie. The caller then goes to /onboarding.
+ * Self-serve sign-up for a new distribution business. Verify-before-create: the
+ * email OTP (set by /api/signup/send-otp, stored as a hash in a signed cookie)
+ * must check out FIRST. Only then do we create the Neon Auth account, sign them
+ * in, bootstrap the app `users` row (enterprise-less), and set the session
+ * cookie. The caller then goes to /onboarding.
  */
 export async function POST(request: Request): Promise<NextResponse> {
-  let name = "", email = "", phone = "", password = "";
+  let name = "", email = "", phone = "", password = "", code = "";
   try {
     const b = (await request.json()) as Record<string, unknown>;
     name = String(b.name ?? "").trim();
     email = String(b.email ?? "").trim();
     phone = String(b.phone ?? "").trim();
     password = String(b.password ?? "");
+    code = String(b.code ?? "").trim();
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
@@ -27,6 +40,26 @@ export async function POST(request: Request): Promise<NextResponse> {
       { error: "Enter your name, a valid email, your phone, and a password of at least 8 characters." },
       { status: 422 },
     );
+  }
+
+  // Gate on the email OTP before creating anything.
+  const cookieStore = await cookies();
+  const verdict = await verifyOtp(cookieStore.get(OTP_COOKIE)?.value, email, code);
+  if (!verdict.ok) {
+    const res = NextResponse.json(
+      { error: OTP_ERRORS[verdict.reason] ?? "Could not verify the code.", otp: verdict.reason },
+      { status: 422 },
+    );
+    // Persist the bumped attempt counter on a wrong-but-allowed code.
+    if (verdict.cookie) {
+      res.cookies.set(OTP_COOKIE, verdict.cookie, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+      });
+    }
+    return res;
   }
 
   const userAgent = request.headers.get("user-agent");
@@ -58,5 +91,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     path: "/",
     maxAge: COOKIE_MAX_AGE,
   });
+  // Burn the verification cookie — it has done its job.
+  response.cookies.set(OTP_COOKIE, "", { path: "/", maxAge: 0 });
   return response;
 }

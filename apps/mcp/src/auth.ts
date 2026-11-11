@@ -129,7 +129,10 @@ export const authHandler: ExportedHandler<Env> = {
     const scope = oauthRequest.scope.filter((s) => s === "mcp:read");
     const { redirectTo } = await env.OAUTH_PROVIDER.completeAuthorization({
       request: oauthRequest,
-      userId: `enterprise:${enterpriseId}`,
+      // The provider uses ":" to delimit its auth-code (userId:grantId:secret),
+      // so userId must be colon-free — the enterprise UUID is. The enterprise
+      // scope is carried in props.enterpriseId (read by the tools), not here.
+      userId: enterpriseId,
       metadata: { clientName: client.clientName },
       scope: scope.length ? scope : ["mcp:read"],
       // The grant's props travel to the tool handler (via getMcpAuthContext) and

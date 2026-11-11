@@ -7,8 +7,55 @@ import {
   listAdminDuesCustomers,
   listMyDuesCustomers,
   runDuesMaintenance,
+  setEnterpriseDuesBands,
+  validateDuesBands,
+  type DuesBandInput,
 } from "./dues";
 import { makeSql, calledTag } from "../test/sql-mock";
+
+const FOUR: DuesBandInput[] = [
+  { fromDays: 0, toDays: 15, label: "Current" },
+  { fromDays: 16, toDays: 40, label: "Watch" },
+  { fromDays: 41, toDays: 60, label: "Due" },
+  { fromDays: 61, toDays: null, label: "Overdue" },
+];
+
+describe("validateDuesBands", () => {
+  it("accepts exactly 4 contiguous bands (0 → ∞)", () => {
+    expect(() => validateDuesBands(FOUR)).not.toThrow();
+  });
+  it("rejects a count other than 4", () => {
+    expect(() => validateDuesBands(FOUR.slice(0, 3))).toThrow(/Exactly 4/);
+  });
+  it("rejects a first band not starting at 0", () => {
+    expect(() => validateDuesBands([{ ...FOUR[0], fromDays: 1 }, ...FOUR.slice(1)])).toThrow(/start at day 0/);
+  });
+  it("rejects a last band that is not open-ended", () => {
+    expect(() => validateDuesBands([...FOUR.slice(0, 3), { ...FOUR[3], toDays: 90 }])).toThrow(/open-ended/);
+  });
+  it("rejects a gap/overlap between bands", () => {
+    const gap = [FOUR[0], { ...FOUR[1], fromDays: 20 }, FOUR[2], FOUR[3]];
+    expect(() => validateDuesBands(gap)).toThrow(/start the day after/);
+  });
+  it("rejects a blank label", () => {
+    expect(() => validateDuesBands([{ ...FOUR[0], label: "  " }, ...FOUR.slice(1)])).toThrow(/needs a label/);
+  });
+});
+
+describe("setEnterpriseDuesBands", () => {
+  it("validates then clears + inserts the 4 bands in one transaction", async () => {
+    const sql = makeSql({ dues_bands_load: FOUR.map((b, i) => ({ ordinal: i, fromDays: b.fromDays, toDays: b.toDays, label: b.label })) });
+    const saved = await setEnterpriseDuesBands(sql, FOUR);
+    expect(calledTag(sql, "dues_bands_clear")).toBe(true);
+    expect(sql.calls.filter((c) => c.tag === "dues_bands_insert")).toHaveLength(4);
+    expect(saved).toHaveLength(4);
+  });
+  it("rejects an invalid set before writing anything", async () => {
+    const sql = makeSql();
+    await expect(setEnterpriseDuesBands(sql, FOUR.slice(0, 2))).rejects.toMatchObject({ status: 422 });
+    expect(calledTag(sql, "dues_bands_clear")).toBe(false);
+  });
+});
 
 describe("bucketFromAge", () => {
   it("maps age-days to the four bands (null/negative → null)", () => {
@@ -56,7 +103,9 @@ describe("getAdminDuesSummary", () => {
     const out = await getAdminDuesSummary(sql, { executiveId: "se-1", city: "Hyderabad" });
     expect(out.totalCustomers).toBe(3);
     expect(out.totalOutstanding).toBe(1500);
-    expect(out.buckets.find((b) => b.key === "0_30")!.customers).toBe(2);
+    // No dues_bands_load mock → default bands keyed by ordinal ("0".."3").
+    expect(out.buckets.find((b) => b.key === "0")!.customers).toBe(2);
+    expect(out.buckets.find((b) => b.key === "3")!.customers).toBe(1);
   });
 });
 
@@ -69,11 +118,12 @@ describe("getDuesByExecutive", () => {
 
 describe("listAdminDuesCustomers", () => {
   it("422s an unknown bucket, else maps band + legacy-alias fields", async () => {
-    await expect(listAdminDuesCustomers(makeSql(), "bogus" as never)).rejects.toMatchObject({ status: 422 });
+    await expect(listAdminDuesCustomers(makeSql(), "bogus")).rejects.toMatchObject({ status: 422 });
     const sql = makeSql({
       dues_customers_admin: [{ customerId: "c1", customerName: "Ravi", city: "Hyd", executiveName: null, bandOldestDate: "2026-04-01", bandAgeDays: "70", bandOutstanding: "500", totalOutstanding: "800" }],
     });
-    const rows = await listAdminDuesCustomers(sql, "60_plus", { executiveId: "se-1", city: "Hyd" });
+    // "3" = the last default band's ordinal key (no dues_bands_load mock).
+    const rows = await listAdminDuesCustomers(sql, "3", { executiveId: "se-1", city: "Hyd" });
     expect(rows[0]).toMatchObject({ customerId: "c1", bandOutstanding: 500, totalOutstanding: 800, ageDays: 70, outstanding: 500 });
   });
 });

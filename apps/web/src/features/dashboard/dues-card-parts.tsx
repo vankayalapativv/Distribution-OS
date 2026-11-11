@@ -1,53 +1,52 @@
 import { rupeesExact } from "@/lib/format";
 import { Shimmer } from "@/components/ui/shimmer";
-import { DUES_ACCENT, type DuesBucket, type DuesBucketKey } from "./dues-helpers";
+import { type DuesBucket } from "./dues-helpers";
 
-/** Grid placement so the four buckets sit on the four sides of the centre. */
-export const POS: Record<DuesBucketKey, string> = {
-  "0_30": "col-start-2 row-start-1", // top
-  "30_45": "col-start-3 row-start-2", // right
-  "45_60": "col-start-2 row-start-3", // bottom
-  "60_plus": "col-start-1 row-start-2", // left
-};
+/** Grid placement so the FOUR bands sit on the four sides of the centre, by
+ *  position: newest at top, then right, bottom, oldest at left. The dues model
+ *  is fixed at exactly 4 bands (ranges + labels are per-enterprise). */
+export const POS = [
+  "col-start-2 row-start-1", // 0 — top (newest)
+  "col-start-3 row-start-2", // 1 — right
+  "col-start-2 row-start-3", // 2 — bottom
+  "col-start-1 row-start-2", // 3 — left (oldest)
+] as const;
 
-export const BUCKET_KEYS: DuesBucketKey[] = ["0_30", "30_45", "45_60", "60_plus"];
-
-/** The bucket labels are FIXED (ageing bands) — they never change with the
- *  executive/city filter, so they must stay put (never shimmer). Match the API. */
-export const BUCKET_LABEL: Record<DuesBucketKey, string> = {
-  "0_30": "0–30 days",
-  "30_45": "31–45 days",
-  "45_60": "46–60 days",
-  "60_plus": "61+ days",
-};
-
-/** Constant-label buckets to render before any data has loaded — only the
- *  numbers shimmer; the labels are already in place. */
-export const PLACEHOLDER_BUCKETS: DuesBucket[] = BUCKET_KEYS.map((key) => ({
-  key,
-  label: BUCKET_LABEL[key],
+/** Label-less shimmer tiles shown before any data (band labels are server-driven,
+ *  so they aren't known until the summary loads). Always 4 — the fixed model. */
+export const PLACEHOLDER_BUCKETS: DuesBucket[] = Array.from({ length: 4 }, (_, i) => ({
+  key: `__ph${i}`,
+  label: "",
   outstanding: 0,
   customers: 0,
 }));
 
 export function BucketTile({
   bucket,
+  accent,
+  posClass,
   onOpen,
   loading,
 }: Readonly<{
   bucket: DuesBucket;
+  accent: string;
+  posClass: string;
   onOpen: (b: DuesBucket) => void;
   loading?: boolean;
 }>) {
+  const isPlaceholder = !bucket.label;
   return (
     <button
       type="button"
       onClick={() => onOpen(bucket)}
-      disabled={loading}
-      className={`rounded-lg border border-l-4 border-border bg-white p-3 text-left shadow-sm transition-colors hover:border-primary disabled:hover:border-border ${DUES_ACCENT[bucket.key]} ${POS[bucket.key]}`}
+      disabled={loading || isPlaceholder}
+      className={`rounded-lg border border-l-4 border-border bg-white p-3 text-left shadow-sm transition-colors hover:border-primary disabled:hover:border-border ${accent} ${posClass}`}
     >
-      {/* Label stays constant; only the amount + customer count shimmer. */}
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{bucket.label}</p>
+      {isPlaceholder ? (
+        <Shimmer className="h-3 w-20" />
+      ) : (
+        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{bucket.label}</p>
+      )}
       {loading ? (
         <>
           <Shimmer className="mt-1.5 h-5 w-24" />

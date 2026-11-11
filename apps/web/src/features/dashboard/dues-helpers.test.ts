@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { DUES_ACCENT, type DuesBucketKey } from "./dues-helpers";
+import { accentForIndex } from "./dues-helpers";
 
-describe("DUES_ACCENT", () => {
-  it("maps every bucket to a hotter-with-age border accent", () => {
-    const keys: DuesBucketKey[] = ["0_30", "30_45", "45_60", "60_plus"];
-    expect(Object.keys(DUES_ACCENT)).toEqual(keys);
-    expect(DUES_ACCENT["0_30"]).toBe("border-l-emerald-300");
-    expect(DUES_ACCENT["60_plus"]).toBe("border-l-rose-300");
+describe("accentForIndex", () => {
+  it("grades the accent by band position — newest cool, oldest hot", () => {
+    // 3 bands: first is coolest, last is hottest.
+    expect(accentForIndex(0, 3)).toBe("border-l-emerald-300");
+    expect(accentForIndex(2, 3)).toBe("border-l-rose-300");
+    // A middle band lands on a warmer-than-first, cooler-than-last stop.
+    expect(accentForIndex(1, 3)).not.toBe("border-l-emerald-300");
+    expect(accentForIndex(1, 3)).not.toBe("border-l-rose-300");
+  });
+
+  it("handles a single band and clamps safely", () => {
+    expect(accentForIndex(0, 1)).toBe("border-l-emerald-300");
+    expect(accentForIndex(0, 0)).toBe("border-l-emerald-300");
   });
 });

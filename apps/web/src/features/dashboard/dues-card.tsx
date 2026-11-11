@@ -10,7 +10,8 @@ import { useDelayedTrue } from "@/lib/use-delayed-true";
 import { SearchSelect } from "@/features/orders/search-select";
 import { useDuesDrilldown } from "./use-dues-drilldown";
 import { useDuesData } from "./use-dues-data";
-import { BucketTile, DuesTotalTile, PLACEHOLDER_BUCKETS } from "./dues-card-parts";
+import { BucketTile, DuesTotalTile, PLACEHOLDER_BUCKETS, POS } from "./dues-card-parts";
+import { accentForIndex } from "./dues-helpers";
 
 // The dues drill-down dialog pulls in framer-motion (via AnimatedSwap); it only
 // renders after the user opens a bucket, so load it lazily and mount it on first
@@ -78,13 +79,24 @@ export function DuesCard({ actionConfig }: Readonly<{ actionConfig: ActionConfig
           {errorMessage(summary.error, "Could not load collection dues.")}
         </p>
       ) : (
-        // The cross (labels + accents + positions) stays constant; when loading
-        // OR a refetch runs past ~200ms, only each tile's amount + customer count
-        // shimmer in place. Before any data, constant-label placeholder tiles.
+        // The 4-band cross: bands on the four sides (newest top → oldest left),
+        // Total dues in the centre. The model is fixed at 4 bands; their labels +
+        // ranges are per-enterprise. On load / a >200ms refetch only each tile's
+        // figures shimmer; the accent is graded by position (newest cool, oldest hot).
         <div className="mx-auto grid max-w-2xl grid-cols-3 grid-rows-3 gap-3">
-          {(data?.buckets ?? PLACEHOLDER_BUCKETS).map((b) => (
-            <BucketTile key={b.key} bucket={b} onOpen={drill.open} loading={showSkeleton} />
-          ))}
+          {(() => {
+            const list = (data?.buckets ?? PLACEHOLDER_BUCKETS).slice(0, 4);
+            return list.map((b, i) => (
+              <BucketTile
+                key={b.key}
+                bucket={b}
+                accent={accentForIndex(i, list.length)}
+                posClass={POS[i] ?? ""}
+                onOpen={drill.open}
+                loading={showSkeleton}
+              />
+            ));
+          })()}
           <DuesTotalTile
             outstanding={data?.totalOutstanding ?? 0}
             customers={data?.totalCustomers ?? 0}

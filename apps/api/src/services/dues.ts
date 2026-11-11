@@ -87,6 +87,67 @@ export async function loadDuesBands(sql: SqlClient): Promise<DuesBand[]> {
   }));
 }
 
+/** The dues model is FIXED at exactly 4 bands per enterprise (ranges + labels are
+ *  customizable). This drives the dashboard's 4-sided cross and the onboarding /
+ *  settings editors. */
+export const DUES_BAND_COUNT = 4;
+
+export interface DuesBandInput {
+  fromDays: number;
+  /** null = open-ended (only the last band). */
+  toDays: number | null;
+  label: string;
+}
+
+/**
+ * Validate exactly-4 contiguous bands covering day 0 → ∞ with no gaps/overlaps:
+ * band 1 starts at 0, band 4 is open-ended, and each band starts the day after
+ * the previous ends. Throws a 422 with a human message on any violation.
+ */
+export function validateDuesBands(bands: DuesBandInput[]): void {
+  if (!Array.isArray(bands) || bands.length !== DUES_BAND_COUNT) {
+    throw new ApiError("VALIDATION", `Exactly ${DUES_BAND_COUNT} collection-dues bands are required.`, 422);
+  }
+  bands.forEach((b, i) => {
+    if (!b.label || !String(b.label).trim()) throw new ApiError("VALIDATION", `Band ${i + 1} needs a label.`, 422);
+    if (!Number.isInteger(b.fromDays) || b.fromDays < 0) {
+      throw new ApiError("VALIDATION", `Band ${i + 1} start must be a whole number of days (0 or more).`, 422);
+    }
+  });
+  if (bands[0].fromDays !== 0) throw new ApiError("VALIDATION", "The first band must start at day 0.", 422);
+  if (bands[DUES_BAND_COUNT - 1].toDays !== null) {
+    throw new ApiError("VALIDATION", "The last band must be open-ended (no end day).", 422);
+  }
+  for (let i = 0; i < DUES_BAND_COUNT - 1; i++) {
+    const to = bands[i].toDays;
+    if (to === null || !Number.isInteger(to)) throw new ApiError("VALIDATION", `Band ${i + 1} needs an end day.`, 422);
+    if (to < bands[i].fromDays) throw new ApiError("VALIDATION", `Band ${i + 1}: the end day can't be before the start.`, 422);
+    if (bands[i + 1].fromDays !== to + 1) {
+      throw new ApiError("VALIDATION", `Band ${i + 2} must start the day after band ${i + 1} ends (no gaps or overlaps).`, 422);
+    }
+  }
+}
+
+/**
+ * Replace the current enterprise's dues bands with the given 4 (scoped write —
+ * enterprise_id comes from the RLS GUC). Validates first, then deletes + inserts
+ * in one transaction. Returns the saved bands.
+ */
+export async function setEnterpriseDuesBands(sql: SqlClient, bands: DuesBandInput[]): Promise<DuesBand[]> {
+  validateDuesBands(bands);
+  await sql.transaction([
+    sql`/* dues_bands_clear */ delete from dues_bands`,
+    ...bands.map(
+      (b, i) => sql`
+        /* dues_bands_insert */
+        insert into dues_bands (enterprise_id, ordinal, from_days, to_days, label)
+        values (public.app_current_enterprise_id(), ${i}, ${Math.trunc(b.fromDays)}, ${b.toDays === null ? null : Math.trunc(b.toDays)}, ${String(b.label).trim()})
+      `,
+    ),
+  ]);
+  return loadDuesBands(sql);
+}
+
 /**
  * A SQL `CASE` mapping an `age_days` expression to a band ORDINAL, built from the
  * enterprise's bands. The band bounds are trusted integers read from dues_bands,
@@ -231,12 +292,15 @@ export async function getAdminDuesSummary(
 ) {
   const executiveId = context.executiveId ?? null;
   const city = context.city ?? null;
-  const rows = (await sql`
+  const bands = await loadDuesBands(sql);
+  const bucketCase = bandCaseSql("i.age_days", bands);
+  const rows = (await sql.query(
+    `
     /* dues_summary_admin */
     with items as (
       select
         i.customer_id,
-        (case when i.age_days <= 30 then 0 when i.age_days <= 45 then 1 when i.age_days <= 60 then 2 else 3 end) as bucket,
+        ${bucketCase} as bucket,
         i.outstanding
       from (
         select customer_id, ((now() at time zone 'Asia/Kolkata')::date - invoice_date) as age_days, outstanding_amount as outstanding
@@ -246,8 +310,8 @@ export async function getAdminDuesSummary(
           from customer_opening_balances where outstanding_amount > 0
       ) i
       join customers c on c.id = i.customer_id
-      where (${executiveId}::uuid is null or c.created_by = ${executiveId}::uuid)
-        and (${city}::text is null or c.address_city = ${city})
+      where ($1::uuid is null or c.created_by = $1::uuid)
+        and ($2::text is null or c.address_city = $2)
     )
     select
       grouping(bucket) as "isTotal",
@@ -256,19 +320,24 @@ export async function getAdminDuesSummary(
       coalesce(sum(outstanding), 0) as "outstanding"
     from items
     group by grouping sets ((bucket), ())
-  `) as Row[];
+  `,
+    [executiveId, city],
+  )) as Row[];
 
   const totalRow = rows.find((r) => num(r.isTotal) === 1);
-  const buckets = DUES_BUCKETS.map((key, index) => {
-    const row = rows.find((r) => num(r.isTotal) === 0 && num(r.bucket) === index);
+  const buckets = bands.map((b) => {
+    const row = rows.find((r) => num(r.isTotal) === 0 && num(r.bucket) === b.ordinal);
     return {
-      key,
-      label: DUES_BUCKET_LABELS[key],
+      key: b.key,
+      label: b.label,
+      fromDays: b.fromDays,
+      toDays: b.toDays,
       customers: row ? num(row.customers) : 0,
       outstanding: row ? num(row.outstanding) : 0,
     };
   });
   return {
+    bands,
     buckets,
     totalCustomers: totalRow ? num(totalRow.customers) : 0,
     totalOutstanding: totalRow ? num(totalRow.outstanding) : 0,
@@ -340,20 +409,23 @@ export async function getDuesByExecutive(sql: SqlClient): Promise<DuesByExecutiv
  *  item within this band. Optional SE/city filter; tagged with the owning SE. */
 export async function listAdminDuesCustomers(
   sql: SqlClient,
-  bucket: DuesBucket,
+  bucket: string,
   context: { executiveId?: string | null; city?: string | null } = {},
 ) {
-  const index = DUES_BUCKETS.indexOf(bucket);
-  if (index < 0) throw new ApiError("VALIDATION", "Unknown dues bucket.", 422);
+  const bands = await loadDuesBands(sql);
+  const band = bands.find((b) => b.key === bucket);
+  if (!band) throw new ApiError("VALIDATION", "Unknown dues bucket.", 422);
+  const bucketCase = bandCaseSql("i.age_days", bands);
   const executiveId = context.executiveId ?? null;
   const city = context.city ?? null;
 
-  const rows = (await sql`
+  const rows = (await sql.query(
+    `
     /* dues_customers_admin */
     with items as (
       select
         i.customer_id,
-        (case when i.age_days <= 30 then 0 when i.age_days <= 45 then 1 when i.age_days <= 60 then 2 else 3 end) as bucket,
+        ${bucketCase} as bucket,
         i.item_date,
         i.outstanding
       from (
@@ -364,15 +436,15 @@ export async function listAdminDuesCustomers(
           from customer_opening_balances where outstanding_amount > 0
       ) i
       join customers c on c.id = i.customer_id
-      where (${executiveId}::uuid is null or c.created_by = ${executiveId}::uuid)
-        and (${city}::text is null or c.address_city = ${city})
+      where ($2::uuid is null or c.created_by = $2::uuid)
+        and ($3::text is null or c.address_city = $3)
     ),
     per_customer as (
       select
         customer_id,
-        sum(outstanding) filter (where bucket = ${index}) as band_outstanding,
+        sum(outstanding) filter (where bucket = $1) as band_outstanding,
         sum(outstanding) as total_outstanding,
-        min(item_date) filter (where bucket = ${index}) as band_oldest_date
+        min(item_date) filter (where bucket = $1) as band_oldest_date
       from items
       group by customer_id
     )
@@ -390,7 +462,9 @@ export async function listAdminDuesCustomers(
     left join users se on se.id = c.created_by
     where pc.band_outstanding > 0
     order by pc.band_outstanding desc
-  `) as Row[];
+  `,
+    [band.ordinal, executiveId, city],
+  )) as Row[];
 
   return rows.map((r) => {
     const bandOldestDate = str(r.bandOldestDate).slice(0, 10);

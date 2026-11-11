@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Building2,
+  CalendarClock,
   CreditCard,
   Lock,
   LogOut,
@@ -23,8 +24,9 @@ import { SecurityPanel } from "./settings-security";
 import { CompanyPanel } from "./settings-company";
 import { RulesPanel } from "./settings-rules";
 import { McpPanel } from "./settings-mcp";
+import { DuesPanel } from "./settings-dues";
 
-type SectionKey = "account" | "security" | "company" | "billing" | "rules" | "mcp";
+type SectionKey = "account" | "security" | "company" | "billing" | "rules" | "dues" | "mcp";
 
 interface SettingsDialogProps {
   readonly role: SettingsRole;
@@ -64,6 +66,7 @@ export function SettingsDialog({
           { key: "company", label: "Company", Icon: Building2, show: role === "SUPER_ADMIN" && !!systemSettings },
           { key: "billing", label: "Billing", Icon: CreditCard, show: role === "SUPER_ADMIN" && !!billingAccess },
           { key: "rules", label: "Business Rules", Icon: SlidersHorizontal, show: role === "SUPER_ADMIN" && !!systemSettings },
+          { key: "dues", label: "Collection Dues", Icon: CalendarClock, show: role === "SUPER_ADMIN" },
           { key: "mcp", label: "MCP", Icon: Plug, show: role === "SUPER_ADMIN" },
         ] as Array<{ key: SectionKey; label: string; Icon: LucideIcon; show: boolean }>
       ).filter((s) => s.show),
@@ -159,6 +162,7 @@ export function SettingsDialog({
           {active === "rules" && systemSettings && (
             <RulesPanel systemSettings={systemSettings} actionConfig={actionConfig} />
           )}
+          {active === "dues" && <DuesPanel actionConfig={actionConfig} />}
           {active === "mcp" && <McpPanel actionConfig={actionConfig} />}
         </section>
       </div>

@@ -112,8 +112,21 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
     if (!data.invoice.startSeq.trim() || Number.isNaN(Number(data.invoice.startSeq))) return "Starting invoice number is required.";
     if (data.godowns.length < 1) return "Add at least one godown.";
     for (const g of data.godowns) if (!g.name.trim() || !g.state.trim() || !g.stateCode.trim()) return "Every godown needs a name, state and GST state code.";
-    if (data.duesBands.length < 1) return "Add at least one dues band.";
-    for (const b of data.duesBands) if (!b.label.trim() || b.fromDays.trim() === "") return "Every dues band needs a from-day and a label.";
+    // Exactly 4 contiguous bands (0 → ∞) — mirrors the server's validateDuesBands.
+    if (data.duesBands.length !== 4) return "There must be exactly 4 collection-dues bands.";
+    for (let i = 0; i < 4; i++) {
+      const b = data.duesBands[i];
+      if (!b.label.trim()) return `Band ${i + 1} needs a label.`;
+      if (b.fromDays.trim() === "" || Number.isNaN(Number(b.fromDays))) return `Band ${i + 1} needs a start day.`;
+    }
+    if (Number(data.duesBands[0].fromDays) !== 0) return "The first band must start at day 0.";
+    if (data.duesBands[3].toDays.trim() !== "") return "The last band must be open-ended — leave its To blank.";
+    for (let i = 0; i < 3; i++) {
+      const to = Number(data.duesBands[i].toDays);
+      if (data.duesBands[i].toDays.trim() === "" || Number.isNaN(to)) return `Band ${i + 1} needs an end day.`;
+      if (Number(data.duesBands[i + 1].fromDays) !== to + 1)
+        return `Band ${i + 2} must start the day after band ${i + 1} ends (no gaps or overlaps).`;
+    }
     return null;
   }
 
@@ -315,16 +328,14 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
 
             {step === 7 && (
               <Step n={8} title="Collection dues bands" lead="How overdue money is aged. A customer sits in one band by how long their oldest overdue invoice has been past due.">
-                <Mand><b className="font-semibold text-foreground">Required</b> — at least one band; the last is open-ended.</Mand>
+                <Mand><b className="font-semibold text-foreground">Exactly 4 bands</b> — contiguous, starting at day 0; the last is open-ended (leave its To blank). Edit the ranges + labels to suit your business.</Mand>
                 {data.duesBands.map((b, i) => (
-                  <div key={i} className="mb-2.5 grid grid-cols-[1fr_1fr] items-end gap-2.5 sm:grid-cols-[90px_90px_1fr_auto]">
+                  <div key={i} className="mb-2.5 grid grid-cols-[1fr_1fr] items-end gap-2.5 sm:grid-cols-[90px_90px_1fr]">
                     <Field label="From"><Input className="font-mono" value={b.fromDays} onChange={(e) => setBand(i, { fromDays: e.target.value })} /></Field>
-                    <Field label="To"><Input className="font-mono" value={b.toDays} onChange={(e) => setBand(i, { toDays: e.target.value })} placeholder="∞" /></Field>
+                    <Field label="To"><Input className="font-mono" value={b.toDays} onChange={(e) => setBand(i, { toDays: e.target.value })} placeholder={i === data.duesBands.length - 1 ? "∞" : ""} /></Field>
                     <Field label="Label"><Input value={b.label} onChange={(e) => setBand(i, { label: e.target.value })} /></Field>
-                    <button onClick={() => data.duesBands.length > 1 && setData((d) => ({ ...d, duesBands: d.duesBands.filter((_, j) => j !== i) }))} className="rounded px-1.5 py-2 text-[12px] font-semibold text-destructive hover:bg-destructive/10">Remove</button>
                   </div>
                 ))}
-                <button onClick={() => setData((d) => ({ ...d, duesBands: [...d.duesBands, { fromDays: "", toDays: "", label: "" }] }))} className="w-full rounded-[7px] border border-dashed border-border bg-transparent p-2.5 text-[13px] font-semibold text-primary hover:bg-primary/10">+ Add band</button>
               </Step>
             )}
 

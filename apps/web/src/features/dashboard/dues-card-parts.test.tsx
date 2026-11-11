@@ -8,7 +8,7 @@ const bucket: DuesBucket = { key: "0_30", label: "0–30d", customers: 3, outsta
 describe("dues card parts", () => {
   it("BucketTile shows the bucket and calls onOpen when clicked (plural)", () => {
     const onOpen = vi.fn();
-    render(<BucketTile bucket={bucket} onOpen={onOpen} />);
+    render(<BucketTile bucket={bucket} accent="border-l-emerald-300" posClass="col-start-2 row-start-1" onOpen={onOpen} />);
     expect(screen.getByText("0–30d")).toBeInTheDocument();
     expect(screen.getByText("3 customers")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button"));
@@ -16,12 +16,12 @@ describe("dues card parts", () => {
   });
 
   it("BucketTile uses the singular noun for one customer", () => {
-    render(<BucketTile bucket={{ ...bucket, customers: 1 }} onOpen={vi.fn()} />);
+    render(<BucketTile bucket={{ ...bucket, customers: 1 }} accent="border-l-emerald-300" posClass="col-start-2 row-start-1" onOpen={vi.fn()} />);
     expect(screen.getByText("1 customer")).toBeInTheDocument();
   });
 
   it("BucketTile keeps its label but shimmers only the numbers while loading", () => {
-    render(<BucketTile bucket={bucket} onOpen={vi.fn()} loading />);
+    render(<BucketTile bucket={bucket} accent="border-l-emerald-300" posClass="col-start-2 row-start-1" onOpen={vi.fn()} loading />);
     // Label stays constant…
     expect(screen.getByText("0–30d")).toBeInTheDocument();
     // …but the amount + customer count are replaced by shimmers, and it's inert.

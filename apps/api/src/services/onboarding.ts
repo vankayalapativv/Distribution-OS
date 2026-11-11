@@ -10,6 +10,7 @@
  */
 import { ApiError } from "../lib/errors";
 import { isUniqueViolation } from "../lib/pg-errors";
+import { validateDuesBands } from "./dues";
 import type { SqlClient } from "../lib/db";
 
 export type OnboardingState = "no_account" | "draft" | "pending" | "active" | "rejected";
@@ -203,12 +204,9 @@ export function validateOnboarding(p: OnboardingPayload): OnboardingPayload {
   });
   if (!Number.isFinite(p.tracking?.seAutoStopHour) || !Number.isFinite(p.tracking?.logisticsAutoStopHour))
     throw new ApiError("VALIDATION", "SE and Logistics auto-stop times are required.", 422);
-  if (!Array.isArray(p.duesBands) || p.duesBands.length < 1)
-    throw new ApiError("VALIDATION", "At least one dues band is required.", 422);
-  p.duesBands.forEach((b, i) => {
-    req(b.label, `duesBands[${i}].label`);
-    if (!Number.isFinite(b.fromDays)) throw new ApiError("VALIDATION", `duesBands[${i}].fromDays is required.`, 422);
-  });
+  // Exactly 4 contiguous bands (0 → ∞), ranges + labels editable — same rule the
+  // Settings → Collection Dues editor enforces.
+  validateDuesBands(p.duesBands);
   return p;
 }
 

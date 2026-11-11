@@ -2,13 +2,17 @@
  *  Aging is "as of today" (oldest unpaid invoice/opening balance), the same
  *  rule the mobile SE dues view uses — see apps/api/src/services/dues.ts. */
 
-export type DuesBucketKey = "0_30" | "30_45" | "45_60" | "60_plus";
+/** A band key — the enterprise's dues-band ordinal as a string (server-driven,
+ *  variable count), not the legacy fixed 4. */
+export type DuesBucketKey = string;
 
 export interface DuesBucket {
   key: DuesBucketKey;
   label: string;
   customers: number;
   outstanding: number;
+  fromDays?: number;
+  toDays?: number | null;
 }
 
 export interface DuesSummary {
@@ -32,11 +36,20 @@ export interface DuesCustomerRow {
   totalOutstanding: number;
 }
 
-/** Subtle severity accent per bucket (older = hotter), matching the finance
- *  cards' border-l language. */
-export const DUES_ACCENT: Record<DuesBucketKey, string> = {
-  "0_30": "border-l-emerald-300",
-  "30_45": "border-l-yellow-300",
-  "45_60": "border-l-orange-300",
-  "60_plus": "border-l-rose-300",
-};
+/** Subtle severity accent graded by a band's POSITION (newest = coolest, oldest
+ *  = hottest), so it works for any number of server-driven bands — matching the
+ *  finance cards' border-l language. */
+const ACCENT_STOPS = [
+  "border-l-emerald-300",
+  "border-l-lime-300",
+  "border-l-yellow-300",
+  "border-l-amber-300",
+  "border-l-orange-300",
+  "border-l-rose-300",
+] as const;
+
+export function accentForIndex(index: number, total: number): string {
+  if (total <= 1) return ACCENT_STOPS[0];
+  const pos = Math.round((index / (total - 1)) * (ACCENT_STOPS.length - 1));
+  return ACCENT_STOPS[Math.max(0, Math.min(ACCENT_STOPS.length - 1, pos))];
+}

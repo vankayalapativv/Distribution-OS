@@ -128,7 +128,7 @@ describe("OrderDetailView — cancellation reason banner", () => {
       <OrderDetailView
         order={makeOrder({
           skuProgress: [
-            { orderItemId: "i1", label: "Oil", packSizeLitres: 1, orderedUnits: 4, cancelledUnits: 2, invoicedUnits: 2, remainingUnits: 0, returnedUnits: 0 },
+            { orderItemId: "i1", label: "Oil", packSizeLitres: 1, orderedUnits: 4, cancelledUnits: 2, invoicedUnits: 2, deliveredUnits: 0, remainingUnits: 0, returnedUnits: 0 },
           ],
         })}
         role="SUPER_ADMIN"

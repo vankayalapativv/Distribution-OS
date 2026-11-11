@@ -53,8 +53,8 @@ describe("OrderOilLines", () => {
 
   it("shows the summed total litres only when a pack size is set", () => {
     setup([
-      { uid: "a", segment: "", productId: "p", packSizeLitres: 5, quantityUnits: 4 },
-      { uid: "b", segment: "", productId: "p", packSizeLitres: 0, quantityUnits: 9 },
+      { uid: "a", brand: "", segment: "", productId: "p", packSizeLitres: 5, quantityUnits: 4 },
+      { uid: "b", brand: "", segment: "", productId: "p", packSizeLitres: 0, quantityUnits: 9 },
     ]);
     expect(screen.getByText(/20\s*L/)).toBeInTheDocument();
   });

@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { SearchSelect } from "@/components/ui/search-select";
 import type { Product } from "./orders-api";
-import { SEGMENT_OPTIONS, oilLineView, type LineItemDraft } from "./orders-create-helpers";
+import { brandOptions, oilLineView, segmentOptionsForBrand, type LineItemDraft } from "./orders-create-helpers";
 import { OrderOilProductCombobox } from "./order-oil-product-combobox";
 import { OrderRowDelete } from "./order-row-delete";
 
@@ -39,12 +39,28 @@ export function OrderOilLineRow({
   onProductSearchChange,
 }: OrderOilLineRowProps) {
   const { packOptions, lineLitres, isQuantity } = oilLineView(item, products);
+  const brands = brandOptions(products);
+  const segmentItems = segmentOptionsForBrand(products, item.brand);
 
   return (
-    <div className="grid grid-cols-[2fr_4fr_2fr_72px_32px] gap-2 items-center rounded-lg border border-border bg-muted/20 px-3 py-2.5">
-      {/* Segment — app's searchable select (matches the Customer / Executive fields) */}
+    <div className="grid grid-cols-[1.6fr_1.6fr_3fr_1.6fr_112px_32px] gap-2 items-center rounded-lg border border-border bg-muted/20 px-3 py-2.5">
+      {/* Company (brand) — first cascade step: Company → Segment → SKU → Pack */}
       <SearchSelect
-        items={[{ value: "", label: "Segment" }, ...SEGMENT_OPTIONS]}
+        items={[{ value: "", label: "Company" }, ...brands.map((b) => ({ value: b, label: b }))]}
+        valueKey={item.brand}
+        getKey={(o) => o.value}
+        getLabel={(o) => o.label}
+        onSelect={(v) => onUpdateLineItem(index, "brand", v)}
+        placeholder="Company"
+        searchPlaceholder="Search…"
+        emptyText="No match"
+        triggerClassName="!h-8"
+        contentClassName="w-[180px] p-0"
+      />
+
+      {/* Segment — filtered to the chosen company's segments */}
+      <SearchSelect
+        items={[{ value: "", label: "Segment" }, ...segmentItems]}
         valueKey={item.segment}
         getKey={(o) => o.value}
         getLabel={(o) => o.label}
@@ -96,18 +112,19 @@ export function OrderOilLineRow({
         />
       )}
 
-      {/* Qty + live total */}
-      <div className="flex flex-col items-end gap-0.5">
+      {/* Qty + live total — litres sit inline to the LEFT of the input so the row
+          height matches the dropdowns (no dangling line below the box). */}
+      <div className="flex items-center justify-end gap-1.5">
+        {lineLitres !== null && (
+          <span className="whitespace-nowrap text-[10px] text-muted-foreground">{lineLitres} L</span>
+        )}
         <Input
           type="number"
           min={1}
-          className="h-8 text-sm bg-background text-right"
+          className="h-8 w-14 text-sm bg-background text-right"
           value={item.quantityUnits}
           onChange={(e) => onUpdateLineItem(index, "quantityUnits", Number(e.target.value))}
         />
-        {lineLitres !== null && (
-          <span className="text-[10px] text-muted-foreground">{lineLitres} L</span>
-        )}
       </div>
 
       <OrderRowDelete canRemove={canRemove} onRemove={() => onRemoveLineItem(index)} />

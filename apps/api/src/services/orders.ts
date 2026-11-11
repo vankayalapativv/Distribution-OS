@@ -426,7 +426,9 @@ export async function updateOrder(
       oi.id,
       (oi.product_id is not null) as "isOil",
       oi.pack_size_litres as "packSizeLitres",
-      coalesce(al.alloc, 0)::numeric as "invoicedUnits"
+      oi.quantity_units as "orderedUnits",
+      coalesce(al.alloc, 0)::numeric as "invoicedUnits",
+      coalesce(dl.delivered, 0)::numeric as "deliveredUnits"
     from order_items oi
     left join (
       select a.order_item_id, sum(a.quantity_units) as alloc
@@ -434,6 +436,13 @@ export async function updateOrder(
       join invoices iv on iv.id = a.invoice_id and iv.approval_status <> 'rejected' and iv.doc_status <> 'cancelled'
       group by a.order_item_id
     ) al on al.order_item_id = oi.id
+    left join (
+      select a.order_item_id, sum(a.quantity_units) as delivered
+      from invoice_line_allocations a
+      join invoices iv on iv.id = a.invoice_id and iv.approval_status <> 'rejected' and iv.doc_status <> 'cancelled'
+      join delivery_run_stops ds on ds.invoice_id = iv.id
+      group by a.order_item_id
+    ) dl on dl.order_item_id = oi.id
     where oi.order_id = ${orderId}::uuid
   `;
   const existingById = new Map(
@@ -442,7 +451,9 @@ export async function updateOrder(
       {
         isOil: r.isOil === true,
         pack: r.packSizeLitres == null ? 0 : Number(r.packSizeLitres),
-        invoiced: Number(r.invoicedUnits),
+        ordered: Number(r.orderedUnits) || 0,
+        invoiced: Number(r.invoicedUnits) || 0,
+        delivered: Number(r.deliveredUnits) || 0,
       },
     ]),
   );
@@ -453,11 +464,13 @@ export async function updateOrder(
   const lockedItems = input.items.filter((i) => i.orderItemId);
   const freshItems = input.items.filter((i) => !i.orderItemId);
 
-  // A billed line can never drop below its invoiced quantity — enforced here so
-  // even a misbehaving client can't under-bill.
   for (const li of lockedItems) {
     const ex = existingById.get(li.orderItemId as string);
     if (!ex) throw new ApiError("INVALID_FIELD", "Unknown order line.", 422);
+    // The committed (invoiced/delivered) units are immutable; only the un-invoiced
+    // REMAINDER can be raised or lowered. A line can therefore never drop below its
+    // invoiced quantity — which also protects the delivered units (delivered ≤
+    // invoiced) — so even a misbehaving client can't under-bill or un-ship goods.
     if (li.quantityUnits < ex.invoiced) {
       throw new ApiError(
         "INVALID_FIELD",

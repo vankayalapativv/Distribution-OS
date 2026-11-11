@@ -82,6 +82,18 @@ describe("orderActionFlags", () => {
     expect(flags(order({ fullyInvoiced: true }), true, true).canGenerate).toBe(false);
   });
 
+  it("partially_returned with an un-invoiced remainder still allows Create Invoice", () => {
+    expect(flags(order({ fulfillmentStatus: "partially_returned", fullyInvoiced: false }), true, true).canGenerate).toBe(true);
+  });
+
+  it("partially_returned that is fully invoiced does NOT allow Create Invoice", () => {
+    expect(flags(order({ fulfillmentStatus: "partially_returned", fullyInvoiced: true }), true, true).canGenerate).toBe(false);
+  });
+
+  it("returned with an un-invoiced remainder still allows Create Invoice", () => {
+    expect(flags(order({ fulfillmentStatus: "returned", fullyInvoiced: false }), true, true).canGenerate).toBe(true);
+  });
+
   it("cancelled order: nothing but the (disabled) manage right; not hidden", () => {
     const f = flags(order({ orderStatus: "cancelled" }), true, true);
     expect(f).toMatchObject({ canGenerate: false, canEdit: false, canCancel: true, hidden: false });

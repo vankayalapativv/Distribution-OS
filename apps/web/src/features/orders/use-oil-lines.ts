@@ -41,6 +41,10 @@ export function useOilLines(open: boolean, initial?: LineItemDraft[]) {
     setLineItems((prev) =>
       prev.map((item, i) => {
         if (i !== index) return item;
+        // Company is the top of the cascade — changing it clears segment/product/pack.
+        if (field === "brand") {
+          return { ...item, brand: value as string, segment: "", productId: "", packSizeLitres: 0 };
+        }
         // When segment changes, reset product selection
         if (field === "segment") {
           return { ...item, segment: value as string, productId: "", packSizeLitres: 0 };
@@ -52,7 +56,7 @@ export function useOilLines(open: boolean, initial?: LineItemDraft[]) {
         return { ...item, [field]: value };
       }),
     );
-    if (field === "segment") {
+    if (field === "brand" || field === "segment") {
       setProductSearches((prev) => prev.map((s, i) => (i === index ? "" : s)));
     }
   }
@@ -70,8 +74,13 @@ export function useOilLines(open: boolean, initial?: LineItemDraft[]) {
     setProductPopoverOpen((prev) => prev.map((v, i) => (i === index ? false : v)));
   }
 
-  function selectProduct(index: number, productId: string) {
-    updateLineItem(index, "productId", productId);
+  function selectProduct(index: number, productId: string, brand?: string | null) {
+    // Set product + its company in one update (never resets the chosen segment).
+    setLineItems((prev) =>
+      prev.map((item, i) =>
+        i === index ? { ...item, productId, packSizeLitres: 0, brand: brand || item.brand } : item,
+      ),
+    );
     closeProductPopover(index);
   }
 

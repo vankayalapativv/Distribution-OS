@@ -163,6 +163,19 @@ describe("updateOrder", () => {
     await expect(updateOrder(makeSql(partial), CTX, "ord-1", { customerId: CUST, items: [{ orderItemId: "ghost", quantityUnits: 1 }] })).rejects.toMatchObject({ status: 422 });
     await expect(updateOrder(makeSql(partial), CTX, "ord-1", { customerId: CUST, items: [{ orderItemId: "oi-1", quantityUnits: 1 }] })).rejects.toMatchObject({ status: 422 });
   });
+
+  it("lets a delivered line's remainder be adjusted but never drop below the shipped qty", async () => {
+    const delivered = {
+      ...agg({ invoiceCount: 1, deliveredCount: 1, invOil: 50, ordOil: 100 }),
+      // ordered 5, invoiced 4, delivered 4 → the 4 shipped are locked, 1 remains.
+      order_items_for_partial_update: [{ id: "oi-1", isOil: true, packSizeLitres: "5", orderedUnits: "5", invoicedUnits: "4", deliveredUnits: "4" }],
+      ...PRODUCTS,
+    };
+    // Raising the un-invoiced remainder (6 ≥ 4 billed) is allowed.
+    await updateOrder(makeSql(delivered), CTX, "ord-1", { customerId: CUST, items: [{ orderItemId: "oi-1", quantityUnits: 6 }] });
+    // Dropping below the invoiced/delivered floor (3 < 4) is rejected — goods already shipped.
+    await expect(updateOrder(makeSql(delivered), CTX, "ord-1", { customerId: CUST, items: [{ orderItemId: "oi-1", quantityUnits: 3 }] })).rejects.toMatchObject({ status: 422 });
+  });
 });
 
 describe("cancelOrder", () => {

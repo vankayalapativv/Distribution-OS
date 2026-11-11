@@ -16,20 +16,37 @@ export interface EditableOrder {
     quantityUnits: number;
     packSizeLitres: number | null;
     segment: string | null;
+    /** Brand (company) of the line, carried for the locked-lines display. */
+    brand?: string | null;
     /** Units already billed on this line (partial delivery). >0 ⇒ locked line. */
     invoicedUnits?: number;
+    /** Units on a DELIVERED invoice. >0 ⇒ the line is read-only (goods shipped). */
+    deliveredUnits?: number;
     /** Display name for the locked-lines editor. */
     label?: string;
   }[];
 }
 
-/** A line that's already (partly) invoiced: its quantity is editable down to the
- *  billed amount, but the line can't be removed or its product changed. */
+/** A line that's already (partly) invoiced. If NOT yet delivered, its quantity is
+ *  editable down to the billed amount; once DELIVERED it's fully read-only. Either
+ *  way the line can't be removed or its product changed. */
 export interface LockedLine {
   orderItemId: string;
+  /** SKU / product name. */
   label: string;
+  /** Brand (company), segment and pack size — shown to match the actual order. */
+  brand: string | null;
+  segment: string | null;
+  packSizeLitres: number | null;
   invoicedUnits: number;
-  /** Editable total quantity (string for the input); never below invoicedUnits. */
+  /** Units on a delivered invoice; >0 ⇒ those units are read-only. */
+  deliveredUnits: number;
+  /** The ORIGINAL ordered quantity at open time (immutable). Decides whether this
+   *  line has an un-invoiced remainder to edit — fixed, so clearing the remainder
+   *  field to 0 can't make the editor row vanish mid-edit. */
+  orderedUnits: number;
+  /** Total quantity (string for the input): the committed (invoiced) units plus the
+   *  edited remainder; never below invoicedUnits. */
   quantityUnits: string;
 }
 

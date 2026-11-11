@@ -21,8 +21,9 @@ export interface FetchedOrderForEdit {
     packSizeLitres: number | null;
     segment: string | null;
     productName: string | null;
+    brand?: string | null;
   }[];
-  skuProgress?: { orderItemId: string; invoicedUnits: number }[];
+  skuProgress?: { orderItemId: string; invoicedUnits: number; deliveredUnits?: number }[];
 }
 
 /** Map a fetched order into the create/edit dialog's shape, merging per-line
@@ -30,6 +31,9 @@ export interface FetchedOrderForEdit {
 export function mapFetchedToEditable(order: FetchedOrderForEdit): EditableOrder {
   const invoicedByItem = new Map(
     (order.skuProgress ?? []).map((s) => [s.orderItemId, s.invoicedUnits]),
+  );
+  const deliveredByItem = new Map(
+    (order.skuProgress ?? []).map((s) => [s.orderItemId, s.deliveredUnits ?? 0]),
   );
   return {
     id: order.id,
@@ -43,7 +47,9 @@ export function mapFetchedToEditable(order: FetchedOrderForEdit): EditableOrder 
       quantityUnits: it.quantityUnits,
       packSizeLitres: it.packSizeLitres,
       segment: it.segment,
+      brand: it.brand ?? null,
       invoicedUnits: invoicedByItem.get(it.id) ?? 0,
+      deliveredUnits: deliveredByItem.get(it.id) ?? 0,
       label: it.productName ?? "Item",
     })),
   };
@@ -63,6 +69,10 @@ export interface OrderActionFlags {
  *  • ordered → Create Invoice + full edit + cancel.
  *  • partially_delivered → Create Invoice + remainder-edit (SA/Manager/Accountant) + cancel.
  *  • invoiced → cancel only. Invoicing stops once fully invoiced.
+ *  • partially_returned / returned → Create Invoice too, IF an un-invoiced remainder
+ *    is still left (a return never blocks billing the unbilled balance).
+ * The real "is there anything to bill" gate is `!fullyInvoiced`; the stage set just
+ * excludes the terminal states (delivered/invoiced/cancelled/short-closed).
  */
 export function orderActionFlags(
   o: Order,
@@ -79,7 +89,11 @@ export function orderActionFlags(
     !cancelled &&
     canInvoice &&
     !o.fullyInvoiced &&
-    (stage === "ordered" || stage === "partially_invoiced" || stage === "partially_delivered");
+    (stage === "ordered" ||
+      stage === "partially_invoiced" ||
+      stage === "partially_delivered" ||
+      stage === "partially_returned" ||
+      stage === "returned");
   const canEdit =
     !cancelled &&
     ((canCreate && stage === "ordered") ||

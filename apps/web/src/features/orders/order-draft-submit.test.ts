@@ -4,12 +4,12 @@ import type { LineItemDraft } from "./orders-create-helpers";
 import type { LockedLine } from "./order-draft-types";
 import type { Product } from "./orders-api";
 
-const oil = (over: Partial<LineItemDraft>): LineItemDraft => ({ uid: crypto.randomUUID(), segment: "", productId: "", packSizeLitres: 0, quantityUnits: 1, ...over });
-const locked = (over: Partial<LockedLine>): LockedLine => ({ orderItemId: "oi", label: "L", invoicedUnits: 2, quantityUnits: "5", ...over });
+const oil = (over: Partial<LineItemDraft>): LineItemDraft => ({ uid: crypto.randomUUID(), brand: "", segment: "", productId: "", packSizeLitres: 0, quantityUnits: 1, ...over });
+const locked = (over: Partial<LockedLine>): LockedLine => ({ orderItemId: "oi", label: "L", brand: null, segment: null, packSizeLitres: null, invoicedUnits: 2, deliveredUnits: 0, orderedUnits: 5, quantityUnits: "5", ...over });
 const products: Product[] = [
-  { id: "p1", productName: "Oil 1", unit: "litres", segments: ["Car"], packSizes: [1, 5] },
-  { id: "p2", productName: "Oil 2", unit: "litres", segments: ["Car"], packSizes: [1] },
-  { id: "q1", productName: "Grease", unit: "quantity", segments: ["Car"], packSizes: [] },
+  { id: "p1", productName: "Oil 1", brand: "Fuchs", unit: "litres", segments: ["Car"], packSizes: [1, 5] },
+  { id: "p2", productName: "Oil 2", brand: "Fuchs", unit: "litres", segments: ["Car"], packSizes: [1] },
+  { id: "q1", productName: "Grease", brand: "Fuchs", unit: "quantity", segments: ["Car"], packSizes: [] },
 ];
 
 describe("collectDraftItems", () => {

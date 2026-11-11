@@ -553,6 +553,7 @@ export async function getOrderById(
       oi.quantity_units as "orderedUnits",
       coalesce(oi.cancelled_units, 0)::numeric as "cancelledUnits",
       coalesce(al.alloc, 0)::numeric as "invoicedUnits",
+      coalesce(dl.delivered, 0)::numeric as "deliveredUnits",
       coalesce(rt.returned, 0)::numeric as "returnedUnits"
     from order_items oi
     join products p on p.id = oi.product_id
@@ -562,6 +563,14 @@ export async function getOrderById(
       join invoices iv on iv.id = a.invoice_id and iv.approval_status <> 'rejected' and iv.doc_status <> 'cancelled'
       group by a.order_item_id
     ) al on al.order_item_id = oi.id
+    left join (
+      -- Units allocated to an invoice that has been DELIVERED (has a delivery stop).
+      select a.order_item_id, sum(a.quantity_units) as delivered
+      from invoice_line_allocations a
+      join invoices iv on iv.id = a.invoice_id and iv.approval_status <> 'rejected' and iv.doc_status <> 'cancelled'
+      join delivery_run_stops ds on ds.invoice_id = iv.id
+      group by a.order_item_id
+    ) dl on dl.order_item_id = oi.id
     left join (
       select sri.order_item_id, sum(sri.quantity_units) as returned
       from sales_return_items sri
@@ -584,6 +593,8 @@ export async function getOrderById(
       orderedUnits: ordered,
       cancelledUnits: num(r.cancelledUnits),
       invoicedUnits: invoiced,
+      // Units on a delivered invoice — these lines are locked from editing.
+      deliveredUnits: num(r.deliveredUnits),
       remainingUnits: Math.max(0, ordered - invoiced),
       returnedUnits: num(r.returnedUnits),
     };
@@ -606,8 +617,42 @@ export async function getOrderById(
     delivery: first?.delivered ? { deliveredAt: first.deliveredAt ?? "" } : null,
   };
 
+  // Fulfillment ladder + fully-invoiced flag, derived from the data already
+  // gathered above with the SAME logic as the list query's CASE (orders-queries
+  // `list_orders`). Without these the detail page sees fulfillmentStatus = null →
+  // treats every order as "ordered" → shows Create Invoice on delivered/invoiced/
+  // returned orders. Gating MUST match the list, so keep this in step with it.
+  const mapped = mapOrderRow(rows[0]);
+  const activeShipments = shipments.filter((s) => !s.cancelled);
+  const invoiceCount = activeShipments.length;
+  const deliveredCount = activeShipments.filter((s) => s.delivered).length;
+  const fullyInvoiced = skuProgress.every((s) => s.invoicedUnits >= s.orderedUnits - 0.001);
+  const shortClosed = skuProgress.some((s) => s.cancelledUnits > 0);
+  const returnedUnits = skuProgress.reduce((sum, s) => sum + s.returnedUnits, 0);
+  const allBilledReturned = skuProgress.every((s) => s.invoicedUnits - s.returnedUnits <= 0.001);
+  const fulfillmentStatus =
+    mapped.orderStatus === "cancelled"
+      ? "cancelled"
+      : shortClosed
+        ? "partially_cancelled"
+        : returnedUnits > 0 && allBilledReturned
+          ? "returned"
+          : returnedUnits > 0
+            ? "partially_returned"
+            : invoiceCount === 0
+              ? "ordered"
+              : deliveredCount === 0 && !fullyInvoiced
+                ? "partially_invoiced"
+                : deliveredCount === 0
+                  ? "invoiced"
+                  : deliveredCount >= invoiceCount && fullyInvoiced
+                    ? "delivered"
+                    : "partially_delivered";
+
   return {
-    ...mapOrderRow(rows[0]),
+    ...mapped,
+    fulfillmentStatus,
+    fullyInvoiced,
     items: itemRows.map(mapOrderItemRow),
     fulfillment,
     shipments,

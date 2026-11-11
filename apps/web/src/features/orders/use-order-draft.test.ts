@@ -22,7 +22,7 @@ const ev = { preventDefault: vi.fn() } as any;
 const args = (over: Record<string, unknown> = {}) => ({
   open: true,
   onOpenChange: vi.fn(),
-  products: [{ id: "p1", productName: "Oil 1", unit: "litres" as const, segments: ["Car"], packSizes: [1] }],
+  products: [{ id: "p1", productName: "Oil 1", brand: "Fuchs", unit: "litres" as const, segments: ["Car"], packSizes: [1] }],
   actionConfig: cfg,
   ...over,
 });
@@ -53,7 +53,7 @@ describe("useOrderDraft — create mode", () => {
   });
 
   it("POSTs a valid new order, then invalidates + closes", async () => {
-    oilItems = [{ uid: "o1", segment: "", productId: "p1", packSizeLitres: 1, quantityUnits: 5 }];
+    oilItems = [{ uid: "o1", brand: "", segment: "", productId: "p1", packSizeLitres: 1, quantityUnits: 5 }];
     apiRequest.mockResolvedValue({});
     const onOpenChange = vi.fn();
     const onCreated = vi.fn();
@@ -68,7 +68,7 @@ describe("useOrderDraft — create mode", () => {
   });
 
   it("surfaces an API error without closing", async () => {
-    oilItems = [{ uid: "o1", segment: "", productId: "p1", packSizeLitres: 1, quantityUnits: 5 }];
+    oilItems = [{ uid: "o1", brand: "", segment: "", productId: "p1", packSizeLitres: 1, quantityUnits: 5 }];
     apiRequest.mockRejectedValue(new Error("boom"));
     const { result } = renderHook(() => useOrderDraft(args({ initialCustomerId: "c1" })));
     await act(async () => {

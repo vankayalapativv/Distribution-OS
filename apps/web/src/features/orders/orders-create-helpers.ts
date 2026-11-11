@@ -12,6 +12,8 @@ export const SEGMENT_OPTIONS = [
 export interface LineItemDraft {
   /** Stable client id for React keys (drafts have no server id yet). */
   uid: string;
+  /** Company (brand) — the first cascade step: Company → Segment → SKU → Pack. */
+  brand: string;
   segment: string;
   productId: string;
   packSizeLitres: number;
@@ -19,7 +21,24 @@ export interface LineItemDraft {
 }
 
 export function emptyLineItem(): LineItemDraft {
-  return { uid: crypto.randomUUID(), segment: "", productId: "", packSizeLitres: 0, quantityUnits: 1 };
+  return { uid: crypto.randomUUID(), brand: "", segment: "", productId: "", packSizeLitres: 0, quantityUnits: 1 };
+}
+
+type BrandedProduct = { brand?: string | null; segments: string[] };
+
+/** Distinct company (brand) names across the catalogue, sorted. */
+export function brandOptions(products: BrandedProduct[]): string[] {
+  return [...new Set(products.map((p) => p.brand).filter((b): b is string => !!b))].sort((a, b) =>
+    a.localeCompare(b),
+  );
+}
+
+/** Segment options available for the chosen company (all of SEGMENT_OPTIONS when
+ *  no company is picked yet), preserving the canonical order. */
+export function segmentOptionsForBrand(products: BrandedProduct[], brand: string) {
+  if (!brand) return SEGMENT_OPTIONS;
+  const avail = new Set(products.filter((p) => p.brand === brand).flatMap((p) => p.segments));
+  return SEGMENT_OPTIONS.filter((o) => avail.has(o.value));
 }
 
 /** True when the picked product is sold by the piece (no pack size). */

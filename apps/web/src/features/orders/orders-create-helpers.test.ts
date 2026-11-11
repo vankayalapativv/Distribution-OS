@@ -20,20 +20,20 @@ describe("oilLineView", () => {
   ];
 
   it("returns the selected product's pack sizes", () => {
-    const v = oilLineView({ uid: "t", segment: "", productId: "p1", packSizeLitres: 0, quantityUnits: 1 }, products);
+    const v = oilLineView({ uid: "t", brand: "", segment: "", productId: "p1", packSizeLitres: 0, quantityUnits: 1 }, products);
     expect(v.packOptions).toEqual([1, 5]);
   });
 
   it("gives no pack options when no product is selected or it is unknown", () => {
     expect(oilLineView(emptyLineItem(), products).packOptions).toEqual([]);
     expect(
-      oilLineView({ uid: "t", segment: "", productId: "nope", packSizeLitres: 0, quantityUnits: 1 }, products).packOptions,
+      oilLineView({ uid: "t", brand: "", segment: "", productId: "nope", packSizeLitres: 0, quantityUnits: 1 }, products).packOptions,
     ).toEqual([]);
   });
 
   it("computes total litres only once both pack size and quantity are positive", () => {
-    expect(oilLineView({ uid: "t", segment: "", productId: "p2", packSizeLitres: 20, quantityUnits: 3 }, products).lineLitres).toBe(60);
-    expect(oilLineView({ uid: "t", segment: "", productId: "p2", packSizeLitres: 0, quantityUnits: 3 }, products).lineLitres).toBeNull();
-    expect(oilLineView({ uid: "t", segment: "", productId: "p2", packSizeLitres: 20, quantityUnits: 0 }, products).lineLitres).toBeNull();
+    expect(oilLineView({ uid: "t", brand: "", segment: "", productId: "p2", packSizeLitres: 20, quantityUnits: 3 }, products).lineLitres).toBe(60);
+    expect(oilLineView({ uid: "t", brand: "", segment: "", productId: "p2", packSizeLitres: 0, quantityUnits: 3 }, products).lineLitres).toBeNull();
+    expect(oilLineView({ uid: "t", brand: "", segment: "", productId: "p2", packSizeLitres: 20, quantityUnits: 0 }, products).lineLitres).toBeNull();
   });
 });

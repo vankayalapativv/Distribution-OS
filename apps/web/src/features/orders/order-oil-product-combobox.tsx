@@ -13,11 +13,12 @@ interface OrderOilProductComboboxProps {
   readonly onRegisterSearchInput: (index: number, el: HTMLInputElement | null) => void;
   readonly onOpenProductPopover: (index: number) => void;
   readonly onCloseProductPopover: (index: number) => void;
-  readonly onSelectProduct: (index: number, productId: string) => void;
+  readonly onSelectProduct: (index: number, productId: string, brand?: string | null) => void;
   readonly onProductSearchChange: (index: number, value: string) => void;
 }
 
-/** The oil line's product picker: searchable, filtered by the row's segment + query. */
+/** The oil line's product picker: searchable, filtered by the row's company +
+ *  segment + query. */
 export function OrderOilProductCombobox({
   index,
   item,
@@ -32,9 +33,10 @@ export function OrderOilProductCombobox({
 }: OrderOilProductComboboxProps) {
   const query = search.toLowerCase();
   const filteredProducts = products.filter((p) => {
+    const matchesBrand = !item.brand || p.brand === item.brand;
     const matchesSeg = !item.segment || p.segments.includes(item.segment);
     const matchesQuery = !query || p.productName.toLowerCase().includes(query);
-    return matchesSeg && matchesQuery;
+    return matchesBrand && matchesSeg && matchesQuery;
   });
 
   return (
@@ -57,7 +59,7 @@ export function OrderOilProductCombobox({
       items={filteredProducts}
       getKey={(p) => p.id}
       isSelected={(p) => item.productId === p.id}
-      onSelect={(p) => onSelectProduct(index, p.id)}
+      onSelect={(p) => onSelectProduct(index, p.id, p.brand)}
       renderItem={(p) => p.productName}
       itemClassName="flex w-full items-center px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
       emptyText={item.segment ? `No products for "${item.segment}"` : "No products found"}

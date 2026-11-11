@@ -37,7 +37,8 @@ export function OrderOilLines({
   return (
     <>
       {/* Column headers */}
-      <div className="grid grid-cols-[2fr_4fr_2fr_72px_32px] gap-2 px-1">
+      <div className="grid grid-cols-[1.6fr_1.6fr_3fr_1.6fr_112px_32px] gap-2 px-1">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company</span>
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Segment</span>
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Product</span>
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pack Size</span>

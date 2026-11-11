@@ -39,6 +39,9 @@ export interface SkuProgress {
   /** Un-invoiced remainder cancelled by a short-close (0 for normal lines). */
   cancelledUnits: number;
   invoicedUnits: number;
+  /** Units billed on an invoice that has been DELIVERED — the line is then locked
+   *  from editing (the goods have shipped). */
+  deliveredUnits: number;
   remainingUnits: number;
   /** Units returned via sales returns (may be 0). */
   returnedUnits: number;

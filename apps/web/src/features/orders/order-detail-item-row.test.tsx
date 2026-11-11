@@ -13,7 +13,7 @@ function item(over: Partial<OrderItem> = {}): OrderItem {
 function sku(over: Partial<SkuProgress> = {}): SkuProgress {
   return {
     orderItemId: "i1", label: "Titan", packSizeLitres: 5,
-    orderedUnits: 8, cancelledUnits: 0, invoicedUnits: 8, remainingUnits: 0, returnedUnits: 0,
+    orderedUnits: 8, cancelledUnits: 0, invoicedUnits: 8, deliveredUnits: 0, remainingUnits: 0, returnedUnits: 0,
     ...over,
   };
 }

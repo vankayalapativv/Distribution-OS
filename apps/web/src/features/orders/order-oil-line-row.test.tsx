@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 // Mock the popover-based SearchSelect with a native <select> so the row's onSelect
-// wiring is driven synchronously (segment = 1st combobox, pack size = 2nd).
+// wiring is driven synchronously (company = 1st combobox, segment = 2nd, pack size = 3rd).
 vi.mock("@/components/ui/search-select", () => ({
   SearchSelect: ({
     items,
@@ -34,8 +34,8 @@ import type { Product } from "./orders-api";
 import { emptyLineItem, type LineItemDraft } from "./orders-create-helpers";
 
 const products: Product[] = [
-  { id: "p1", productName: "Titan GT1", unit: "litres", segments: ["Car"], packSizes: [1, 5] },
-  { id: "q1", productName: "Gear Oil 6203", unit: "quantity", segments: ["Car"], packSizes: [] },
+  { id: "p1", productName: "Titan GT1", brand: "Fuchs", unit: "litres", segments: ["Car"], packSizes: [1, 5] },
+  { id: "q1", productName: "Gear Oil 6203", brand: "Fuchs", unit: "quantity", segments: ["Car"], packSizes: [] },
 ];
 
 function setup(item: LineItemDraft, opts: { canRemove?: boolean } = {}) {
@@ -63,15 +63,21 @@ function setup(item: LineItemDraft, opts: { canRemove?: boolean } = {}) {
 }
 
 describe("OrderOilLineRow", () => {
+  it("changing the company updates the line", () => {
+    const h = setup(emptyLineItem());
+    fireEvent.change(screen.getAllByRole("combobox")[0], { target: { value: "Fuchs" } });
+    expect(h.onUpdateLineItem).toHaveBeenCalledWith(0, "brand", "Fuchs");
+  });
+
   it("changing the segment updates the line", () => {
     const h = setup(emptyLineItem());
-    fireEvent.change(screen.getAllByRole("combobox")[0], { target: { value: "Car" } });
+    fireEvent.change(screen.getAllByRole("combobox")[1], { target: { value: "Car" } });
     expect(h.onUpdateLineItem).toHaveBeenCalledWith(0, "segment", "Car");
   });
 
   it("offers only the selected product's pack sizes and updates on change", () => {
     const h = setup({ ...emptyLineItem(), productId: "p1" });
-    const pack = screen.getAllByRole("combobox")[1];
+    const pack = screen.getAllByRole("combobox")[2];
     expect(screen.getByRole("option", { name: "5 L" })).toBeInTheDocument();
     fireEvent.change(pack, { target: { value: "5" } });
     expect(h.onUpdateLineItem).toHaveBeenCalledWith(0, "packSizeLitres", 5);
@@ -79,7 +85,7 @@ describe("OrderOilLineRow", () => {
 
   it("clearing the pack size sends 0", () => {
     const h = setup({ ...emptyLineItem(), productId: "p1", packSizeLitres: 5 });
-    fireEvent.change(screen.getAllByRole("combobox")[1], { target: { value: "" } });
+    fireEvent.change(screen.getAllByRole("combobox")[2], { target: { value: "" } });
     expect(h.onUpdateLineItem).toHaveBeenCalledWith(0, "packSizeLitres", 0);
   });
 
@@ -104,8 +110,8 @@ describe("OrderOilLineRow", () => {
   it("shows 'By quantity' (no pack picker) for a quantity product", () => {
     setup({ ...emptyLineItem(), productId: "q1" });
     expect(screen.getByText("By quantity")).toBeInTheDocument();
-    // Only the segment combobox remains (no pack-size select for quantity products).
-    expect(screen.getAllByRole("combobox")).toHaveLength(1);
+    // Company + Segment comboboxes remain (no pack-size select for quantity products).
+    expect(screen.getAllByRole("combobox")).toHaveLength(2);
   });
 
   it("removes the line when allowed", () => {

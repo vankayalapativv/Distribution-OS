@@ -10,6 +10,7 @@ export function seedOilLines(order: EditableOrder): LineItemDraft[] {
     .filter((i) => i.productId && !isLocked(i))
     .map((i) => ({
       uid: crypto.randomUUID(),
+      brand: i.brand ?? "",
       segment: i.segment ?? "",
       productId: i.productId!,
       packSizeLitres: i.packSizeLitres ?? 0,
@@ -17,12 +18,18 @@ export function seedOilLines(order: EditableOrder): LineItemDraft[] {
     }));
 }
 
-/** Seed the locked (already-invoiced) lines shown in the quantity-only editor. */
+/** Seed the locked (already-invoiced) lines: delivered ones render read-only, the
+ *  rest as a quantity-only editor. */
 export function seedLockedLines(order: EditableOrder): LockedLine[] {
   return order.items.filter(isLocked).map((i) => ({
     orderItemId: i.orderItemId ?? "",
     label: i.label ?? "Item",
+    brand: i.brand ?? null,
+    segment: i.segment ?? null,
+    packSizeLitres: i.packSizeLitres ?? null,
     invoicedUnits: i.invoicedUnits!, // isLocked guarantees > 0
+    deliveredUnits: i.deliveredUnits ?? 0,
+    orderedUnits: i.quantityUnits,
     quantityUnits: String(i.quantityUnits),
   }));
 }

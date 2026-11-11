@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { addressLine, openInMaps, type DeliverableInvoice } from "../../lib/deliverable-invoice";
 import { ErrorState } from "../error-state";
@@ -16,6 +16,10 @@ export interface InvoicePickerProps {
   onSearch: (t: string) => void;
   onPick: (inv: DeliverableInvoice) => void;
   onBack: () => void;
+  /** Pull-to-refresh: true while a re-fetch is in flight. */
+  refreshing: boolean;
+  /** Pull-to-refresh handler — re-fetches the deliverable invoices from the server. */
+  onRefresh: () => void;
 }
 
 export function InvoicePicker(p: Readonly<InvoicePickerProps>) {
@@ -48,10 +52,15 @@ export function InvoicePicker(p: Readonly<InvoicePickerProps>) {
           return <ErrorState error={p.error} onRetry={p.onRetry} />;
         }
         return (
-          <ScrollView className="flex-1" contentContainerClassName="gap-2.5 px-5 py-3" keyboardShouldPersistTaps="handled">
+          <ScrollView
+            className="flex-1"
+            contentContainerClassName="grow gap-2.5 px-5 py-3"
+            keyboardShouldPersistTaps="handled"
+            refreshControl={<RefreshControl refreshing={p.refreshing} onRefresh={p.onRefresh} tintColor={p.placeholder} />}
+          >
             {p.filtered.length === 0 ? (
               <Text className="py-10 text-center text-sm text-muted-foreground">
-                {p.search.trim() ? "No invoices match your search." : "No invoices to deliver right now."}
+                {p.search.trim() ? "No invoices match your search." : "Pull down to refresh — no invoices to deliver right now."}
               </Text>
             ) : (
               p.filtered.map((inv) => {

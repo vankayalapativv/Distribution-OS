@@ -24,13 +24,16 @@ export default function AddDeliveryScreen() {
 
   // Tab-mounted screen: reset to a clean list on each navigation (the camera
   // round-trip doesn't fire focus, so in-progress photos survive) and re-read
-  // locally-delivered invoices so they drop off immediately.
+  // locally-delivered invoices so they drop off immediately. Also re-fetch the
+  // deliverable list from the server on every open so newly-created invoices show
+  // up without needing an app restart (the list is cache-first otherwise).
   useFocusEffect(
     useCallback(() => {
       setPicked(null);
       setPhotos([]);
       save.setError(null);
       list.reset();
+      void list.invoicesQuery.refetch();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [runClientUuid]),
   );
@@ -81,6 +84,8 @@ export default function AddDeliveryScreen() {
       onSearch={list.setSearch}
       onPick={(inv) => { setPicked(inv); setPhotos([]); save.setError(null); }}
       onBack={() => router.back()}
+      refreshing={list.invoicesQuery.isRefetching}
+      onRefresh={() => void list.invoicesQuery.refetch()}
     />
   );
 }

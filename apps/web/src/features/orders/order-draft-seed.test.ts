@@ -36,8 +36,8 @@ describe("seed*", () => {
 
   it("seeds locked lines from every invoiced line, defaulting id/label", () => {
     expect(seedLockedLines(order)).toEqual([
-      { orderItemId: "oi2", label: "Oil2", invoicedUnits: 2, quantityUnits: "3" },
-      { orderItemId: "", label: "Item", invoicedUnits: 1, quantityUnits: "1" },
+      { orderItemId: "oi2", label: "Oil2", brand: null, segment: null, packSizeLitres: null, invoicedUnits: 2, deliveredUnits: 0, orderedUnits: 3, quantityUnits: "3" },
+      { orderItemId: "", label: "Item", brand: null, segment: null, packSizeLitres: null, invoicedUnits: 1, deliveredUnits: 0, orderedUnits: 1, quantityUnits: "1" },
     ]);
   });
 });

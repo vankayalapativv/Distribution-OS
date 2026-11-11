@@ -12,7 +12,7 @@ function ship(over: Partial<Shipment> = {}): Shipment {
 function sku(over: Partial<SkuProgress> = {}): SkuProgress {
   return {
     orderItemId: "i1", label: "Oil", packSizeLitres: 1,
-    orderedUnits: 10, cancelledUnits: 0, invoicedUnits: 10, remainingUnits: 0, returnedUnits: 0,
+    orderedUnits: 10, cancelledUnits: 0, invoicedUnits: 10, deliveredUnits: 0, remainingUnits: 0, returnedUnits: 0,
     ...over,
   };
 }

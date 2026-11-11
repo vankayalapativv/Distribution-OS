@@ -37,8 +37,8 @@ import type { Product } from "./orders-api";
 import { emptyLineItem, type LineItemDraft } from "./orders-create-helpers";
 
 const products: Product[] = [
-  { id: "p1", productName: "Titan GT1", unit: "litres", segments: ["Car"], packSizes: [1, 5] },
-  { id: "p2", productName: "Agri Super", unit: "litres", segments: ["Agri"], packSizes: [20] },
+  { id: "p1", productName: "Titan GT1", brand: "Fuchs", unit: "litres", segments: ["Car"], packSizes: [1, 5] },
+  { id: "p2", productName: "Agri Super", brand: "Savsol", unit: "litres", segments: ["Agri"], packSizes: [20] },
 ];
 
 function setup(item: LineItemDraft, search = "") {
@@ -96,7 +96,7 @@ describe("OrderOilProductCombobox", () => {
   it("selecting an item and typing search report with the row index", () => {
     const h = setup(emptyLineItem());
     fireEvent.click(screen.getByText("Titan GT1"));
-    expect(h.onSelectProduct).toHaveBeenCalledWith(0, "p1");
+    expect(h.onSelectProduct).toHaveBeenCalledWith(0, "p1", "Fuchs");
     fireEvent.change(screen.getByTestId("search"), { target: { value: "gt1" } });
     expect(h.onProductSearchChange).toHaveBeenCalledWith(0, "gt1");
     expect(h.onRegisterSearchInput).toHaveBeenCalled();

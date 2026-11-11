@@ -97,6 +97,40 @@ describe("getOrderById", () => {
     expect(out).toMatchObject({ id: "ord-1" });
     expect(out.skuProgress[0]).toMatchObject({ orderItemId: "oi-1", orderedUnits: 10, invoicedUnits: 4, remainingUnits: 6 });
     expect(out.fulfillment.delivery).toBeNull(); // no shipment
+    // No invoices yet → "ordered", not fully invoiced (4 of 10 billed).
+    expect(out.fulfillmentStatus).toBe("ordered");
+    expect(out.fullyInvoiced).toBe(false);
+  });
+
+  it("computes fulfillmentStatus = delivered so the detail page hides Create Invoice", async () => {
+    const sql = makeSql({
+      get_order_by_id: [ORDER_ROW],
+      get_order_items: [],
+      // One invoice, delivered (has a delivery stop).
+      get_order_shipments: [{ invoiceId: "iv-1", invoiceCode: "SA/1", docStatus: "approved", deliveryStopId: "ds-1", deliveredAt: "2026-11-11" }],
+      // Every ordered unit billed → fully invoiced.
+      get_order_sku_progress: [
+        { id: "oi-1", label: "Titan", packSizeLitres: "5", orderedUnits: "10", cancelledUnits: "0", invoicedUnits: "10", returnedUnits: "0" },
+      ],
+    });
+    const out = await getOrderById(sql, CTX, "ord-1");
+    expect(out.fulfillmentStatus).toBe("delivered");
+    expect(out.fullyInvoiced).toBe(true);
+  });
+
+  it("reports a partially-delivered order while an un-invoiced remainder is left", async () => {
+    const sql = makeSql({
+      get_order_by_id: [ORDER_ROW],
+      get_order_items: [],
+      get_order_shipments: [{ invoiceId: "iv-1", invoiceCode: "SA/1", docStatus: "approved", deliveryStopId: "ds-1", deliveredAt: "2026-11-11" }],
+      // 4 of 5 billed+delivered, 1 still un-invoiced.
+      get_order_sku_progress: [
+        { id: "oi-1", label: "Titan", packSizeLitres: "1", orderedUnits: "5", cancelledUnits: "0", invoicedUnits: "4", returnedUnits: "0" },
+      ],
+    });
+    const out = await getOrderById(sql, CTX, "ord-1");
+    expect(out.fulfillmentStatus).toBe("partially_delivered");
+    expect(out.fullyInvoiced).toBe(false);
   });
 });
 

@@ -57,14 +57,14 @@ export async function getOnboardingState(
 /** Create the app users row for a verified Neon identity (idempotent). */
 export async function bootstrapAccount(
   sql: SqlClient,
-  input: { externalUserId: string; email: string | null; name: string | null },
+  input: { externalUserId: string; email: string | null; name: string | null; phone?: string | null },
 ): Promise<{ userId: string }> {
   const existing = await findUser(sql, input.externalUserId);
   if (existing) return { userId: existing.id };
   const [row] = (await sql`
     /* onboarding_bootstrap_user */
-    insert into users (enterprise_id, name, email, app_login_id, status)
-    values (null, ${input.name ?? "New user"}, ${input.email}, ${input.externalUserId}, 'active')
+    insert into users (enterprise_id, name, email, phone, app_login_id, status)
+    values (null, ${input.name ?? "New user"}, ${input.email}, ${input.phone ?? null}, ${input.externalUserId}, 'active')
     returning id
   `) as Array<{ id: string }>;
   return { userId: row.id };

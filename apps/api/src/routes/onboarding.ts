@@ -31,8 +31,9 @@ export const onboardingRoutes = new Hono<ApiEnv>()
     const { externalUserId, email } = requireNeonIdentity(c);
     const body = await readJsonObject(c);
     const name = typeof body.name === "string" ? body.name : null;
+    const phone = typeof body.phone === "string" ? body.phone : null;
     const sql = getOwnerSqlClient(c);
-    const { userId } = await bootstrapAccount(sql, { externalUserId, email, name });
+    const { userId } = await bootstrapAccount(sql, { externalUserId, email, name, phone });
     return c.json(success(c, { userId }));
   })
   // Resume the saved wizard draft.

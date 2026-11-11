@@ -75,6 +75,44 @@ export async function neonSignIn(
     : { ok: false, session: null, error: "No session was issued." };
 }
 
+/**
+ * Self-serve sign-up (Better Auth email+password). On success Neon auto-signs the
+ * user in and returns a session cookie, just like neonSignIn.
+ */
+export async function neonSignUp(
+  name: string,
+  email: string,
+  password: string,
+  userAgent?: string | null,
+): Promise<NeonSignInResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/sign-up/email`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: ORIGIN,
+        ...(userAgent ? { "user-agent": userAgent } : {}),
+      },
+      body: JSON.stringify({ name, email, password }),
+    });
+  } catch {
+    return { ok: false, session: null, error: "Could not reach the authentication server." };
+  }
+  if (!res.ok) {
+    let error = "Could not create the account.";
+    try {
+      const b = (await res.json()) as { message?: string };
+      if (b.message) error = b.message;
+    } catch {
+      /* keep default */
+    }
+    return { ok: false, session: null, error };
+  }
+  const session = sessionFromSetCookie(res);
+  return session ? { ok: true, session } : { ok: false, session: null, error: "No session was issued." };
+}
+
 /** Mint a fresh EdDSA JWT for the API from a stored session cookie value. */
 export async function neonJwtFromSession(session: string): Promise<string | null> {
   try {

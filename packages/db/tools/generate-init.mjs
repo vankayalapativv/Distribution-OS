@@ -224,10 +224,14 @@ const scoped = new Set(allPublic.filter((n) => !GLOBAL.has(n)));
 // ── Transform CREATE TABLE: inject enterprise_id into scoped tables ──────────
 function injectEnterpriseId(sql, name) {
   if (!scoped.has(name)) return sql;
-  // insert as the first column, right after `CREATE TABLE public.<name> (`
+  // insert as the first column, right after `CREATE TABLE public.<name> (`.
+  // DEFAULT reads the per-request GUC, so an INSERT that doesn't mention
+  // enterprise_id auto-fills it from app.enterprise_id (set by the scoped client)
+  // — no INSERT call-site needs to change, and RLS WITH CHECK then passes.
+  // Control-plane inserts (owner, no GUC) must set enterprise_id explicitly.
   return sql.replace(
     /^(CREATE TABLE public\.(?:"?[\w]+"?) \()\n/,
-    `$1\n    enterprise_id uuid NOT NULL,\n`,
+    `$1\n    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),\n`,
   );
 }
 

@@ -28,10 +28,12 @@ async function asTenant(enterpriseId, fn) {
   });
 }
 
+// NOTE: enterprise_id is intentionally NOT provided — it must auto-fill from the
+// request's app.enterprise_id GUC via the column DEFAULT.
 async function makeCustomer(enterpriseId, code, name) {
   await asTenant(enterpriseId, (q) => q`
-    insert into customers (enterprise_id, customer_code, legal_name, customer_type)
-    values (${enterpriseId}, ${code}, ${name}, 'retailer')`);
+    insert into customers (customer_code, legal_name, customer_type)
+    values (${code}, ${name}, 'retailer')`);
 }
 
 try {
@@ -50,6 +52,11 @@ try {
 
   await makeCustomer(a.id, "RLSA-001", "Alpha Retailer");
   await makeCustomer(b.id, "RLSB-001", "Bravo Retailer");
+
+  // 0. INSERT without enterprise_id auto-filled it from the GUC default
+  const [aCust] = await asTenant(a.id, (q) =>
+    q`select enterprise_id from customers where customer_code = 'RLSA-001'`);
+  check("INSERT without enterprise_id auto-scoped via DEFAULT", aCust?.enterprise_id === a.id);
 
   // 1. Tenant scoped to A → sees only A
   const seenByA = await asTenant(a.id, (q) => q`select customer_code from customers`);

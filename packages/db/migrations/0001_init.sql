@@ -90,7 +90,7 @@ CREATE TABLE public.dues_bands (
 
 -- ── Business tables (from live schema; enterprise_id injected into scoped) ──
 CREATE TABLE public.alerts (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     alert_code text,
     alert_date date DEFAULT CURRENT_DATE NOT NULL,
@@ -110,7 +110,7 @@ CREATE TABLE public.alerts (
 );
 
 CREATE TABLE public.attendance (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     attendance_date date NOT NULL,
@@ -123,7 +123,7 @@ CREATE TABLE public.attendance (
 );
 
 CREATE TABLE public.audit_logs (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     actor_user_id uuid,
@@ -138,7 +138,7 @@ CREATE TABLE public.audit_logs (
 );
 
 CREATE TABLE public.beat_customer_days (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     customer_id uuid NOT NULL,
     executive_id uuid NOT NULL,
     weekday smallint NOT NULL,
@@ -149,7 +149,7 @@ CREATE TABLE public.beat_customer_days (
 );
 
 CREATE TABLE public.beat_plan_stops (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     beat_plan_id uuid NOT NULL,
     customer_id uuid NOT NULL,
@@ -161,7 +161,7 @@ CREATE TABLE public.beat_plan_stops (
 );
 
 CREATE TABLE public.beat_plans (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     plan_date date NOT NULL,
     executive_id uuid NOT NULL,
@@ -174,7 +174,7 @@ CREATE TABLE public.beat_plans (
 );
 
 CREATE TABLE public.billing_charges (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     period_start date NOT NULL,
     period_end date NOT NULL,
@@ -191,14 +191,14 @@ CREATE TABLE public.billing_charges (
 );
 
 CREATE TABLE public.billing_payment_events (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     event_id text NOT NULL,
     kind text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE public.brands (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     category text NOT NULL,
     name text NOT NULL,
@@ -207,7 +207,7 @@ CREATE TABLE public.brands (
 );
 
 CREATE TABLE public.collection_allocations (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     collection_id uuid NOT NULL,
     invoice_id uuid,
@@ -220,7 +220,7 @@ CREATE TABLE public.collection_allocations (
 );
 
 CREATE TABLE public.collections (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     collection_code text NOT NULL,
     collection_date date NOT NULL,
@@ -247,7 +247,7 @@ CREATE TABLE public.collections (
 );
 
 CREATE TABLE public.customer_dues_state (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     customer_id uuid NOT NULL,
     bucket smallint NOT NULL,
     oldest_invoice_date date NOT NULL,
@@ -257,7 +257,7 @@ CREATE TABLE public.customer_dues_state (
 );
 
 CREATE TABLE public.customer_followups (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     customer_id uuid NOT NULL,
     created_by uuid NOT NULL,
@@ -275,7 +275,7 @@ CREATE TABLE public.customer_followups (
 );
 
 CREATE TABLE public.customer_notes (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     customer_id uuid NOT NULL,
     body text NOT NULL,
@@ -286,7 +286,7 @@ CREATE TABLE public.customer_notes (
 );
 
 CREATE TABLE public.customer_opening_balances (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     customer_id uuid NOT NULL,
     as_of_date date NOT NULL,
@@ -304,7 +304,7 @@ CREATE TABLE public.customer_opening_balances (
 );
 
 CREATE TABLE public.customer_photos (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     customer_id uuid NOT NULL,
     uploaded_by uuid,
@@ -319,7 +319,7 @@ CREATE TABLE public.customer_photos (
 );
 
 CREATE TABLE public.customer_reassignments (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     customer_id uuid NOT NULL,
     from_user_id uuid,
@@ -333,7 +333,7 @@ CREATE TABLE public.customer_reassignments (
 );
 
 CREATE TABLE public.customers (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     customer_code text NOT NULL,
     legal_name text NOT NULL,
@@ -377,7 +377,7 @@ CREATE TABLE public.customers (
 );
 
 CREATE TABLE public.delivery_photos (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     run_id uuid NOT NULL,
     stop_id uuid,
@@ -393,7 +393,7 @@ CREATE TABLE public.delivery_photos (
 );
 
 CREATE TABLE public.delivery_run_stops (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     run_id uuid NOT NULL,
     customer_id uuid NOT NULL,
@@ -405,7 +405,7 @@ CREATE TABLE public.delivery_run_stops (
 );
 
 CREATE TABLE public.delivery_runs (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     logistics_user_id uuid NOT NULL,
     run_date date DEFAULT CURRENT_DATE NOT NULL,
@@ -467,7 +467,7 @@ CREATE TABLE public.error_notes (
 );
 
 CREATE TABLE public.executive_latest_locations (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     user_id uuid NOT NULL,
     tracking_session_id uuid,
     latitude numeric(10,7),
@@ -495,7 +495,7 @@ CREATE TABLE public.executive_latest_locations (
 );
 
 CREATE TABLE public.expenditure_categories (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     type text NOT NULL,
@@ -507,7 +507,7 @@ CREATE TABLE public.expenditure_categories (
 );
 
 CREATE TABLE public.expenditures (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     expenditure_code text NOT NULL,
     expenditure_date date NOT NULL,
@@ -527,7 +527,7 @@ CREATE TABLE public.expenditures (
 );
 
 CREATE TABLE public.goods_receipt_items (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     grn_id uuid NOT NULL,
     product_id uuid NOT NULL,
@@ -544,7 +544,7 @@ CREATE TABLE public.goods_receipt_items (
 );
 
 CREATE TABLE public.goods_receipts (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     grn_number text NOT NULL,
     location_id uuid NOT NULL,
@@ -563,7 +563,7 @@ CREATE TABLE public.goods_receipts (
 );
 
 CREATE TABLE public.gps_points (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     session_id uuid,
     user_id uuid NOT NULL,
@@ -581,7 +581,7 @@ CREATE TABLE public.gps_points (
 );
 
 CREATE TABLE public.gps_tracking_sessions (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     session_date date NOT NULL,
@@ -605,7 +605,7 @@ CREATE TABLE public.gps_tracking_sessions (
 );
 
 CREATE TABLE public.invoice_items (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     invoice_id uuid NOT NULL,
     product_id uuid,
@@ -630,7 +630,7 @@ CREATE TABLE public.invoice_items (
 );
 
 CREATE TABLE public.invoice_line_allocations (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     invoice_id uuid NOT NULL,
     order_item_id uuid NOT NULL,
@@ -640,7 +640,7 @@ CREATE TABLE public.invoice_line_allocations (
 );
 
 CREATE TABLE public.invoice_series (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     prefix text DEFAULT 'SA/'::text NOT NULL,
     fin_year text NOT NULL,
@@ -650,7 +650,7 @@ CREATE TABLE public.invoice_series (
 );
 
 CREATE TABLE public.invoices (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     invoice_number text NOT NULL,
     invoice_date date NOT NULL,
@@ -708,7 +708,7 @@ CREATE TABLE public.invoices (
 );
 
 CREATE TABLE public.margin_simulations (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     product_id uuid,
     product_name text NOT NULL,
@@ -727,7 +727,7 @@ CREATE TABLE public.margin_simulations (
 );
 
 CREATE TABLE public.market_note_items (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     note_id uuid NOT NULL,
     category text DEFAULT 'other'::text NOT NULL,
@@ -739,7 +739,7 @@ CREATE TABLE public.market_note_items (
 );
 
 CREATE TABLE public.market_notes (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     meeting_date date DEFAULT CURRENT_DATE NOT NULL,
     se_user_id uuid NOT NULL,
@@ -751,7 +751,7 @@ CREATE TABLE public.market_notes (
 );
 
 CREATE TABLE public.opening_stock_items (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     location_id uuid NOT NULL,
     product_id uuid NOT NULL,
@@ -771,7 +771,7 @@ CREATE TABLE public.opening_stock_items (
 );
 
 CREATE TABLE public.order_items (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     order_id uuid NOT NULL,
     product_id uuid,
@@ -792,7 +792,7 @@ CREATE TABLE public.order_items (
 );
 
 CREATE TABLE public.orders (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     order_code text NOT NULL,
     order_date date NOT NULL,
@@ -825,7 +825,7 @@ CREATE TABLE public.orders (
 );
 
 CREATE TABLE public.payment_proofs (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     collection_id uuid NOT NULL,
     file_url text NOT NULL,
@@ -840,7 +840,7 @@ CREATE TABLE public.payment_proofs (
 );
 
 CREATE TABLE public.product_packs (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     product_id uuid NOT NULL,
     pack_size_litres numeric(12,4) NOT NULL,
     scheme_per_litre numeric,
@@ -851,13 +851,13 @@ CREATE TABLE public.product_packs (
 );
 
 CREATE TABLE public.product_segments (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     product_id uuid NOT NULL,
     segment text NOT NULL
 );
 
 CREATE TABLE public.products (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     product_name text NOT NULL,
     status text DEFAULT 'active'::text NOT NULL,
@@ -870,7 +870,7 @@ CREATE TABLE public.products (
 );
 
 CREATE TABLE public.push_tokens (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     token text NOT NULL,
@@ -897,7 +897,7 @@ CREATE TABLE public.roles (
 );
 
 CREATE TABLE public.sales_return_items (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     sales_return_id uuid NOT NULL,
     order_item_id uuid NOT NULL,
@@ -912,7 +912,7 @@ CREATE TABLE public.sales_return_items (
 );
 
 CREATE TABLE public.sales_returns (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     invoice_id uuid NOT NULL,
     customer_id uuid NOT NULL,
@@ -926,7 +926,7 @@ CREATE TABLE public.sales_returns (
 );
 
 CREATE TABLE public.se_incentives (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     period_month date NOT NULL,
@@ -940,7 +940,7 @@ CREATE TABLE public.se_incentives (
 );
 
 CREATE TABLE public.se_notifications (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     type text NOT NULL,
@@ -954,14 +954,14 @@ CREATE TABLE public.se_notifications (
 );
 
 CREATE TABLE public.se_segment_targets (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     se_target_id uuid NOT NULL,
     segment text NOT NULL,
     target_litres numeric(12,2) DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE public.se_targets (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     period_type text NOT NULL,
@@ -972,14 +972,14 @@ CREATE TABLE public.se_targets (
 );
 
 CREATE TABLE public.section_seen (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     user_id uuid NOT NULL,
     section text NOT NULL,
     last_seen_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE public.stock_adjustment_items (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     adjustment_id uuid NOT NULL,
     product_id uuid NOT NULL,
@@ -990,7 +990,7 @@ CREATE TABLE public.stock_adjustment_items (
 );
 
 CREATE TABLE public.stock_adjustments (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     adjustment_number text NOT NULL,
     location_id uuid NOT NULL,
@@ -1003,7 +1003,7 @@ CREATE TABLE public.stock_adjustments (
 );
 
 CREATE TABLE public.stock_balances (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     location_id uuid NOT NULL,
     product_id uuid NOT NULL,
     pack_size_litres numeric(12,4) NOT NULL,
@@ -1014,7 +1014,7 @@ CREATE TABLE public.stock_balances (
 );
 
 CREATE TABLE public.stock_locations (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     code text,
@@ -1032,7 +1032,7 @@ CREATE TABLE public.stock_locations (
 );
 
 CREATE TABLE public.stock_lots (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     product_id uuid NOT NULL,
     pack_size_litres numeric NOT NULL,
@@ -1055,7 +1055,7 @@ CREATE TABLE public.stock_lots (
 );
 
 CREATE TABLE public.stock_movements (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     location_id uuid NOT NULL,
     product_id uuid NOT NULL,
@@ -1075,7 +1075,7 @@ CREATE TABLE public.stock_movements (
 );
 
 CREATE TABLE public.stock_reorder_state (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     location_id uuid NOT NULL,
     product_id uuid NOT NULL,
     pack_size_litres numeric(12,4) NOT NULL,
@@ -1084,7 +1084,7 @@ CREATE TABLE public.stock_reorder_state (
 );
 
 CREATE TABLE public.stock_transfer_items (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     transfer_id uuid NOT NULL,
     product_id uuid NOT NULL,
@@ -1096,7 +1096,7 @@ CREATE TABLE public.stock_transfer_items (
 );
 
 CREATE TABLE public.stock_transfers (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     transfer_number text NOT NULL,
     from_location_id uuid NOT NULL,
@@ -1111,14 +1111,14 @@ CREATE TABLE public.stock_transfers (
 );
 
 CREATE TABLE public.system_settings (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     key text NOT NULL,
     value text NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE public.task_attachments (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     task_id uuid NOT NULL,
     uploaded_by uuid,
@@ -1130,7 +1130,7 @@ CREATE TABLE public.task_attachments (
 );
 
 CREATE TABLE public.task_comments (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     task_id uuid NOT NULL,
     author_id uuid NOT NULL,
@@ -1139,7 +1139,7 @@ CREATE TABLE public.task_comments (
 );
 
 CREATE TABLE public.tasks (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     title text NOT NULL,
     description text,
@@ -1156,7 +1156,7 @@ CREATE TABLE public.tasks (
 );
 
 CREATE TABLE public.tracking_customer_dwell_events (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tracking_session_id uuid NOT NULL,
     user_id uuid NOT NULL,
@@ -1170,7 +1170,7 @@ CREATE TABLE public.tracking_customer_dwell_events (
 );
 
 CREATE TABLE public.tracking_device_heartbeats (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     tracking_session_id uuid NOT NULL,
     user_id uuid NOT NULL,
@@ -1199,7 +1199,7 @@ CREATE TABLE public.tracking_device_heartbeats (
 );
 
 CREATE TABLE public.user_roles (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     role_id uuid NOT NULL,
@@ -1208,7 +1208,7 @@ CREATE TABLE public.user_roles (
 );
 
 CREATE TABLE public.users (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     phone text,
@@ -1221,7 +1221,7 @@ CREATE TABLE public.users (
 );
 
 CREATE TABLE public.visits (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     visit_code text NOT NULL,
     visit_date date NOT NULL,
@@ -1256,7 +1256,7 @@ CREATE TABLE public.visits (
 );
 
 CREATE TABLE public.web_push_subscriptions (
-    enterprise_id uuid NOT NULL,
+    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     endpoint text NOT NULL,

@@ -58,7 +58,7 @@ export function HeroCard({
       {blocked ? (
         <View className="border-t border-red-200 bg-red-50 px-4 py-3">
           <Text className="text-sm font-semibold text-red-700">
-            ⚠ Payments overdue beyond {credit?.creditOverdueDays ?? 60} days
+            ⚠ Payments past the {credit?.creditOverdueDays ?? 0}-day credit period
           </Text>
           <Text className="mt-0.5 text-xs text-red-600">
             New orders are blocked until the outstanding is collected.

@@ -118,9 +118,9 @@ vi.mock("@neondatabase/serverless", () => ({
     // Credit gate (shared getCustomerCreditStatus) — folded into the header so the
     // mobile action row knows the blocked state at first paint. CUSTOMER_ID owes
     // and has an invoice overdue past the threshold → blocked.
-    if (query.includes("get_credit_overdue_days")) return [{ value: "60" }];
+    if (query.includes("get_customer_credit_days")) return [{ creditDays: 60 }];
     if (query.includes("customer_net_ledger_balance")) return [{ ledgerBalance: 12000 }];
-    if (query.includes("customer_overdue_beyond_threshold")) {
+    if (query.includes("customer_overdue_past_terms")) {
       return [{ invoiceOverdue: true, openingOverdue: false }];
     }
 

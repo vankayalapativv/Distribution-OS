@@ -91,7 +91,7 @@ function BillToDetails({ d, supply }: Readonly<{ d: CustomerDetail; supply: "int
       {d.creditBlocked ? (
         <div className="flex items-center gap-2 border-t border-destructive/25 bg-destructive/10 px-4 py-2 text-[12.5px] font-semibold text-destructive">
           <AlertTriangle className="size-[15px] shrink-0" />
-          <span>Credit blocked — dues overdue past {d.creditOverdueDays} days. You can still bill; this is a heads-up.</span>
+          <span>Credit blocked — payments past this customer&apos;s {d.creditOverdueDays}-day credit period. You can still bill; this is a heads-up.</span>
         </div>
       ) : null}
 

@@ -65,8 +65,8 @@ export function CreditBlocked({
       <View className="flex-1 items-center justify-center gap-3 px-8">
         <Text className="text-lg font-semibold text-destructive">Orders blocked</Text>
         <Text className="text-center text-sm text-foreground">
-          {customerName ?? "This customer"} has invoices overdue beyond {credit.creditOverdueDays}{" "}
-          days.
+          {customerName ?? "This customer"} has payments past their {credit.creditOverdueDays}-day
+          credit period.
         </Text>
         <Text className="text-center text-sm text-muted-foreground">
           Outstanding: ₹{credit.totalOutstanding.toLocaleString("en-IN")}. Collect payment before

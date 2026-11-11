@@ -137,8 +137,8 @@ vi.mock("@neondatabase/serverless", () => {
       }
       return [];
     }
-    if (query.includes("get_credit_overdue_days")) {
-      return [{ value: "60" }];
+    if (query.includes("get_customer_credit_days")) {
+      return [{ creditDays: 60 }];
     }
     if (query.includes("list_customer_outstanding_invoices")) {
       if (values.includes(OVERDUE_CUSTOMER_ID)) {
@@ -194,7 +194,7 @@ vi.mock("@neondatabase/serverless", () => {
     }
     // Credit gate's overdue-beyond-threshold check (shared getCustomerCreditStatus):
     // the overdue customer has an invoice past the 60-day threshold; the good one doesn't.
-    if (query.includes("customer_overdue_beyond_threshold")) {
+    if (query.includes("customer_overdue_past_terms")) {
       if (values.includes(OVERDUE_CUSTOMER_ID)) return [{ invoiceOverdue: true, openingOverdue: false }];
       return [{ invoiceOverdue: false, openingOverdue: false }];
     }

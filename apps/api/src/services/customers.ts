@@ -326,9 +326,12 @@ export async function listCustomerFilterOptions(
 }
 
 export interface CustomerCreditStatus {
-  /** Block ordering: owes money AND has debt overdue past the org threshold. */
+  /** Block ordering: owes money AND has debt overdue past THIS customer's own
+   *  credit terms (no company-wide grace). */
   creditBlocked: boolean;
-  /** The org-wide overdue threshold in days (system setting, default 60). */
+  /** This customer's own credit period in days (their `credit_days`). Field name
+   *  kept for client/schema compatibility; it is now the per-customer term, not
+   *  a company-wide threshold. */
   creditOverdueDays: number;
   /** Net ledger balance (positive = owes). */
   totalOutstanding: number;
@@ -344,11 +347,16 @@ export async function getCustomerCreditStatus(
   sql: SqlClient,
   customerId: string,
 ): Promise<CustomerCreditStatus> {
-  const settingRows = await sql`
-    /* get_credit_overdue_days */
-    select value from system_settings where key = 'credit_overdue_days'
+  // Overdue model (multi-enterprise): block right at each customer's OWN credit
+  // terms — no company-wide grace. An invoice's due_date already encodes the
+  // customer's credit_days (invoice_date + credit_days), so "past due_date" IS
+  // "past their credit period". Openings (no due_date) age from as_of_date past
+  // the customer's credit_days. We surface the customer's credit_days for display.
+  const creditDaysRows = await sql`
+    /* get_customer_credit_days */
+    select coalesce(credit_days, 0) as "creditDays" from customers where id = ${customerId}::uuid
   `;
-  const creditOverdueDays = Number.parseInt(String(settingRows[0]?.value ?? "60"), 10);
+  const creditOverdueDays = numberValue((creditDaysRows as Row[])[0]?.creditDays);
 
   // Ledger balance + overdue check are independent of each other — run together.
   // Net balance = the STATELESS ledger balance (opening + non-rejected invoices
@@ -370,22 +378,24 @@ export async function getCustomerCreditStatus(
                   where sr.customer_id = ${customerId}::uuid), 0)
     )::numeric as "ledgerBalance"
   `,
-    // Overdue past the threshold on EITHER an outstanding invoice or the opening
-    // balance (pre-system carry-forward, aged from as_of_date).
+    // Overdue when PAST this customer's own terms — no company-wide grace. An
+    // invoice is overdue once now is past its due_date; an opening once it has
+    // aged past the customer's credit_days from as_of_date.
     sql`
-    /* customer_overdue_beyond_threshold */
+    /* customer_overdue_past_terms */
     select
       exists(
         select 1 from invoices i
         where i.customer_id = ${customerId}::uuid
           and i.outstanding_amount > 0
-          and greatest(0, (now() at time zone 'Asia/Kolkata')::date - i.due_date) > ${creditOverdueDays}
+          and (now() at time zone 'Asia/Kolkata')::date > i.due_date
       ) as "invoiceOverdue",
       exists(
         select 1 from customer_opening_balances ob
+        join customers c on c.id = ob.customer_id
         where ob.customer_id = ${customerId}::uuid
           and ob.outstanding_amount > 0
-          and greatest(0, (now() at time zone 'Asia/Kolkata')::date - ob.as_of_date) > ${creditOverdueDays}
+          and ((now() at time zone 'Asia/Kolkata')::date - ob.as_of_date) > coalesce(c.credit_days, 0)
       ) as "openingOverdue"
   `,
   ]);

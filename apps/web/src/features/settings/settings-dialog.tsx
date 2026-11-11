@@ -64,7 +64,7 @@ export function SettingsDialog({
           { key: "company", label: "Company", Icon: Building2, show: role === "SUPER_ADMIN" && !!systemSettings },
           { key: "billing", label: "Billing", Icon: CreditCard, show: role === "SUPER_ADMIN" && !!billingAccess },
           { key: "rules", label: "Business Rules", Icon: SlidersHorizontal, show: role === "SUPER_ADMIN" && !!systemSettings },
-          { key: "mcp", label: "MCP", Icon: Plug, show: role === "SUPER_ADMIN" || role === "MANAGER" },
+          { key: "mcp", label: "MCP", Icon: Plug, show: role === "SUPER_ADMIN" },
         ] as Array<{ key: SectionKey; label: string; Icon: LucideIcon; show: boolean }>
       ).filter((s) => s.show),
     [role, systemSettings, billingAccess],

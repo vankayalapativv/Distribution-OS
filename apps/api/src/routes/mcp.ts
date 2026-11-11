@@ -65,7 +65,11 @@ export const mcpRoutes = new Hono<ApiEnv>()
   // govern THIS enterprise's access.
   .get("/passphrase", async (c) => {
     requireRole(c, ["SUPER_ADMIN"]);
-    return c.json(success(c, await getMcpPassphraseStatus(getSqlClient(c))));
+    const status = await getMcpPassphraseStatus(getSqlClient(c));
+    // The connector endpoint the admin pastes into an AI client, from the
+    // deployed MCP origin (null in dev when it isn't set).
+    const base = (c.env.MCP_SERVER_ORIGIN ?? "").replace(/\/$/, "");
+    return c.json(success(c, { ...status, mcpEndpoint: base ? `${base}/mcp` : null }));
   })
   .post("/passphrase", async (c) => {
     const auth = requireRole(c, ["SUPER_ADMIN"]);

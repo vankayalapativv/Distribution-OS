@@ -33,3 +33,24 @@ export const patchServer = (cfg: ActionConfig, body: { enabled?: boolean; passph
 
 export const getServerAudit = (cfg: ActionConfig, limit = 50) =>
   apiGet<{ entries: AuditEntry[] }>(cfg, `/mcp/server/audit?limit=${limit}`);
+
+// ── Per-enterprise connector (Phase 4): THIS enterprise's own MCP passphrase ──
+export interface McpPassphraseStatus {
+  enabled: boolean;
+  passphraseSet: boolean;
+  passphraseSetAt: string | null;
+  updatedAt: string | null;
+  /** The connector address to paste into an AI client, or null if the server
+   *  origin isn't configured (e.g. local dev). */
+  mcpEndpoint: string | null;
+}
+
+export const getPassphrase = (cfg: ActionConfig) =>
+  apiGet<McpPassphraseStatus>(cfg, "/mcp/passphrase");
+
+/** Generate (or rotate) the passphrase — the plaintext is returned ONCE. */
+export const generatePassphrase = (cfg: ActionConfig) =>
+  apiRequest<{ passphrase: string }>(cfg, "POST", "/mcp/passphrase", {});
+
+export const setPassphraseEnabled = (cfg: ActionConfig, enabled: boolean) =>
+  apiRequest<McpPassphraseStatus>(cfg, "PATCH", "/mcp/passphrase", { enabled });

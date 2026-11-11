@@ -1208,7 +1208,7 @@ CREATE TABLE public.user_roles (
 );
 
 CREATE TABLE public.users (
-    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),
+    enterprise_id uuid DEFAULT public.app_current_enterprise_id(),
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     phone text,
@@ -2398,5 +2398,14 @@ CREATE POLICY onboarding_self ON public.onboarding_drafts
 -- platform_owners: owner-only. RLS on, NO policy → tenants see nothing;
 -- the owner role (non-forced) manages it.
 ALTER TABLE public.platform_owners ENABLE ROW LEVEL SECURITY;
+
+-- ── Reference data: the five global role codes ─────────────────────────────
+INSERT INTO public.roles (code, name, description) VALUES
+  ('SUPER_ADMIN', 'Super Admin', 'Full system access'),
+  ('MANAGER', 'Manager', 'Team and territory management'),
+  ('ACCOUNTANT', 'Accountant', 'Collections and finance'),
+  ('SALES_EXECUTIVE', 'Sales Executive', 'Field sales operations'),
+  ('LOGISTICS', 'Logistics', 'Delivery and logistics')
+ON CONFLICT (code) DO NOTHING;
 
 COMMIT;

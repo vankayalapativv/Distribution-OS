@@ -21,6 +21,19 @@ export function requireAuth(c: Context<ApiEnv>): AuthContext {
   return auth;
 }
 
+/**
+ * Onboarding gate: requires a VERIFIED Neon identity (a valid token), even when
+ * the user has no app account or enterprise yet. Unlike requireAuth it does not
+ * demand an app profile — the whole point of onboarding is to create one.
+ */
+export function requireNeonIdentity(c: Context<ApiEnv>): { externalUserId: string; email: string | null } {
+  const auth = c.var.auth;
+  if (auth.source !== "jwt" || !auth.externalUserId) {
+    throw new ApiError("UNAUTHORIZED", "A signed-in account is required.", 401);
+  }
+  return { externalUserId: auth.externalUserId, email: auth.email };
+}
+
 export function requireRole(c: Context<ApiEnv>, roles: Role[]): AuthContext {
   const auth = requireAuth(c);
 

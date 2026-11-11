@@ -229,10 +229,16 @@ function injectEnterpriseId(sql, name) {
   // enterprise_id auto-fills it from app.enterprise_id (set by the scoped client)
   // — no INSERT call-site needs to change, and RLS WITH CHECK then passes.
   // Control-plane inserts (owner, no GUC) must set enterprise_id explicitly.
-  return sql.replace(
-    /^(CREATE TABLE public\.(?:"?[\w]+"?) \()\n/,
-    `$1\n    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),\n`,
-  );
+  //
+  // `users` is the ONE exception: a just-signed-up user has NO enterprise until
+  // they submit onboarding, so users.enterprise_id is NULLABLE (per
+  // docs/ONBOARDING-PLAN.md). A null-enterprise user row is invisible to every
+  // enterprise session under RLS and managed only on the owner/control-plane path.
+  const col =
+    name === "users"
+      ? "    enterprise_id uuid DEFAULT public.app_current_enterprise_id(),"
+      : "    enterprise_id uuid NOT NULL DEFAULT public.app_current_enterprise_id(),";
+  return sql.replace(/^(CREATE TABLE public\.(?:"?[\w]+"?) \()\n/, `$1\n${col}\n`);
 }
 
 // ── Transform constraints: composite uniques + system_settings PK ───────────
@@ -347,6 +353,15 @@ out.push("");
 out.push("-- platform_owners: owner-only. RLS on, NO policy → tenants see nothing;");
 out.push("-- the owner role (non-forced) manages it.");
 out.push("ALTER TABLE public.platform_owners ENABLE ROW LEVEL SECURITY;");
+out.push("");
+out.push("-- ── Reference data: the five global role codes ─────────────────────────────");
+out.push(`INSERT INTO public.roles (code, name, description) VALUES
+  ('SUPER_ADMIN', 'Super Admin', 'Full system access'),
+  ('MANAGER', 'Manager', 'Team and territory management'),
+  ('ACCOUNTANT', 'Accountant', 'Collections and finance'),
+  ('SALES_EXECUTIVE', 'Sales Executive', 'Field sales operations'),
+  ('LOGISTICS', 'Logistics', 'Delivery and logistics')
+ON CONFLICT (code) DO NOTHING;`);
 out.push("");
 out.push("COMMIT;");
 out.push("");

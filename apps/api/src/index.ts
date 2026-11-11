@@ -12,6 +12,7 @@ import { billingGate } from "./middleware/billing-gate";
 import { ensureCurrentCharge } from "./services/billing-v2";
 import { runBillingReminders } from "./services/billing-reminders";
 import { billingV2Routes } from "./routes/billing-v2";
+import { onboardingRoutes } from "./routes/onboarding";
 import { razorpayWebhookRoutes } from "./routes/razorpay-webhook";
 import { publicStatementRoutes } from "./routes/public-statement";
 import { authRoutes } from "./routes/auth";
@@ -117,6 +118,11 @@ v1.route("/public", publicStatementRoutes);
 // reachable for a lapsed account. The device talks to this (reliable Cloudflare)
 // host instead of resolving the Neon Auth host directly on weak 4G.
 v1.route("/auth", authRoutes);
+
+// Self-serve onboarding — used by a signed-in user who has NO enterprise yet, so
+// it is mounted BEFORE the billing gate + section guards (a pending/absent
+// enterprise must not be billing-gated). Runs on the owner client internally.
+v1.route("/onboarding", onboardingRoutes);
 
 // Server-side billing enforcement (402) for lapsed subscriptions. No-op unless
 // BILLING_ENFORCED === "true"; exempts webhook/billing/health/status and the

@@ -1,6 +1,21 @@
 import { ApiError } from "../lib/errors";
+import { isUniqueViolation } from "../lib/pg-errors";
 import type { SqlClient } from "../lib/db";
 import type { Role } from "../types";
+
+// Field-specific "already in use" errors (email + phone are globally UNIQUE), so
+// an admin is told exactly which value to change instead of a vague "email or
+// phone" or an opaque 500.
+const PHONE_IN_USE = new ApiError(
+  "PHONE_IN_USE",
+  "A user with this phone number already exists. Please use a different number.",
+  409,
+);
+const EMAIL_IN_USE = new ApiError(
+  "EMAIL_IN_USE",
+  "A user with this email already exists. Please use a different email.",
+  409,
+);
 
 interface SuperAdminContext {
   userId: string;
@@ -125,22 +140,29 @@ export async function createSuperAdminUser(
   // failed insert writes nothing. Identity + credential live in Neon Auth; the
   // app row only links via app_login_id. The new user starts active, so the
   // route re-syncs the subscription seat count afterwards.
-  const results = await sql.transaction([
-    sql`select pg_advisory_xact_lock(${USER_CREATE_LOCK_KEY})`,
-    sql`
-      /* super_admin_create_user */
-      with ins as (
-        insert into users (name, email, phone, app_login_id, status)
-        values (${input.name}, ${input.email}, ${input.phone}, ${input.appLoginId ?? null}, 'active')
-        returning id, name, email, phone, status
-      ), role_assign as (
-        insert into user_roles (user_id, role_id, assigned_by)
-        select id, ${roleId}::uuid, ${context.userId}::uuid from ins
-        on conflict (user_id, role_id) do nothing
-      )
-      select id, name, email, phone, status from ins
-    `,
-  ]);
+  let results: unknown[];
+  try {
+    results = await sql.transaction([
+      sql`select pg_advisory_xact_lock(${USER_CREATE_LOCK_KEY})`,
+      sql`
+        /* super_admin_create_user */
+        with ins as (
+          insert into users (name, email, phone, app_login_id, status)
+          values (${input.name}, ${input.email}, ${input.phone}, ${input.appLoginId ?? null}, 'active')
+          returning id, name, email, phone, status
+        ), role_assign as (
+          insert into user_roles (user_id, role_id, assigned_by)
+          select id, ${roleId}::uuid, ${context.userId}::uuid from ins
+          on conflict (user_id, role_id) do nothing
+        )
+        select id, name, email, phone, status from ins
+      `,
+    ]);
+  } catch (err) {
+    if (isUniqueViolation(err, "users_phone_key")) throw PHONE_IN_USE;
+    if (isUniqueViolation(err, "users_email_key")) throw EMAIL_IN_USE;
+    throw err;
+  }
 
   const user = firstRow(results[1] as Row[]);
 
@@ -213,21 +235,22 @@ export async function updateSuperAdminUser(
 
   await requireExistingUser(sql, userId);
 
-  // email and phone are UNIQUE — surface a clean conflict instead of a 500.
+  // email and phone are UNIQUE — surface a clean, field-specific conflict (so the
+  // admin knows which value to change) instead of a vague message or a 500.
   const clashes = (await sql`
     /* super_admin_user_unique_check */
-    select id
+    select
+      bool_or(${input.phone}::text is not null and phone = ${input.phone}) as "phoneClash",
+      bool_or(${input.email}::text is not null and email = ${input.email}) as "emailClash"
     from users
     where id <> ${userId}::uuid
       and (
         (${input.email}::text is not null and email = ${input.email})
         or (${input.phone}::text is not null and phone = ${input.phone})
       )
-    limit 1
   `) as Row[];
-  if (clashes.length > 0) {
-    throw new ApiError("CONFLICT", "Another user already has that email or phone.", 409);
-  }
+  if (clashes[0]?.phoneClash) throw PHONE_IN_USE;
+  if (clashes[0]?.emailClash) throw EMAIL_IN_USE;
 
   const user = firstRow(
     await sql`

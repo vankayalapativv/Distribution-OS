@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { neonAdminRevokeSessions, neonAdminSetPassword } from "../../../../lib/neon-auth-server";
-import { getSessionRole } from "../../../../features/auth/auth-role";
+import { authorizeTenantLoginOp } from "../../../../features/auth/admin-provisioning";
 
 /**
  * Set a Neon-Auth-linked user's password via the Admin plugin, using the
@@ -28,17 +27,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "This account isn't linked to Neon Auth." }, { status: 400 });
   }
 
-  const store = await cookies();
-  const session = store.get("sa_session")?.value;
-  if (!session) {
-    return NextResponse.json({ error: "Your session has expired — sign in again." }, { status: 401 });
-  }
-  // Explicit app-role gate: only a SUPER_ADMIN may reset passwords. A valid
-  // sa_session cookie alone does not distinguish SUPER_ADMIN (every web role gets
-  // one at login); don't rely solely on the downstream Neon admin plugin.
-  const auth = await getSessionRole();
-  if (auth?.role !== "SUPER_ADMIN") {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  // Authorize: caller is a SUPER_ADMIN AND the target login is in their own
+  // enterprise. The dedicated SERVICE admin performs the reset (the SUPER_ADMIN
+  // is not a Neon admin).
+  const authz = await authorizeTenantLoginOp(appLoginId);
+  if (!authz.ok) {
+    return NextResponse.json({ error: authz.error }, { status: authz.status });
   }
 
   const provided = body.password?.trim();
@@ -47,14 +41,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 });
   }
 
-  const result = await neonAdminSetPassword(session, { userId: appLoginId, newPassword: password });
+  const result = await neonAdminSetPassword(authz.serviceSession, { userId: appLoginId, newPassword: password });
   if (!result.ok) {
     return NextResponse.json({ error: result.error ?? "Could not set the password." }, { status: 400 });
   }
 
   // A password reset invalidates existing sessions — so a handover logs the
   // departing person's devices out, and a lost-password reset can't be bypassed.
-  await neonAdminRevokeSessions(session, appLoginId);
+  await neonAdminRevokeSessions(authz.serviceSession, appLoginId);
 
   return NextResponse.json({ password });
 }

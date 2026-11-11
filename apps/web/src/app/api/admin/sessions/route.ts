@@ -5,28 +5,18 @@ import {
   neonAdminRevokeSession,
   neonAdminRevokeSessions,
 } from "../../../../lib/neon-auth-server";
-import { getSessionRole } from "../../../../features/auth/auth-role";
+import { authorizeTenantLoginOp } from "../../../../features/auth/admin-provisioning";
 
 /**
- * Admin session management for a Neon-Auth-linked user (SUPER_ADMIN only, gated
- * by the /dashboard/super-admin/setup page + the Neon admin plugin, which
- * rejects a non-admin session). All calls use the admin's own `sa_session`.
+ * Admin session management for a Neon-Auth-linked user. Authorized by
+ * `authorizeTenantLoginOp`: the caller must be a SUPER_ADMIN AND the target
+ * login must belong to their OWN enterprise; the dedicated SERVICE admin then
+ * performs the Neon op (the SUPER_ADMIN is not a Neon admin).
  *
  * The Neon session TOKEN is the login credential, so it never leaves the server:
  * the client lists and revokes sessions by their opaque `id`, and DELETE
  * re-lists server-side to map id → token before revoking.
  */
-
-async function adminSession(): Promise<string | null> {
-  const store = await cookies();
-  const session = store.get("sa_session")?.value ?? null;
-  if (!session) return null;
-  // Explicit app-role gate: only a SUPER_ADMIN may list/revoke sessions. A valid
-  // sa_session cookie alone does not distinguish SUPER_ADMIN (every web role gets
-  // one at login); don't rely solely on the downstream Neon admin plugin.
-  const auth = await getSessionRole();
-  return auth?.role === "SUPER_ADMIN" ? session : null;
-}
 
 /** GET /api/admin/sessions?appLoginId=… → a user's active sessions (no tokens). */
 export async function GET(request: Request): Promise<NextResponse> {
@@ -34,28 +24,28 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (!appLoginId) {
     return NextResponse.json({ error: "appLoginId is required." }, { status: 400 });
   }
-  const session = await adminSession();
-  if (!session) {
-    return NextResponse.json({ error: "Your session has expired — sign in again." }, { status: 401 });
+  const authz = await authorizeTenantLoginOp(appLoginId);
+  if (!authz.ok) {
+    return NextResponse.json({ error: authz.error }, { status: authz.status });
   }
 
-  const result = await neonAdminListSessions(session, appLoginId);
+  const result = await neonAdminListSessions(authz.serviceSession, appLoginId);
   if (!result.ok) {
     return NextResponse.json({ error: result.error ?? "Could not load sessions." }, { status: 400 });
   }
   // Strip the credential token before it reaches the browser. Flag the admin's
-  // OWN current session so the UI can bounce them to /login if they revoke it —
-  // without ever exposing the token. The session cookie is signed
-  // (`<token>.<signature>`) while the list returns the bare token, so match on
-  // the token part, not the whole cookie.
-  const currentToken = session.split(".")[0];
+  // OWN current session (only relevant when they view their own account) so the
+  // UI can bounce them to /login if they revoke it — without exposing the token.
+  const store = await cookies();
+  const callerSession = store.get("sa_session")?.value ?? "";
+  const currentToken = callerSession.split(".")[0];
   const sessions = result.sessions.map((s) => ({
     id: s.id,
     createdAt: s.createdAt,
     expiresAt: s.expiresAt,
     ipAddress: s.ipAddress,
     userAgent: s.userAgent,
-    current: s.token === session || s.token === currentToken,
+    current: Boolean(callerSession) && (s.token === callerSession || s.token === currentToken),
   }));
   return NextResponse.json({ sessions });
 }
@@ -78,19 +68,19 @@ export async function DELETE(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "appLoginId is required." }, { status: 400 });
   }
 
-  const session = await adminSession();
-  if (!session) {
-    return NextResponse.json({ error: "Your session has expired — sign in again." }, { status: 401 });
+  const authz = await authorizeTenantLoginOp(appLoginId);
+  if (!authz.ok) {
+    return NextResponse.json({ error: authz.error }, { status: authz.status });
   }
 
   // Revoke ALL.
   if (!sessionId) {
-    await neonAdminRevokeSessions(session, appLoginId);
+    await neonAdminRevokeSessions(authz.serviceSession, appLoginId);
     return NextResponse.json({ ok: true });
   }
 
   // Revoke ONE: re-list to resolve id → token (the token never touches the client).
-  const list = await neonAdminListSessions(session, appLoginId);
+  const list = await neonAdminListSessions(authz.serviceSession, appLoginId);
   if (!list.ok) {
     return NextResponse.json({ error: list.error ?? "Could not load sessions." }, { status: 400 });
   }
@@ -99,7 +89,7 @@ export async function DELETE(request: Request): Promise<NextResponse> {
     // Already gone (expired or revoked elsewhere) — treat as success, it's idempotent.
     return NextResponse.json({ ok: true });
   }
-  const revoked = await neonAdminRevokeSession(session, target.token);
+  const revoked = await neonAdminRevokeSession(authz.serviceSession, target.token);
   if (!revoked.ok) {
     return NextResponse.json({ error: revoked.error ?? "Could not sign out that session." }, { status: 400 });
   }

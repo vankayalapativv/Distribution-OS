@@ -76,6 +76,24 @@ export async function neonSignIn(
 }
 
 /**
+ * A fresh session for the dedicated Neon-Auth SERVICE admin — a server-only
+ * account with the Neon admin role. Used to provision/manage enterprise logins
+ * on behalf of an enterprise SUPER_ADMIN, who is deliberately NOT a Neon admin
+ * (that role is GLOBAL across the shared Neon project, so granting it to every
+ * tenant's admin would let them manage other tenants' logins). The CALLER must
+ * be authorized before this session is used. Signs in fresh each call (user
+ * provisioning is rare), so there is no stale-session cache to manage. Returns
+ * null when the service credentials aren't configured.
+ */
+export async function neonServiceAdminSession(): Promise<string | null> {
+  const email = process.env.NEON_SERVICE_ADMIN_EMAIL;
+  const password = process.env.NEON_SERVICE_ADMIN_PASSWORD;
+  if (!email || !password) return null;
+  const r = await neonSignIn(email, password);
+  return r.ok ? r.session : null;
+}
+
+/**
  * Self-serve sign-up (Better Auth email+password). On success Neon auto-signs the
  * user in and returns a session cookie, just like neonSignIn.
  */
@@ -143,13 +161,22 @@ export async function neonAdminCreateUser(
     return { ok: false, id: null, error: "Could not reach the authentication server." };
   }
   if (!res.ok) {
-    let error = "Could not create the account.";
+    let raw = "";
     try {
       const b = (await res.json()) as { message?: string };
-      if (b.message) error = b.message;
+      raw = b.message ?? "";
     } catch {
       /* keep default */
     }
+    // Map Neon Auth's terse admin-plugin errors to clear, actionable copy
+    // instead of passing raw strings like "You are not allowed to create users"
+    // straight to the admin.
+    const error =
+      res.status === 403 || /not allowed|permission|forbidden|unauthori[sz]ed/i.test(raw)
+        ? "Your account isn’t set up to add team members yet. Please contact support to enable user management for your company."
+        : /exist|already|registered|duplicate|taken/i.test(raw)
+          ? "A user with this email already exists."
+          : raw || "Could not create the account. Please try again.";
     return { ok: false, id: null, error };
   }
   const b = (await res.json()) as { user?: { id?: string } };

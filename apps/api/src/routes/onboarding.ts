@@ -5,6 +5,7 @@ import { getOwnerSqlClient } from "../lib/db";
 import { readJsonObject, optionalNumber } from "../lib/request-body";
 import {
   bootstrapAccount,
+  checkSignupAvailability,
   getDraft,
   getOnboardingState,
   requireOnboardingUser,
@@ -20,6 +21,16 @@ import type { ApiEnv } from "../types";
  * user's id. Mounted outside the billing gate.
  */
 export const onboardingRoutes = new Hono<ApiEnv>()
+  // PUBLIC pre-signup uniqueness pre-check (no identity yet). Lets the signup UI
+  // reject a taken email/phone before emailing an OTP — no half-provisioned Neon
+  // account. { emailTaken, phoneTaken }.
+  .post("/check-availability", async (c) => {
+    const body = await readJsonObject(c);
+    const email = typeof body.email === "string" ? body.email : "";
+    const phone = typeof body.phone === "string" ? body.phone : "";
+    const sql = getOwnerSqlClient(c);
+    return c.json(success(c, await checkSignupAvailability(sql, { email, phone })));
+  })
   // Current onboarding status (no_account / draft / pending / active / rejected).
   .get("/me", async (c) => {
     const { externalUserId } = requireNeonIdentity(c);

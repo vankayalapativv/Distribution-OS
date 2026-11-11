@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { neonAdminUpdateUser } from "../../../../lib/neon-auth-server";
 import { serverApiFetch } from "../../../../lib/server-api";
 import { getApiAuthHeaders } from "../../../../features/auth/server-session";
+import { authorizeTenantLoginOp } from "../../../../features/auth/admin-provisioning";
 
 /**
  * Edit a user's identity. For Neon-Auth-linked accounts the email + name are
@@ -33,15 +33,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Name and status are required." }, { status: 400 });
   }
 
-  const store = await cookies();
-  const session = store.get("sa_session")?.value;
-
-  // 1. Sync the Neon identity (email/name) first.
+  // 1. Sync the Neon identity (email/name) first — via the SERVICE admin, after
+  //    confirming the caller is a SUPER_ADMIN and the target login is in their
+  //    own enterprise. (A user with no appLoginId is app-only; the enterprise-
+  //    scoped PATCH below is its gate.)
   if (body.appLoginId) {
-    if (!session) {
-      return NextResponse.json({ error: "Your session has expired — sign in again." }, { status: 401 });
+    const authz = await authorizeTenantLoginOp(body.appLoginId);
+    if (!authz.ok) {
+      return NextResponse.json({ error: authz.error }, { status: authz.status });
     }
-    const upd = await neonAdminUpdateUser(session, { userId: body.appLoginId, email, name });
+    const upd = await neonAdminUpdateUser(authz.serviceSession, { userId: body.appLoginId, email, name });
     if (!upd.ok) {
       return NextResponse.json({ error: upd.error ?? "Could not update the account." }, { status: 400 });
     }

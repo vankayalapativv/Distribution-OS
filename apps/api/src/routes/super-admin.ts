@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { success } from "../lib/api-response";
+import { ApiError } from "../lib/errors";
 import { requireRole } from "../lib/authz";
 import { actorOf, logAudit } from "../services/audit";
 import { getSqlClient } from "../lib/db";
@@ -80,4 +81,19 @@ export const superAdminRoutes = new Hono<ApiEnv>()
     requireRole(c, ["SUPER_ADMIN"]);
     const device = await getUserLatestDevice(getSqlClient(c), c.req.param("id"));
     return c.json(success(c, { device }));
+  })
+  // Resolve a user by their Neon login id, SCOPED to the caller's enterprise
+  // (RLS). 404 when the login belongs to no user in this enterprise. The web BFF
+  // calls this to confirm a target is its own tenant's before a server-mediated
+  // Neon admin op (set-password / edit / sessions), so a SUPER_ADMIN can never
+  // touch another enterprise's login via the shared Neon admin.
+  .get("/users/by-login/:appLoginId", async (c) => {
+    requireRole(c, ["SUPER_ADMIN"]);
+    const sql = getSqlClient(c);
+    const [row] = (await sql`
+      /* super_admin_resolve_by_login */
+      select id, name from users where app_login_id = ${c.req.param("appLoginId")} limit 1
+    `) as Array<{ id: string; name: string }>;
+    if (!row) throw new ApiError("NOT_FOUND", "No such user in your organisation.", 404);
+    return c.json(success(c, row));
   });

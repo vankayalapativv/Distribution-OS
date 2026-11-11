@@ -84,7 +84,7 @@ vi.mock("@neondatabase/serverless", () => {
     }
 
     if (query.includes("super_admin_user_unique_check")) {
-      return values.includes("taken@x.com") ? [{ id: "someone-else" }] : [];
+      return values.includes("taken@x.com") ? [{ emailClash: true }] : [{ phoneClash: false, emailClash: false }];
     }
 
     if (query.includes("super_admin_update_user")) {

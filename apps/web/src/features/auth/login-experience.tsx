@@ -74,15 +74,17 @@ export function LoginExperience({ error }: { readonly error?: string }) {
   }
 
   return (
-    <main className="min-h-screen bg-background px-6 py-10 text-foreground">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-fit max-w-full flex-col justify-center">
-        <div className="border-b border-border pb-5">
-          <h1 className="whitespace-nowrap text-4xl font-extrabold tracking-tight text-primary">
-            Distribution OS
+    <main className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-10 text-foreground">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-sm">
+        <div className="text-center">
+          <h1 className="whitespace-nowrap text-3xl font-extrabold tracking-tight">
+            <span className="text-primary">Distribution</span>{" "}
+            <span className="text-muted-foreground">OS</span>
           </h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">Sign in to your account</p>
         </div>
 
-        {staticError && <div className={`mt-5 ${bannerClass}`}>{staticError}</div>}
+        {staticError && <div className={`mt-6 ${bannerClass}`}>{staticError}</div>}
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
           <LoginField
@@ -116,6 +118,13 @@ export function LoginExperience({ error }: { readonly error?: string }) {
             {isSubmitting ? "Signing in…" : "Sign in"}
           </Button>
         </form>
+
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <a href="/signup" className="font-semibold text-primary hover:underline">
+            Sign up
+          </a>
+        </p>
       </div>
     </main>
   );

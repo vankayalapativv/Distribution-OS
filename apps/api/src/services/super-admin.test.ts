@@ -29,6 +29,18 @@ describe("createSuperAdminUser", () => {
     const sql = makeSql({ super_admin_role_lookup: [{ id: "role-1" }], super_admin_create_user: [{ id: "u9", name: "Asha", email: null, phone: null, status: "active" }] });
     expect(await createSuperAdminUser(sql, CTX, { name: "Asha", email: null, phone: null, role: "MANAGER" })).toMatchObject({ id: "u9", role: "MANAGER" });
   });
+  it("maps a duplicate phone/email to a FIELD-SPECIFIC 409 (not an opaque 500)", async () => {
+    const uv = (c: string) =>
+      Object.assign(new Error(`duplicate key value violates unique constraint "${c}"`), { code: "23505", constraint: c });
+    const phoneDup = makeSql({ super_admin_role_lookup: [{ id: "role-1" }], super_admin_create_user: () => { throw uv("users_phone_key"); } });
+    await expect(
+      createSuperAdminUser(phoneDup, CTX, { name: "X", email: "a@b.c", phone: "+91999", role: "MANAGER" }),
+    ).rejects.toMatchObject({ status: 409, code: "PHONE_IN_USE" });
+    const emailDup = makeSql({ super_admin_role_lookup: [{ id: "role-1" }], super_admin_create_user: () => { throw uv("users_email_key"); } });
+    await expect(
+      createSuperAdminUser(emailDup, CTX, { name: "X", email: "a@b.c", phone: "+91999", role: "MANAGER" }),
+    ).rejects.toMatchObject({ status: 409, code: "EMAIL_IN_USE" });
+  });
 });
 
 describe("updateSuperAdminUser", () => {
@@ -37,7 +49,8 @@ describe("updateSuperAdminUser", () => {
     await expect(updateSuperAdminUser(makeSql(), CTX, "u1", { name: " ", email: null, phone: null, status: "active" })).rejects.toMatchObject({ status: 422 });
     await expect(updateSuperAdminUser(makeSql(), CTX, "u1", { name: "X", email: null, phone: null, status: "frozen" })).rejects.toMatchObject({ status: 422 });
     await expect(updateSuperAdminUser(makeSql({ super_admin_get_user: [] }), CTX, "u1", { name: "X", email: null, phone: null, status: "active" })).rejects.toMatchObject({ status: 404 });
-    await expect(updateSuperAdminUser(makeSql({ super_admin_get_user: [{ id: "u1" }], super_admin_user_unique_check: [{ id: "u2" }] }), CTX, "u1", { name: "X", email: "a@b.c", phone: null, status: "active" })).rejects.toMatchObject({ status: 409 });
+    await expect(updateSuperAdminUser(makeSql({ super_admin_get_user: [{ id: "u1" }], super_admin_user_unique_check: [{ emailClash: true }] }), CTX, "u1", { name: "X", email: "a@b.c", phone: null, status: "active" })).rejects.toMatchObject({ status: 409, code: "EMAIL_IN_USE" });
+    await expect(updateSuperAdminUser(makeSql({ super_admin_get_user: [{ id: "u1" }], super_admin_user_unique_check: [{ phoneClash: true }] }), CTX, "u1", { name: "X", email: null, phone: "+91999", status: "active" })).rejects.toMatchObject({ status: 409, code: "PHONE_IN_USE" });
     expect(await updateSuperAdminUser(makeSql(ok), CTX, "u1", { name: "Asha", email: null, phone: null, status: "active" })).toMatchObject({ id: "u1" });
   });
 });

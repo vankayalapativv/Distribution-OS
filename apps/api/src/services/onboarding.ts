@@ -55,6 +55,28 @@ export async function getOnboardingState(
   return { state: "draft", userId: user.id, draft: draft ?? null };
 }
 
+/**
+ * Pre-signup uniqueness pre-check: is this email / phone already taken by any
+ * user (across all enterprises)? email + phone are globally UNIQUE, so the signup
+ * UI calls this BEFORE emailing an OTP — a duplicate is rejected up front instead
+ * of after OTP (which would create a half-provisioned Neon account). Runs on the
+ * owner client (pre-enterprise, no scope).
+ */
+export async function checkSignupAvailability(
+  sql: SqlClient,
+  input: { email: string; phone: string },
+): Promise<{ emailTaken: boolean; phoneTaken: boolean }> {
+  const email = input.email.trim().toLowerCase();
+  const phone = input.phone.trim();
+  const [row] = (await sql`
+    /* onboarding_check_availability */
+    select
+      exists(select 1 from users where lower(email) = ${email}) as "emailTaken",
+      exists(select 1 from users where phone = ${phone}) as "phoneTaken"
+  `) as Array<{ emailTaken: boolean; phoneTaken: boolean }>;
+  return { emailTaken: Boolean(row?.emailTaken), phoneTaken: Boolean(row?.phoneTaken) };
+}
+
 /** Create the app users row for a verified Neon identity (idempotent). */
 export async function bootstrapAccount(
   sql: SqlClient,

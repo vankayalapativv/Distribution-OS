@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { neonAdminCreateUser, neonAdminRemoveUser } from "../../../../lib/neon-auth-server";
+import {
+  neonAdminCreateUser,
+  neonAdminRemoveUser,
+  neonServiceAdminSession,
+} from "../../../../lib/neon-auth-server";
 import { serverApiFetch } from "../../../../lib/server-api";
 import { getApiAuthHeaders } from "../../../../features/auth/server-session";
 
@@ -40,10 +44,30 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Your session has expired — sign in again." }, { status: 401 });
   }
 
+  // Authorize the CALLER: only an enterprise SUPER_ADMIN may provision staff. The
+  // service admin (below) does the Neon minting, so the entitlement must be
+  // checked here rather than relying on the caller being a Neon admin.
+  const meRes = await serverApiFetch("/me", { cache: "no-store", headers: await getApiAuthHeaders() });
+  const me = meRes.ok ? ((await meRes.json()) as { data?: { auth?: { role?: string } } }).data : null;
+  if (me?.auth?.role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "Only a Super Admin can add team members." }, { status: 403 });
+  }
+
+  // Mint the login with the dedicated Neon SERVICE admin — the signed-in Super
+  // Admin is intentionally NOT a Neon admin (that role is global/cross-tenant in
+  // the shared Neon project).
+  const serviceSession = await neonServiceAdminSession();
+  if (!serviceSession) {
+    return NextResponse.json(
+      { error: "User provisioning isn’t configured yet. Please contact support." },
+      { status: 503 },
+    );
+  }
+
   const password = generatePassword();
 
   // 1. Create the Neon Auth identity (admin-only; no public sign-up needed).
-  const created = await neonAdminCreateUser(session, { email, password, name });
+  const created = await neonAdminCreateUser(serviceSession, { email, password, name });
   if (!created.ok || !created.id) {
     return NextResponse.json({ error: created.error ?? "Could not create the account." }, { status: 400 });
   }
@@ -57,12 +81,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       body: JSON.stringify({ name, email, phone, role, appLoginId: created.id }),
     });
   } catch {
-    await neonAdminRemoveUser(session, created.id);
+    await neonAdminRemoveUser(serviceSession, created.id);
     return NextResponse.json({ error: "Could not reach the API. Please try again." }, { status: 503 });
   }
 
   if (!apiRes.ok) {
-    await neonAdminRemoveUser(session, created.id); // roll back the orphan identity
+    await neonAdminRemoveUser(serviceSession, created.id); // roll back the orphan identity
     let message = "Could not create the user.";
     try {
       const b = (await apiRes.json()) as { error?: { message?: string } };

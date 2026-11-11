@@ -10,6 +10,34 @@ function Req() {
   return <span className="text-destructive"> *</span>;
 }
 
+/** Inline, per-field validation message shown directly under the input. */
+function FieldError({ id, children }: { readonly id?: string; readonly children?: React.ReactNode }) {
+  if (!children) return null;
+  return (
+    <p id={id} className="text-[11.5px] font-medium text-destructive">
+      {children}
+    </p>
+  );
+}
+
+/** A general (non-field) error banner with a warning icon — for network / server
+ *  failures that don't belong to a single input. */
+function ErrorBanner({ children }: { readonly children: React.ReactNode }) {
+  return (
+    <div
+      role="alert"
+      className="mb-4 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-[13px] text-destructive"
+    >
+      <svg aria-hidden className="mt-[1px] h-4 w-4 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+      <span>{children}</span>
+    </div>
+  );
+}
+
 const RESEND_COOLDOWN = 30;
 
 export function SignupForm() {
@@ -21,9 +49,15 @@ export function SignupForm() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof typeof form | "code", string>>>({});
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  // Editing a field clears its own error (and any general banner), so a
+  // correction visibly resolves the message as the user types.
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((f) => ({ ...f, [k]: e.target.value }));
+    setFieldErrors((fe) => (fe[k] ? { ...fe, [k]: undefined } : fe));
+    if (error) setError(null);
+  };
 
   // Resend cooldown ticker.
   useEffect(() => {
@@ -42,9 +76,15 @@ export function SignupForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone, password: form.password }),
       });
-      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      const body = (await res.json().catch(() => ({}))) as { error?: string; field?: string };
       if (!res.ok) {
-        setError(body.error ?? "Could not send the verification code.");
+        // A taken email/phone comes back tagged with its field → show it on the
+        // input, not as a generic banner. Everything else is a general failure.
+        if (body.field === "email" || body.field === "phone") {
+          setFieldErrors((fe) => ({ ...fe, [body.field as "email" | "phone"]: body.error ?? "Already in use." }));
+        } else {
+          setError(body.error ?? "Could not send the verification code.");
+        }
         setBusy(false);
         return false;
       }
@@ -63,8 +103,14 @@ export function SignupForm() {
   function submitForm(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (form.password !== form.confirm) return setError("Passwords don't match.");
-    if (form.password.length < 8) return setError("Password must be at least 8 characters.");
+    const fe: Partial<Record<keyof typeof form, string>> = {};
+    if (!form.name.trim()) fe.name = "Enter your name.";
+    if (!form.email.trim() || !form.email.includes("@")) fe.email = "Enter a valid email address.";
+    if (!form.phone.trim()) fe.phone = "Enter your mobile number.";
+    if (form.password.length < 8) fe.password = "At least 8 characters.";
+    if (!fe.password && form.password !== form.confirm) fe.confirm = "Passwords don't match.";
+    setFieldErrors(fe);
+    if (Object.keys(fe).length > 0) return;
     void sendCode(false);
   }
 
@@ -72,7 +118,11 @@ export function SignupForm() {
     e.preventDefault();
     setError(null);
     setNotice(null);
-    if (code.trim().length !== 6) return setError("Enter the 6-digit code from your email.");
+    setFieldErrors((fe) => ({ ...fe, code: undefined }));
+    if (code.trim().length !== 6) {
+      setFieldErrors((fe) => ({ ...fe, code: "Enter the 6-digit code from your email." }));
+      return;
+    }
     setBusy(true);
     try {
       const res = await fetch("/api/signup", {
@@ -88,10 +138,14 @@ export function SignupForm() {
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string; otp?: string };
       if (!res.ok) {
-        setError(body.error ?? "Could not create your account.");
-        // Expired / too many attempts → send them back to request a fresh code.
-        if (body.otp === "expired" || body.otp === "missing" || body.otp === "too_many") {
-          setCode("");
+        // Code-related failures belong on the code field; anything else (e.g. the
+        // account could not be created) is a general banner.
+        if (body.otp) {
+          setFieldErrors((fe) => ({ ...fe, code: body.error ?? "That code is incorrect." }));
+          // Expired / too many attempts → clear so they request a fresh code.
+          if (body.otp === "expired" || body.otp === "missing" || body.otp === "too_many") setCode("");
+        } else {
+          setError(body.error ?? "Could not create your account.");
         }
         setBusy(false);
         return;
@@ -144,11 +198,7 @@ export function SignupForm() {
           </aside>
 
           <div className="rounded-[10px] border border-border bg-card p-8 shadow-sm">
-            {error ? (
-              <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
-                {error}
-              </div>
-            ) : null}
+            {error ? <ErrorBanner>{error}</ErrorBanner> : null}
             {notice ? (
               <div className="mb-4 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-[13px] text-primary">
                 {notice}
@@ -168,25 +218,38 @@ export function SignupForm() {
                 <form onSubmit={submitForm} className="flex flex-col gap-3.5">
                   <div className="flex flex-col gap-1.5">
                     <Label>Full name<Req /></Label>
-                    <Input value={form.name} onChange={set("name")} placeholder="Asha Rao" required />
+                    <Input value={form.name} onChange={set("name")} placeholder="Asha Rao" aria-invalid={Boolean(fieldErrors.name)} required />
+                    <FieldError>{fieldErrors.name}</FieldError>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label>Work email<Req /></Label>
-                    <Input type="email" value={form.email} onChange={set("email")} placeholder="asha@company.com" required />
-                    <span className="text-[11.5px] text-muted-foreground">We&apos;ll send a code to verify this address.</span>
+                    <Input type="email" value={form.email} onChange={set("email")} placeholder="asha@company.com" aria-invalid={Boolean(fieldErrors.email)} required />
+                    {fieldErrors.email ? (
+                      <FieldError>
+                        {fieldErrors.email}{" "}
+                        {fieldErrors.email.includes("already registered") ? (
+                          <a href="/login" className="font-semibold underline">Sign in</a>
+                        ) : null}
+                      </FieldError>
+                    ) : (
+                      <span className="text-[11.5px] text-muted-foreground">We&apos;ll send a code to verify this address.</span>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label>Mobile number<Req /></Label>
-                    <Input inputMode="tel" value={form.phone} onChange={set("phone")} placeholder="+91 98765 43210" required />
+                    <Input inputMode="tel" value={form.phone} onChange={set("phone")} placeholder="+91 98765 43210" aria-invalid={Boolean(fieldErrors.phone)} required />
+                    <FieldError>{fieldErrors.phone}</FieldError>
                   </div>
                   <div className="grid gap-3.5 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
                       <Label>Password<Req /></Label>
-                      <Input type="password" value={form.password} onChange={set("password")} placeholder="Min. 8 characters" required />
+                      <Input type="password" value={form.password} onChange={set("password")} placeholder="Min. 8 characters" aria-invalid={Boolean(fieldErrors.password)} required />
+                      <FieldError>{fieldErrors.password}</FieldError>
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label>Confirm password<Req /></Label>
-                      <Input type="password" value={form.confirm} onChange={set("confirm")} placeholder="Re-enter" required />
+                      <Input type="password" value={form.confirm} onChange={set("confirm")} placeholder="Re-enter" aria-invalid={Boolean(fieldErrors.confirm)} required />
+                      <FieldError>{fieldErrors.confirm}</FieldError>
                     </div>
                   </div>
                   <Button type="submit" className="mt-1.5 w-full" disabled={busy}>
@@ -219,11 +282,16 @@ export function SignupForm() {
                       autoComplete="one-time-code"
                       maxLength={6}
                       value={code}
-                      onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      onChange={(e) => {
+                        setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                        setFieldErrors((fe) => (fe.code ? { ...fe, code: undefined } : fe));
+                      }}
                       placeholder="••••••"
+                      aria-invalid={Boolean(fieldErrors.code)}
                       className="text-center text-[22px] font-semibold tracking-[0.5em]"
                       required
                     />
+                    <FieldError>{fieldErrors.code}</FieldError>
                   </div>
                   <Button type="submit" className="mt-1.5 w-full" disabled={busy || code.length !== 6}>
                     {busy ? "Verifying…" : "Verify & create account"}

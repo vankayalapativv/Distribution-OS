@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { serverApiFetch } from "../../../../lib/server-api";
 import { otpEmail, sendEmail } from "../../../../lib/email/resend";
 import {
   OTP_COOKIE,
@@ -32,6 +33,37 @@ export async function POST(request: Request): Promise<NextResponse> {
       { error: "Enter your name, a valid email, your phone, and a password of at least 8 characters." },
       { status: 422 },
     );
+  }
+
+  // Reject a taken email/phone BEFORE emailing an OTP (both are globally unique).
+  // Best-effort: if the check endpoint itself errors, fall through — the post-OTP
+  // create still enforces email uniqueness.
+  try {
+    const avail = await serverApiFetch("/onboarding/check-availability", {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, phone }),
+    });
+    if (avail.ok) {
+      const { data } = (await avail.json()) as {
+        data?: { emailTaken?: boolean; phoneTaken?: boolean };
+      };
+      if (data?.emailTaken) {
+        return NextResponse.json(
+          { error: "This email is already registered. Try signing in instead.", field: "email" },
+          { status: 409 },
+        );
+      }
+      if (data?.phoneTaken) {
+        return NextResponse.json(
+          { error: "This phone number is already registered.", field: "phone" },
+          { status: 409 },
+        );
+      }
+    }
+  } catch {
+    // Non-fatal — continue to the normal OTP flow.
   }
 
   const cookieStore = await cookies();

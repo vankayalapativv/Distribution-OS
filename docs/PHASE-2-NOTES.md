@@ -1,6 +1,6 @@
 # Distribution OS — Phase 2 build notes (enterprise_id + RLS foundation)
 
-> Working notes for the enterprise foundation. Status: **schema generated, not yet applied** (waiting on the new Neon DB URL).
+> Working notes for the enterprise foundation. Status: **DONE + live-verified** on the new Neon DB. Schema applied, RLS leak test passes, app-side scoping + auth wiring cut over, full API suite green (1326), and an end-to-end HTTP request proves isolation (`apps/api/src/phase2-live.test.ts`).
 
 ## What exists so far
 
@@ -39,10 +39,25 @@ This removes the earlier `BYPASSRLS` dependency entirely: the owner bypasses bec
 3. **Connection role for apply.** The migrate runner uses `postgres.js` (direct TCP) as the DB owner. Confirm the new Neon URL is a **direct** (non-pooled) endpoint for migrations.
 4. **Grants to future tables.** New tables created later must also be `GRANT`ed to `app_tenant`/`app_readonly` (add to each future migration, or set `ALTER DEFAULT PRIVILEGES`).
 
-## Next steps (once the Neon URL is in `.env`)
+## Done
 
-1. `pnpm install` in the new project.
-2. `cd packages/db && pnpm migrate` → applies `0001_init.sql`.
-3. `node packages/db/tools/verify-rls.mjs` → leak test must pass (the Phase-2 gate).
-4. Test the `BYPASSRLS` owner role on Neon (open item #1); finalize the owner path.
-5. Then: the app-side GUC plumbing (open item #2) — `getSqlClient` sets `app.enterprise_id` per request; auth carries `enterprise_id`.
+1. ✅ `pnpm install`; `pnpm migrate` applied `0001_init.sql` to the new Neon DB.
+2. ✅ `verify-rls.mjs` passes (incl. INSERT auto-scope via the DEFAULT).
+3. ✅ Owner-vs-tenant RLS (no BYPASSRLS) — resolved, no Neon superuser needed.
+4. ✅ App-side scoping: `createScopedSqlClient` wraps every query in a one-round-trip
+   neon transaction with `SET LOCAL ROLE app_tenant` + the GUC (Proxy preserves
+   neon's lazy-descriptor composition — 664 call sites untouched).
+5. ✅ Auth wiring: `attachAuthContext` resolves `users.enterprise_id`; `getSqlClient`
+   scopes authenticated requests (fail-closed) and uses the owner client otherwise.
+6. ✅ Live E2E proof against the real app + DB (`phase2-live.test.ts`).
+
+## Remaining (later sub-phases, not blockers)
+
+- **Owner cockpit / control-plane** reads across enterprises via `getOwnerSqlClient`
+  (build when the `admin.` cockpit is built).
+- **Enterprise-creation path** (onboarding submit / approval) writes `enterprises`
+  on the owner connection (writes are owner-only) — design in Phase 3.
+- **Real Neon Auth** on the new DB (the live test mints its own EdDSA token + mocks
+  JWKS; a real login needs Neon Auth provisioned for the new project).
+- **Least-privilege app role**: the API still connects as the DB owner and `SET ROLE`s
+  to `app_tenant` per request; a dedicated login role is a hardening step.

@@ -46,9 +46,79 @@ export function bucketFromAge(ageDays: number | null): DuesBucket | null {
   return "60_plus";
 }
 
-/** Bucket counts for the SE's own customers (customers.created_by = SE). */
+// ── Per-enterprise dues bands (server-driven) ───────────────────────────────
+// Each enterprise defines its own ageing bands in onboarding (`dues_bands`:
+// ordinal, from_days, to_days, label — to_days NULL on the open-ended last band).
+// The SE-facing dues views below bucket by THESE bands, not the legacy fixed 4.
+
+export interface DuesBand {
+  /** Stable key for the band (its ordinal as a string) — used by clients. */
+  key: string;
+  ordinal: number;
+  fromDays: number;
+  /** null = open-ended (the last band). */
+  toDays: number | null;
+  label: string;
+}
+
+/** Legacy fixed bands — the fallback when an enterprise has none configured. */
+const DEFAULT_BANDS: DuesBand[] = DUES_BUCKETS.map((key, i) => ({
+  key: String(i),
+  ordinal: i,
+  fromDays: [0, 31, 46, 61][i],
+  toDays: [30, 45, 60, null][i],
+  label: DUES_BUCKET_LABELS[key],
+}));
+
+/** The current enterprise's dues bands (scoped read), ordered by ordinal. */
+export async function loadDuesBands(sql: SqlClient): Promise<DuesBand[]> {
+  const rows = (await sql`
+    /* dues_bands_load */
+    select ordinal, from_days as "fromDays", to_days as "toDays", label
+    from dues_bands order by ordinal
+  `) as Row[];
+  if (rows.length === 0) return DEFAULT_BANDS;
+  return rows.map((r) => ({
+    key: String(num(r.ordinal)),
+    ordinal: num(r.ordinal),
+    fromDays: num(r.fromDays),
+    toDays: r.toDays === null || r.toDays === undefined ? null : num(r.toDays),
+    label: str(r.label),
+  }));
+}
+
+/**
+ * A SQL `CASE` mapping an `age_days` expression to a band ORDINAL, built from the
+ * enterprise's bands. The band bounds are trusted integers read from dues_bands,
+ * so inlining them is injection-safe. Ages outside every band → NULL.
+ */
+export function bandCaseSql(ageExpr: string, bands: DuesBand[]): string {
+  const whens = bands
+    .map((b) => {
+      const hi = b.toDays === null ? 1_000_000 : Math.trunc(b.toDays);
+      return `when ${ageExpr} between ${Math.trunc(b.fromDays)} and ${hi} then ${b.ordinal}`;
+    })
+    .join(" ");
+  return `(case ${whens} else null end)`;
+}
+
+/** JS mirror of bandCaseSql — the band key for an age, or null. */
+export function bandKeyFromAge(ageDays: number | null, bands: DuesBand[]): string | null {
+  if (ageDays === null || !Number.isFinite(ageDays) || ageDays < 0) return null;
+  for (const b of bands) {
+    const hi = b.toDays === null ? Infinity : b.toDays;
+    if (ageDays >= b.fromDays && ageDays <= hi) return b.key;
+  }
+  return null;
+}
+
+/** Bucket counts for the SE's own customers (customers.created_by = SE), using
+ *  the enterprise's own ageing bands. */
 export async function getMyDuesSummary(sql: SqlClient, context: { userId: string }) {
-  const rows = await sql`
+  const bands = await loadDuesBands(sql);
+  const bucketCase = bandCaseSql("age_days", bands);
+  const rows = (await sql.query(
+    `
     /* dues_summary_for_se */
     with dues as (
       select
@@ -61,49 +131,48 @@ export async function getMyDuesSummary(sql: SqlClient, context: { userId: string
         select customer_id, as_of_date as invoice_date, outstanding_amount from customer_opening_balances where outstanding_amount > 0
       ) i
       join customers c on c.id = i.customer_id
-      where c.created_by = ${context.userId}::uuid
+      where c.created_by = $1::uuid
       group by i.customer_id
     )
-    select
-      (case
-        when age_days <= 30 then 0
-        when age_days <= 45 then 1
-        when age_days <= 60 then 2
-        else 3
-      end) as "bucket",
-      count(*)::int as "customers",
-      sum(outstanding) as "outstanding"
-    from dues
-    group by 1
-  ` as Row[];
+    select ${bucketCase} as "bucket", count(*)::int as "customers", sum(outstanding) as "outstanding"
+    from dues group by 1
+  `,
+    [context.userId],
+  )) as Row[];
 
-  const buckets = DUES_BUCKETS.map((key, index) => {
-    const row = rows.find((r) => num(r.bucket) === index);
+  const buckets = bands.map((b) => {
+    const row = rows.find((r) => num(r.bucket) === b.ordinal);
     return {
-      key,
-      label: DUES_BUCKET_LABELS[key],
+      key: b.key,
+      label: b.label,
+      fromDays: b.fromDays,
+      toDays: b.toDays,
       customers: row ? num(row.customers) : 0,
       outstanding: row ? num(row.outstanding) : 0,
     };
   });
 
   return {
+    bands,
     buckets,
     totalCustomers: buckets.reduce((acc, b) => acc + b.customers, 0),
     totalOutstanding: buckets.reduce((acc, b) => acc + b.outstanding, 0),
   };
 }
 
-/** Customers inside one bucket for the SE (drill-down list). */
+/** Customers inside one band for the SE (drill-down list). `bucket` is a band key. */
 export async function listMyDuesCustomers(
   sql: SqlClient,
   context: { userId: string },
-  bucket: DuesBucket,
+  bucket: string,
 ) {
-  const index = DUES_BUCKETS.indexOf(bucket);
-  if (index < 0) throw new ApiError("VALIDATION", "Unknown dues bucket.", 422);
+  const bands = await loadDuesBands(sql);
+  const band = bands.find((b) => b.key === bucket);
+  if (!band) throw new ApiError("VALIDATION", "Unknown dues bucket.", 422);
+  const bucketCase = bandCaseSql("d.age_days", bands);
 
-  const rows = await sql`
+  const rows = (await sql.query(
+    `
     /* dues_customers_for_se */
     with dues as (
       select
@@ -117,7 +186,7 @@ export async function listMyDuesCustomers(
         select customer_id, as_of_date as invoice_date, outstanding_amount from customer_opening_balances where outstanding_amount > 0
       ) i
       join customers c on c.id = i.customer_id
-      where c.created_by = ${context.userId}::uuid
+      where c.created_by = $1::uuid
       group by i.customer_id
     )
     select
@@ -128,14 +197,11 @@ export async function listMyDuesCustomers(
       d.outstanding
     from dues d
     join customers c on c.id = d.customer_id
-    where (case
-      when d.age_days <= 30 then 0
-      when d.age_days <= 45 then 1
-      when d.age_days <= 60 then 2
-      else 3
-    end) = ${index}
+    where ${bucketCase} = $2
     order by d.age_days desc, d.outstanding desc
-  ` as Row[];
+  `,
+    [context.userId, band.ordinal],
+  )) as Row[];
 
   return rows.map((r) => ({
     customerId: str(r.customerId),

@@ -26,18 +26,20 @@ describe("getMyDuesSummary", () => {
   it("maps bucket rows and totals (null outstanding → 0)", async () => {
     const sql = makeSql({ dues_summary_for_se: [{ bucket: 0, customers: 2, outstanding: "1000" }, { bucket: 3, customers: 1, outstanding: null }] });
     const out = await getMyDuesSummary(sql, { userId: "se-1" });
-    expect(out.buckets.find((b) => b.key === "0_30")).toMatchObject({ customers: 2, outstanding: 1000 });
-    expect(out.buckets.find((b) => b.key === "60_plus")).toMatchObject({ customers: 1, outstanding: 0 });
+    // No dues_bands_load mock → default bands keyed by ordinal ("0".."3").
+    expect(out.buckets.find((b) => b.key === "0")).toMatchObject({ customers: 2, outstanding: 1000 });
+    expect(out.buckets.find((b) => b.key === "3")).toMatchObject({ customers: 1, outstanding: 0 });
+    expect(out.bands).toHaveLength(4);
     expect(out.totalCustomers).toBe(3);
   });
 });
 
 describe("listMyDuesCustomers", () => {
   it("422s an unknown bucket, else maps the drill-down", async () => {
-    await expect(listMyDuesCustomers(makeSql(), { userId: "se-1" }, "bogus" as never)).rejects.toMatchObject({ status: 422 });
+    await expect(listMyDuesCustomers(makeSql(), { userId: "se-1" }, "bogus")).rejects.toMatchObject({ status: 422 });
     // oldestInvoiceDate as a Date exercises str()'s Date → ISO branch
     const sql = makeSql({ dues_customers_for_se: [{ customerId: "c1", customerName: "Ravi", oldestInvoiceDate: new Date("2026-04-01T00:00:00Z"), ageDays: "70", outstanding: "500" }] });
-    const rows = await listMyDuesCustomers(sql, { userId: "se-1" }, "60_plus");
+    const rows = await listMyDuesCustomers(sql, { userId: "se-1" }, "3");
     expect(rows[0]).toMatchObject({ customerId: "c1", oldestInvoiceDate: "2026-04-01", ageDays: 70, outstanding: 500 });
   });
 });

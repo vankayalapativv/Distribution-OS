@@ -9,18 +9,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { DuesCustomerRow } from "../../components/dues/dues-customer-row";
 import { ErrorState } from "../../components/error-state";
 import { DuesRowSkeleton, SkeletonList } from "../../components/skeleton";
-import { fetchDuesCustomers, type DuesBucketKey, type DuesCustomer } from "../../lib/dues";
-
-const BUCKET_TITLES: Record<DuesBucketKey, string> = {
-  "0_30": "Dues · 0–30 days",
-  "30_45": "Dues · 31–45 days",
-  "45_60": "Dues · 46–60 days",
-  "60_plus": "Dues · 61+ days",
-};
+import { fetchDuesCustomers, type DuesCustomer } from "../../lib/dues";
 
 export default function DuesBucketScreen() {
-  const params = useLocalSearchParams<{ bucket: string }>();
-  const bucket = (params.bucket ?? "0_30") as DuesBucketKey;
+  // `label` is the band's own label (server-driven), passed by the Home card.
+  const params = useLocalSearchParams<{ bucket: string; label?: string }>();
+  const bucket = params.bucket ?? "";
+  const title = params.label ? `Dues · ${params.label}` : "Dues";
   const [customers, setCustomers] = useState<DuesCustomer[] | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -46,9 +41,7 @@ export default function DuesBucketScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Text className="text-2xl text-foreground">←</Text>
         </Pressable>
-        <Text className="text-xl font-bold text-foreground">
-          {BUCKET_TITLES[bucket] ?? "Dues"}
-        </Text>
+        <Text className="text-xl font-bold text-foreground">{title}</Text>
       </View>
 
       {customers === null ? (

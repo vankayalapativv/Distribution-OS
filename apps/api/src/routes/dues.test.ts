@@ -5,10 +5,8 @@ const SUPER_ADMIN_ID = "00000000-0000-4000-8000-000000000001";
 const SE_ID = "00000000-0000-4000-8000-000000000004";
 const CUSTOMER_ID = "00000000-0000-4000-8000-000000000777";
 
-vi.mock("@neondatabase/serverless", () => ({
-  neon: () => async (strings: TemplateStringsArray, ...values: unknown[]) => {
-    const query = strings.join(" ");
-
+vi.mock("@neondatabase/serverless", () => {
+  const resolve = (query: string, values: unknown[]): unknown[] => {
     if (query.includes("auth_app_profile")) {
       const roleBySubject: Record<string, string> = {
         "neon-super-admin": "SUPER_ADMIN",
@@ -55,8 +53,22 @@ vi.mock("@neondatabase/serverless", () => ({
     }
 
     return [];
-  },
-}));
+  };
+  // The scoped-client path uses sql.query(text, params) as well as tagged
+  // templates, so the mock exposes both, routed through the same resolver.
+  const make = () => {
+    const fn = ((strings: TemplateStringsArray, ...values: unknown[]) =>
+      Promise.resolve(resolve(strings.join(" "), values))) as unknown as {
+      (s: TemplateStringsArray, ...v: unknown[]): Promise<unknown[]>;
+      query: (t: string, p?: unknown[]) => Promise<unknown[]>;
+      unsafe: (t: string) => Promise<unknown[]>;
+    };
+    fn.query = (text, params = []) => Promise.resolve(resolve(text, params));
+    fn.unsafe = (text) => Promise.resolve(resolve(text, []));
+    return fn;
+  };
+  return { neon: () => make() };
+});
 
 const env = {
   DATABASE_URL: "postgresql://example.test/db",
@@ -91,11 +103,12 @@ describe("dues routes", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.success).toBe(true);
+      // Server-driven bands: default (unconfigured) keys are ordinals "0".."3".
       expect(body.data.buckets).toEqual([
-        { key: "0_30", label: "0–30 days", customers: 2, outstanding: 12000 },
-        { key: "30_45", label: "31–45 days", customers: 0, outstanding: 0 },
-        { key: "45_60", label: "46–60 days", customers: 0, outstanding: 0 },
-        { key: "60_plus", label: "61+ days", customers: 1, outstanding: 5836 },
+        { key: "0", label: "0–30 days", fromDays: 0, toDays: 30, customers: 2, outstanding: 12000 },
+        { key: "1", label: "31–45 days", fromDays: 31, toDays: 45, customers: 0, outstanding: 0 },
+        { key: "2", label: "46–60 days", fromDays: 46, toDays: 60, customers: 0, outstanding: 0 },
+        { key: "3", label: "61+ days", fromDays: 61, toDays: null, customers: 1, outstanding: 5836 },
       ]);
       expect(body.data.totalCustomers).toBe(3);
       expect(body.data.totalOutstanding).toBe(17836);
@@ -119,14 +132,14 @@ describe("dues routes", () => {
       const { default: app } = await import("../index");
 
       const res = await app.request(
-        "/api/v1/dues/me/customers?bucket=60_plus",
+        "/api/v1/dues/me/customers?bucket=3",
         { headers: headers("neon-se") },
         env,
       );
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.data.bucket).toBe("60_plus");
+      expect(body.data.bucket).toBe("3");
       expect(body.data.customers).toEqual([
         {
           customerId: CUSTOMER_ID,

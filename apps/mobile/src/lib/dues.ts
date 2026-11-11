@@ -10,16 +10,31 @@ import { useAuth } from "./auth";
 import { cacheKeys } from "./cache-keys";
 import { cachedFetch } from "./read-cache";
 
-export type DuesBucketKey = "0_30" | "30_45" | "45_60" | "60_plus";
+// Server-driven: a band key is the enterprise band's ordinal as a string
+// ("0".."N-1"). The old fixed keys ("0_30"…) are gone — each enterprise defines
+// its own ageing bands in onboarding, and the API returns them.
+export type DuesBucketKey = string;
+
+export interface DuesBand {
+  key: string;
+  ordinal: number;
+  fromDays: number;
+  toDays: number | null;
+  label: string;
+}
 
 export interface DuesBucketSummary {
   key: DuesBucketKey;
   label: string;
+  fromDays: number;
+  toDays: number | null;
   customers: number;
   outstanding: number;
 }
 
 export interface DuesSummary {
+  /** The enterprise's ageing bands (ordered). */
+  bands: DuesBand[];
   buckets: DuesBucketSummary[];
   totalCustomers: number;
   totalOutstanding: number;

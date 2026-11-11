@@ -23,7 +23,7 @@ export const duesRoutes = new Hono<ApiEnv>()
   .get("/me/customers", async (c) => {
     const auth = requireRole(c, ["SALES_EXECUTIVE"]);
     const sql = getSqlClient(c);
-    const bucket = (c.req.query("bucket") ?? "") as DuesBucket;
+    const bucket = c.req.query("bucket") ?? "";
     const customers = await listMyDuesCustomers(sql, { userId: auth.userId! }, bucket);
     return c.json(success(c, { bucket, customers }));
   })

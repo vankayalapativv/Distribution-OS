@@ -13,6 +13,7 @@ import { ensureCurrentCharge } from "./services/billing-v2";
 import { runBillingReminders } from "./services/billing-reminders";
 import { billingV2Routes } from "./routes/billing-v2";
 import { onboardingRoutes } from "./routes/onboarding";
+import { platformAdminRoutes } from "./routes/platform-admin";
 import { razorpayWebhookRoutes } from "./routes/razorpay-webhook";
 import { publicStatementRoutes } from "./routes/public-statement";
 import { authRoutes } from "./routes/auth";
@@ -123,6 +124,10 @@ v1.route("/auth", authRoutes);
 // it is mounted BEFORE the billing gate + section guards (a pending/absent
 // enterprise must not be billing-gated). Runs on the owner client internally.
 v1.route("/onboarding", onboardingRoutes);
+
+// Platform-owner cockpit (approve/reject enterprises, pricing). Owner-only, runs
+// on the owner client across enterprises; mounted before the billing gate.
+v1.route("/platform", platformAdminRoutes);
 
 // Server-side billing enforcement (402) for lapsed subscriptions. No-op unless
 // BILLING_ENFORCED === "true"; exempts webhook/billing/health/status and the

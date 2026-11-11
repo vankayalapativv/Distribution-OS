@@ -191,12 +191,15 @@ export async function submitOnboarding(
 
   const settings: Array<[string, string]> = [
     ["company_legal_name", p.company.legalName],
+    ["company_trade_name", p.company.tradeName],
     ["company_gstin", p.company.gstin],
     ["company_phone", p.company.contactPhone],
     ["company_email", p.company.contactEmail],
     ["company_city", p.address.city],
     ["company_state", p.address.state],
     ["company_pincode", p.address.pincode],
+    ["admin_designation", p.admin.designation],
+    ["company_bank_name", p.bank.bankName],
     ["company_bank_account_name", p.bank.accountName],
     ["company_bank_account_number", p.bank.accountNumber],
     ["company_bank_ifsc", p.bank.ifsc],

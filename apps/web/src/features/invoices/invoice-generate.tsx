@@ -245,7 +245,7 @@ function InvoiceGenerateInner({ role, actionConfig, seed, edit }: { readonly rol
               </div>
 
               <InvoiceGenerateSummary lines={lines} supply={supply} stockMap={stockMap} balancesReady={balancesReady}
-                hasCustomer={customerId !== ""} godownName={godownName} editing={edit != null}
+                hasCustomer={customerId !== ""} godownName={godownName} role={role} editing={edit != null}
                 transportCharge={transportCharge} onTransportChange={setTransportCharge}
                 busy={busy} error={error} onGenerate={generate} />
             </div>

@@ -1,7 +1,8 @@
 "use client";
 
-import { Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { PackagePlus, Zap } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { lineTax, round2, type InvoiceFormLine } from "./invoice-generate-api";
@@ -21,6 +22,9 @@ export interface SummaryProps {
   balancesReady: boolean;
   hasCustomer: boolean;
   godownName: string | null;
+  /** The viewer's role — only SUPER_ADMIN can record stock-in, so the shortcut
+   *  shows only for them (ACCOUNTANT generates invoices but can't write stock). */
+  role?: "SUPER_ADMIN" | "ACCOUNTANT";
   editing?: boolean;
   /** Transportation charge (Porter/Rapido/etc.), as the raw input string. */
   transportCharge: string;
@@ -119,13 +123,24 @@ export function InvoiceGenerateSummary(p: Readonly<SummaryProps>) {
       <Button size="lg" className="h-12 text-base" disabled={blocked || p.busy} onClick={p.onGenerate}>
         <Zap className="size-5" />{p.busy ? busyGenerateLabel(p.editing) : label}
       </Button>
-      {(shortCount > 0 || p.editing) && (
+      {shortCount > 0 ? (
+        <div className="space-y-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-center dark:border-amber-900/50 dark:bg-amber-950/30">
+          <p className="text-xs leading-relaxed text-amber-900 dark:text-amber-200">
+            {shortCount === p.lines.length ? "No stock" : `${shortCount} of ${p.lines.length} lines short`} at{" "}
+            <span className="font-semibold">{p.godownName ?? "this godown"}</span>. A godown can&apos;t go negative —
+            add stock first, or lower each quantity to what&apos;s on hand.
+          </p>
+          {p.role === "SUPER_ADMIN" && (
+            <Link href="/stock/entry?type=in" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mx-auto")}>
+              <PackagePlus className="size-3.5" /> Record stock-in
+            </Link>
+          )}
+        </div>
+      ) : p.editing ? (
         <p className="text-center text-xs text-muted-foreground">
-          {shortCount > 0
-            ? "A godown can't go negative. Record a GRN or transfer stock in, or lower the quantity."
-            : "Keeps the same invoice number. Re-adjusts stock and refreshes the PDF."}
+          Keeps the same invoice number. Re-adjusts stock and refreshes the PDF.
         </p>
-      )}
+      ) : null}
     </>
   );
 }

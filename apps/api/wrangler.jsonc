@@ -32,6 +32,19 @@
       "bucket_name": "distribution-os-photos"
     }
   ],
+  // Native Workers rate limiting (per-IP), consumed by src/middleware/rate-limit.ts.
+  // `period` must be 10 or 60 (seconds). namespace_id is any unique int per account.
+  // Absent locally → the middleware is a no-op, so dev/tests are never throttled.
+  "unsafe": {
+    "bindings": [
+      // Sign-in brute-force / credential-stuffing: 10 attempts / IP / minute.
+      { "name": "RL_LOGIN", "type": "ratelimit", "namespace_id": "2001", "simple": { "limit": 10, "period": 60 } },
+      // Public customer-statement scraping/enumeration: 60 reads / IP / minute.
+      { "name": "RL_PUBLIC", "type": "ratelimit", "namespace_id": "2002", "simple": { "limit": 60, "period": 60 } },
+      // Onboarding account-create + submit abuse: 20 writes / IP / minute.
+      { "name": "RL_ONBOARD", "type": "ratelimit", "namespace_id": "2003", "simple": { "limit": 20, "period": 60 } }
+    ]
+  },
   "triggers": {
     // */3 → tracking/dues/notification maintenance. 30 15 → 9 PM IST client reports.
     "crons": ["*/3 * * * *"]

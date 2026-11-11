@@ -28,6 +28,9 @@ export interface CaptureInput {
   requestId?: string | null;
   userId?: string | null;
   role?: string | null;
+  /** The enterprise whose request produced this error. NULL for platform/unauth
+   *  errors (login, public, webhook, cron) — owner-only, never shown to a tenant. */
+  enterpriseId?: string | null;
   environment?: string | null;
   appVersion?: string | null;
   context?: unknown;
@@ -122,13 +125,13 @@ export async function captureError(
     /* capture_error */
     with g as (
       insert into error_groups
-        (fingerprint, source, title, kind, level, sample_stack, sample_route,
+        (enterprise_id, fingerprint, source, title, kind, level, sample_stack, sample_route,
          occurrence_count, first_seen_at, last_seen_at)
       values
-        (${fingerprint}, ${input.source}, ${title}, ${input.kind ?? null},
+        (${asUuid(input.enterpriseId)}::uuid, ${fingerprint}, ${input.source}, ${title}, ${input.kind ?? null},
          ${input.level ?? "error"}, ${input.stack ?? null}, ${input.route ?? null},
          1, now(), now())
-      on conflict (fingerprint) do update set
+      on conflict (enterprise_id, fingerprint) do update set
         occurrence_count = error_groups.occurrence_count + 1,
         last_seen_at = now(),
         updated_at = now(),
@@ -141,10 +144,10 @@ export async function captureError(
     ),
     e as (
       insert into error_events
-        (group_id, source, message, stack, route, method, status_code, request_id,
+        (group_id, enterprise_id, source, message, stack, route, method, status_code, request_id,
          user_id, role, environment, app_version, context)
       select
-        g.id, ${input.source}, ${input.message}, ${input.stack ?? null}, ${input.route ?? null},
+        g.id, ${asUuid(input.enterpriseId)}::uuid, ${input.source}, ${input.message}, ${input.stack ?? null}, ${input.route ?? null},
         ${input.method ?? null}, ${input.statusCode ?? null}, ${input.requestId ?? null},
         ${asUuid(input.userId)}::uuid, ${input.role ?? null}, ${input.environment ?? "production"},
         ${input.appVersion ?? null}, ${contextJson}::jsonb

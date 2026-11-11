@@ -39,6 +39,30 @@ describe("capturePostHogException", () => {
     expect(body.properties.$exception_message).toBe("kaboom");
   });
 
+  it("tags the exception with the enterprise (flat property + PostHog group)", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("ok"));
+    await capturePostHogException(
+      new Error("kaboom"),
+      ctx({ POSTHOG_PROJECT_TOKEN: "t" }),
+      { ...extra, enterpriseId: "ent-7" },
+    );
+    const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.properties.enterprise_id).toBe("ent-7");
+    expect(body.properties.$groups).toEqual({ enterprise: "ent-7" });
+  });
+
+  it("omits the enterprise group when there is no enterprise (platform/unauth error)", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("ok"));
+    await capturePostHogException(
+      new Error("x"),
+      ctx({ POSTHOG_PROJECT_TOKEN: "t" }),
+      { ...extra, enterpriseId: null },
+    );
+    const body = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.properties.enterprise_id).toBeNull();
+    expect(body.properties.$groups).toBeUndefined();
+  });
+
   it("defaults the host and anonymous distinct_id, and tolerates a message-less error", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("ok"));
     const err = new Error();

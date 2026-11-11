@@ -69,6 +69,11 @@ export interface ApiEnv {
     MCP_SERVER_ORIGIN?: string;
     /** Shared bearer secret for the MCP server's /admin/* API (secret). Must match apps/mcp. */
     MCP_ADMIN_SECRET?: string;
+    /** Workers native rate-limit bindings (per-IP). Absent in local dev/tests → no-op.
+     *  See middleware/rate-limit.ts + the `unsafe.bindings` block in wrangler.jsonc. */
+    RL_LOGIN?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+    RL_PUBLIC?: { limit(o: { key: string }): Promise<{ success: boolean }> };
+    RL_ONBOARD?: { limit(o: { key: string }): Promise<{ success: boolean }> };
   };
   Variables: {
     auth: AuthContext;

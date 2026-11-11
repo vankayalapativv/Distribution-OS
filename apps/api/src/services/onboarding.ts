@@ -9,6 +9,7 @@
  * enterprise + all config + make the user its SUPER_ADMIN) → owner approval.
  */
 import { ApiError } from "../lib/errors";
+import { isUniqueViolation } from "../lib/pg-errors";
 import type { SqlClient } from "../lib/db";
 
 export type OnboardingState = "no_account" | "draft" | "pending" | "active" | "rejected";
@@ -61,13 +62,27 @@ export async function bootstrapAccount(
 ): Promise<{ userId: string }> {
   const existing = await findUser(sql, input.externalUserId);
   if (existing) return { userId: existing.id };
-  const [row] = (await sql`
-    /* onboarding_bootstrap_user */
-    insert into users (enterprise_id, name, email, phone, app_login_id, status)
-    values (null, ${input.name ?? "New user"}, ${input.email}, ${input.phone ?? null}, ${input.externalUserId}, 'active')
-    returning id
-  `) as Array<{ id: string }>;
-  return { userId: row.id };
+  // email + phone are globally UNIQUE across all enterprises (one person = one
+  // login). A collision here means someone else already registered that email
+  // or phone — surface a clear 409, not an opaque 500 (which would also be
+  // logged as a server fault and fire an exception alert).
+  try {
+    const [row] = (await sql`
+      /* onboarding_bootstrap_user */
+      insert into users (enterprise_id, name, email, phone, app_login_id, status)
+      values (null, ${input.name ?? "New user"}, ${input.email}, ${input.phone ?? null}, ${input.externalUserId}, 'active')
+      returning id
+    `) as Array<{ id: string }>;
+    return { userId: row.id };
+  } catch (err) {
+    if (isUniqueViolation(err, "users_phone_key")) {
+      throw new ApiError("PHONE_IN_USE", "This phone number is already registered.", 409);
+    }
+    if (isUniqueViolation(err, "users_email_key")) {
+      throw new ApiError("EMAIL_IN_USE", "This email is already registered.", 409);
+    }
+    throw err;
+  }
 }
 
 /** Resolve the app user id for a verified identity, or 409 if not bootstrapped. */

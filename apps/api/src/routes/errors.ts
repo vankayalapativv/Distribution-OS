@@ -64,6 +64,9 @@ export const errorsRoutes = new Hono<ApiEnv>()
       requestId: c.var.requestId,
       userId: auth.userId,
       role: auth.role,
+      // Stamp the reporter's enterprise from the token (never the body), so an
+      // ingested client error is isolated to its own tenant under RLS.
+      enterpriseId: auth.enterpriseId,
       environment: c.env.ENVIRONMENT ?? "production",
       appVersion: input.appVersion ?? null,
       context: input.context ?? null,

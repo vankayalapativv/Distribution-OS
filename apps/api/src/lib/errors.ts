@@ -40,6 +40,7 @@ function monitorServerError(err: unknown, c: Parameters<ErrorHandler<ApiEnv>>[1]
         requestId: c.var.requestId,
         userId: c.var.auth?.userId ?? null,
         role: c.var.auth?.role ?? null,
+        enterpriseId: c.var.auth?.enterpriseId ?? null,
       }),
     );
     const databaseUrl = c.env.DATABASE_URL;
@@ -57,6 +58,7 @@ function monitorServerError(err: unknown, c: Parameters<ErrorHandler<ApiEnv>>[1]
         requestId: c.var.requestId,
         userId: c.var.auth?.userId ?? null,
         role: c.var.auth?.role ?? null,
+        enterpriseId: c.var.auth?.enterpriseId ?? null,
         environment: c.env.ENVIRONMENT ?? "production",
       }).catch(() => undefined),
     );

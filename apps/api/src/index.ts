@@ -9,6 +9,7 @@ import { errorHandler, notFoundHandler } from "./lib/errors";
 import { attachAuthContext } from "./middleware/auth";
 import { attachRequestContext } from "./middleware/request-context";
 import { billingGate } from "./middleware/billing-gate";
+import { rateLimit } from "./middleware/rate-limit";
 import { runBillingMaintenance } from "./services/billing-maintenance";
 import { billingV2Routes } from "./routes/billing-v2";
 import { onboardingRoutes } from "./routes/onboarding";
@@ -111,17 +112,26 @@ v1.route("/billing", billingV2Routes);
 // Public, no-login customer account-statement — mounted BEFORE the billing gate
 // and section guards so it is genuinely auth-free. The route itself calls no
 // requireAuth/requireRole; the opaque per-customer token is the only gate.
+// Per-IP rate limit (native Workers binding) blunts enumeration/scraping of the
+// opaque statement tokens; a no-op when the binding is absent (dev/tests).
+v1.use("/public/*", rateLimit("RL_PUBLIC", "public"));
 v1.route("/public", publicStatementRoutes);
 
 // Mobile auth proxy (/auth/login, /auth/token, /auth/sign-out) — mounted BEFORE
 // the billing gate + section guards so sign-in is genuinely auth-free and stays
 // reachable for a lapsed account. The device talks to this (reliable Cloudflare)
 // host instead of resolving the Neon Auth host directly on weak 4G.
+// Per-IP rate limit on sign-in blunts credential-stuffing / brute force.
+v1.use("/auth/login", rateLimit("RL_LOGIN", "login"));
 v1.route("/auth", authRoutes);
 
 // Self-serve onboarding — used by a signed-in user who has NO enterprise yet, so
 // it is mounted BEFORE the billing gate + section guards (a pending/absent
 // enterprise must not be billing-gated). Runs on the owner client internally.
+// Per-IP rate limit on the two write endpoints (account creation + submit);
+// the frequent draft autosave (PUT /draft) is deliberately left unthrottled.
+v1.use("/onboarding/account", rateLimit("RL_ONBOARD", "onboard"));
+v1.use("/onboarding/submit", rateLimit("RL_ONBOARD", "onboard"));
 v1.route("/onboarding", onboardingRoutes);
 
 // Platform-owner cockpit (approve/reject enterprises, pricing). Owner-only, runs

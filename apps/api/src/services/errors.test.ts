@@ -47,6 +47,20 @@ describe("captureError", () => {
     expect(await captureError(sql, { source: "web", message: "x" })).toEqual({ groupId: "", isNew: false });
   });
 
+  it("stamps the enterprise_id (valid uuid) onto the group + event, NULL when absent", async () => {
+    const ent = "11111111-1111-4111-8111-111111111111";
+    const tagged = makeSql({ capture_error: [{ id: "g1", is_new: true }] });
+    await captureError(tagged, { source: "api", message: "m", enterpriseId: ent });
+    const call = tagged.calls.find((c) => c.tag === "capture_error")!;
+    // enterprise_id is bound twice — once for the group insert, once for the event.
+    expect(call.params.filter((p) => p === ent)).toHaveLength(2);
+
+    const none = makeSql({ capture_error: [{ id: "g1", is_new: true }] });
+    await captureError(none, { source: "api", message: "m" });
+    const noneCall = none.calls.find((c) => c.tag === "capture_error")!;
+    expect(noneCall.params).not.toContain(ent);
+  });
+
   it("validates the userId as a uuid (invalid → null param) and defaults the title", async () => {
     const sql = makeSql({ capture_error: [{ id: "g1", is_new: false }] });
     await captureError(sql, { source: "mobile", message: "   ", userId: "not-a-uuid" });

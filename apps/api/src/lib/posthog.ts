@@ -17,7 +17,14 @@ import type { ApiEnv } from "../types";
 export function capturePostHogException(
   err: Error,
   c: Context<ApiEnv>,
-  extra: { statusCode: number; apiCode: string | null; requestId?: string; userId?: string | null; role?: string | null },
+  extra: {
+    statusCode: number;
+    apiCode: string | null;
+    requestId?: string;
+    userId?: string | null;
+    role?: string | null;
+    enterpriseId?: string | null;
+  },
 ): Promise<void> {
   const token = c.env.POSTHOG_PROJECT_TOKEN;
   if (!token) {
@@ -53,7 +60,11 @@ export function capturePostHogException(
       api_code: extra.apiCode,
       request_id: extra.requestId,
       role: extra.role,
+      // Per-enterprise attribution: a flat property for filtering, plus PostHog
+      // group analytics so exceptions roll up per tenant. NULL for platform/unauth.
+      enterprise_id: extra.enterpriseId ?? null,
       environment: c.env.ENVIRONMENT ?? "production",
+      ...(extra.enterpriseId ? { $groups: { enterprise: extra.enterpriseId } } : {}),
     },
   };
 

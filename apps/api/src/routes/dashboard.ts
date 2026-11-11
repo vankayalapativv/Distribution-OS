@@ -66,8 +66,8 @@ export const dashboardRoutes = new Hono<ApiEnv>()
   // ── Dashboard map (2026-09-07): customer pins + today's field activity ───
   .get("/map", async (c) => {
     requireRole(c, ["SUPER_ADMIN", "MANAGER"]);
-    const customers = await getDashboardMapCustomers(getSqlClient(c));
-    return c.json(success(c, { customers }));
+    const { customers, bands } = await getDashboardMapCustomers(getSqlClient(c));
+    return c.json(success(c, { customers, bands }));
   })
   .get("/map/activity", async (c) => {
     requireRole(c, ["SUPER_ADMIN", "MANAGER"]);

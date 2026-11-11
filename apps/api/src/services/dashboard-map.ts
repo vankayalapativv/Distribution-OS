@@ -1,4 +1,5 @@
 import type { SqlClient } from "../lib/db";
+import { loadDuesBands, bandKeyFromAge, type DuesBand } from "./dues";
 
 /**
  * Data for the Dashboard OpenStreetMap section (SUPER_ADMIN + MANAGER).
@@ -28,16 +29,9 @@ const strOrNull = (v: unknown): string | null => {
   return s.length > 0 ? s : null;
 };
 
-export type DuesBucketKey = "0_30" | "30_45" | "45_60" | "60_plus";
-
-/** age in days (IST, from oldest unpaid invoice) → the Dues card's bucket key. */
-function bucketOf(ageDays: number | null): DuesBucketKey | null {
-  if (ageDays == null) return null; // no outstanding → "clear"
-  if (ageDays <= 30) return "0_30";
-  if (ageDays <= 45) return "30_45";
-  if (ageDays <= 60) return "45_60";
-  return "60_plus";
-}
+/** A customer's dues bucket is the enterprise band's key (its ordinal as a
+ *  string, "0".."3"), or null when they have no outstanding. */
+export type DuesBucketKey = string;
 
 export interface MapCustomer {
   id: string;
@@ -61,7 +55,15 @@ export interface MapCustomer {
   active: boolean;
 }
 
-export async function getDashboardMapCustomers(sql: SqlClient): Promise<MapCustomer[]> {
+export interface DashboardMapData {
+  customers: MapCustomer[];
+  /** The enterprise's dues bands (ordinal order) — labels/ranges for the map
+   *  legend, dot popups and the district ageing table. */
+  bands: DuesBand[];
+}
+
+export async function getDashboardMapCustomers(sql: SqlClient): Promise<DashboardMapData> {
+  const bands = await loadDuesBands(sql);
   const rows = (await sql`
     /* dashboard_map_customers */
     with dues as (
@@ -117,7 +119,7 @@ export async function getDashboardMapCustomers(sql: SqlClient): Promise<MapCusto
     order by d.age_days desc nulls last
   `) as Row[];
 
-  return rows.map((r) => {
+  const customers = rows.map((r) => {
     const ageDays = numOrNull(r.ageDays);
     return {
       id: str(r.id),
@@ -130,12 +132,13 @@ export async function getDashboardMapCustomers(sql: SqlClient): Promise<MapCusto
       executiveName: strOrNull(r.executiveName),
       outstanding: num(r.outstanding),
       ageDays,
-      bucket: bucketOf(ageDays),
+      bucket: bandKeyFromAge(ageDays, bands),
       lastOrderDays: numOrNull(r.lastOrderDays),
       lastCollectionDays: numOrNull(r.lastCollectionDays),
       active: Boolean(r.active),
     };
   });
+  return { customers, bands };
 }
 
 // ── Today's live field activity (fetched only when a toggle is on) ───────────

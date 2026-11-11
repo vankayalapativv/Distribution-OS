@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Maximize2 } from "lucide-react";
-import { type MapCustomer } from "./map-helpers";
+import { bandMeta, type DuesBand, type MapCustomer } from "./map-helpers";
 import { useOsmMapInit } from "./use-osm-map-init";
 import { useDistrictLayer } from "./use-district-layer";
 import { useFitButton } from "./use-fit-button";
@@ -13,22 +13,26 @@ import { useTelanganaDistricts } from "./use-telangana-districts";
  *  Map creation, the district layer, and the Fit button live in dedicated hooks. */
 export function OsmMap({
   customers,
+  bands,
   onRenderComplete,
 }: {
   readonly customers: MapCustomer[];
+  /** The enterprise's dues bands — drive the dot popups + district ageing table. */
+  readonly bands?: DuesBand[];
   /** Fires once the basemap is fully rendered (all tiles painted). */
   readonly onRenderComplete?: () => void;
 }) {
   // null = overview (badges + hover); a name = zoomed into that district (dots).
   const [selected, setSelected] = useState<string | null>(null);
   const divRef = useRef<HTMLDivElement | null>(null);
+  const meta = useMemo(() => bandMeta(bands), [bands]);
 
   // All Telangana districts, loaded lazily from vardhan-maps (empty until ready);
   // the heat overlay follows wherever customers actually are.
   const districts = useTelanganaDistricts();
 
   const mapRef = useOsmMapInit(divRef, selected, setSelected, districts, onRenderComplete);
-  useDistrictLayer(mapRef, customers, districts, selected, setSelected);
+  useDistrictLayer(mapRef, customers, districts, selected, setSelected, meta);
   const fitToPins = useFitButton(mapRef, customers, districts);
 
   return (

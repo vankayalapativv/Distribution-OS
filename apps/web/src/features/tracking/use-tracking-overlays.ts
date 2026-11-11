@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet, type ActionConfig } from "@/lib/api-client";
 import { districtOf } from "@/features/dashboard/map/district-helpers";
 import { TELANGANA_DISTRICTS } from "@/features/dashboard/map/telangana-districts";
-import type { MapCustomer } from "@/features/dashboard/map/map-helpers";
+import type { DuesBand, MapCustomer } from "@/features/dashboard/map/map-helpers";
 import type { DeviceHealth } from "./tracking-api";
 import { REFRESH_MS } from "./tracking-helpers";
 
@@ -17,10 +17,11 @@ const EMPTY_CUSTOMERS: MapCustomer[] = [];
 export function useTrackingOverlays(actionConfig: ActionConfig, date: string, view: "map" | "health", isToday: boolean) {
   const customersQuery = useQuery({
     queryKey: ["tracking-customer-map"],
-    queryFn: () => apiGet<{ customers: MapCustomer[] }>(actionConfig, "/dashboard/map"),
+    queryFn: () => apiGet<{ customers: MapCustomer[]; bands: DuesBand[] }>(actionConfig, "/dashboard/map"),
     staleTime: 300_000,
   });
   const customers = customersQuery.data?.customers ?? EMPTY_CUSTOMERS;
+  const bands = customersQuery.data?.bands;
 
   const customerDistricts = useMemo(() => {
     const set = new Set<string>();
@@ -39,5 +40,5 @@ export function useTrackingOverlays(actionConfig: ActionConfig, date: string, vi
     placeholderData: (prev) => prev,
   });
 
-  return { customers, customerDistricts, deviceHealth: deviceHealthQuery.data?.devices ?? [] };
+  return { customers, bands, customerDistricts, deviceHealth: deviceHealthQuery.data?.devices ?? [] };
 }

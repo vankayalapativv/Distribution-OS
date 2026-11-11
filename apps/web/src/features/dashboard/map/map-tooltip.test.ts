@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { districtHoverTooltip, ensureTooltipStyles, escapeHtml } from "./map-tooltip";
-import type { MapCustomer } from "./map-helpers";
+import { bandMeta, type MapCustomer } from "./map-helpers";
+
+const META = bandMeta(undefined); // default 4 bands, keys "0".."3"
 
 const cust = (over: Partial<MapCustomer>): MapCustomer => ({
   id: "c", name: "Shop", code: "C", city: "Guntur", lat: 17, lng: 78,
@@ -27,12 +29,12 @@ describe("ensureTooltipStyles", () => {
 describe("districtHoverTooltip", () => {
   it("renders header, total dues, the ageing table and top execs", () => {
     const html = districtHoverTooltip("Hyderabad", [
-      cust({ outstanding: 5000, bucket: "0_30", executiveName: "Ravi" }),
-      cust({ outstanding: 1000, bucket: "0_30", executiveName: "Ravi" }), // same bucket → tally else-branch
-      cust({ outstanding: 2000, bucket: "60_plus", executiveName: "Sita" }),
-      cust({ outstanding: 0, bucket: "45_60", executiveName: "Sita" }), // bucketed, zero owed → `outstanding || 0` false
+      cust({ outstanding: 5000, bucket: "0", executiveName: "Ravi" }),
+      cust({ outstanding: 1000, bucket: "0", executiveName: "Ravi" }), // same bucket → tally else-branch
+      cust({ outstanding: 2000, bucket: "3", executiveName: "Sita" }),
+      cust({ outstanding: 0, bucket: "2", executiveName: "Sita" }), // bucketed, zero owed → `outstanding || 0` false
       cust({ outstanding: 0, bucket: null, executiveName: null }),
-    ]);
+    ], META);
     expect(html).toContain("Hyderabad");
     expect(html).toContain("5 customers");
     expect(html).toContain("Total dues");
@@ -41,7 +43,7 @@ describe("districtHoverTooltip", () => {
   });
 
   it("uses singular nouns for a single customer + exec", () => {
-    const html = districtHoverTooltip("Solo", [cust({ outstanding: 100, bucket: "0_30" })]);
+    const html = districtHoverTooltip("Solo", [cust({ outstanding: 100, bucket: "0" })], META);
     expect(html).toContain("1 customer<");
     expect(html).toContain("Top exec:");
   });

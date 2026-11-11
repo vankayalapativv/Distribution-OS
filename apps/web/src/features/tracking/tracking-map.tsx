@@ -10,7 +10,7 @@ import { guardMaplibreLeaflet } from "@/lib/maplibre-leaflet-guard";
 import {
   REGION_BOUNDS, HYDERABAD_DISTRICT_SET, HYDERABAD_DISTRICTS_CENTER, HYDERABAD_DISTRICTS_ZOOM,
 } from "@/features/dashboard/map/map-constants";
-import type { MapCustomer } from "@/features/dashboard/map/map-helpers";
+import { bandMeta, type DuesBand, type MapCustomer } from "@/features/dashboard/map/map-helpers";
 import type { RoutePoint, TrackedExecutive, TrackingCheckin } from "./tracking-api";
 import { MapLoadingOverlay } from "./tracking-map-loading";
 import { checkinMarkers, customerMarkers } from "./tracking-map-markers";
@@ -24,13 +24,15 @@ interface TrackingMapProps {
   readonly routePoints: RoutePoint[];
   readonly routeStale?: boolean;
   readonly customers: MapCustomer[];
+  readonly bands?: DuesBand[];
   readonly checkins: TrackingCheckin[];
   readonly onSelectExecutive: (userId: string) => void;
   readonly selectedUserId?: string | null;
   readonly customerDistricts?: string[];
 }
 
-export function TrackingMap({ executives, routePoints, routeStale, customers, checkins, onSelectExecutive, selectedUserId, customerDistricts }: TrackingMapProps) {
+export function TrackingMap({ executives, routePoints, routeStale, customers, bands, checkins, onSelectExecutive, selectedUserId, customerDistricts }: TrackingMapProps) {
+  const meta = useMemo(() => bandMeta(bands), [bands]);
   const selectedExec = useMemo(
     () => executives.find((e) => e.userId === selectedUserId && e.lastLatitude != null && e.lastLongitude != null),
     [executives, selectedUserId],
@@ -47,11 +49,11 @@ export function TrackingMap({ executives, routePoints, routeStale, customers, ch
     const visitedIds = new Set(shownCheckins.map((c) => c.customerId));
     const byId = new Map(customers.map((c) => [c.id, c]));
     return [
-      ...customerMarkers(customers.filter((c) => !visitedIds.has(c.id))),
+      ...customerMarkers(customers.filter((c) => !visitedIds.has(c.id)), meta),
       ...execMarkers(executives),
-      ...checkinMarkers(shownCheckins, byId),
+      ...checkinMarkers(shownCheckins, byId, meta),
     ];
-  }, [customers, executives, checkins, routeStale]);
+  }, [customers, executives, checkins, routeStale, meta]);
   const routes = useMemo(() => buildRoutes(routePoints, routeReady, selectedExec), [routePoints, routeReady, selectedExec]);
 
   const customerSet = useMemo(() => new Set(customerDistricts ?? []), [customerDistricts]);

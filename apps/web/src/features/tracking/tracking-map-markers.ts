@@ -1,5 +1,5 @@
 import type { MapMarker } from "vardhan-maps/react";
-import { bucketColor, type MapCustomer } from "@/features/dashboard/map/map-helpers";
+import { bucketColor, type BandMeta, type MapCustomer } from "@/features/dashboard/map/map-helpers";
 import { customerDotPopup, customerPopupInner } from "@/features/dashboard/map/map-markers";
 import { formatTime, litres, rupees } from "@/lib/format";
 import type { TrackingCheckin } from "./tracking-api";
@@ -23,13 +23,13 @@ function flagIcon(planned: boolean): string {
  *  collection-dues ageing bucket (same palette as the dashboard map; neutral
  *  grey when no dues). Nothing shows on hover — a click opens the shared dues
  *  popup (name link, city · salesperson, "₹ due · bucket"). */
-export function customerMarkers(customers: MapCustomer[]): MapMarker[] {
+export function customerMarkers(customers: MapCustomer[], meta: BandMeta): MapMarker[] {
   return customers.map((c) => ({
     lat: c.lat,
     lng: c.lng,
     color: bucketColor(c.bucket),
     radius: 3,
-    popup: customerDotPopup(c),
+    popup: customerDotPopup(c, meta),
   }));
 }
 
@@ -64,7 +64,7 @@ function outcomesHtml(c: TrackingCheckin): string {
  *  activity chips) with, below a divider, the visit details (time +
  *  planned/unplanned + any order/collection made on the visit). The linked name
  *  at the top is the only "open customer" link. */
-export function checkinMarkers(checkins: TrackingCheckin[], customersById: Map<string, MapCustomer>): MapMarker[] {
+export function checkinMarkers(checkins: TrackingCheckin[], customersById: Map<string, MapCustomer>, meta: BandMeta): MapMarker[] {
   return checkins.map((c) => {
     const planned = c.planned === "planned";
     const badge = planned
@@ -74,7 +74,7 @@ export function checkinMarkers(checkins: TrackingCheckin[], customersById: Map<s
     // Full customer block when we have the mapped customer; otherwise just the
     // linked name (still the only customer link — no separate button).
     const customerBlock = matched
-      ? customerPopupInner(matched)
+      ? customerPopupInner(matched, meta)
       : `<a href="/customers/${encodeURIComponent(c.customerId)}" style="font-weight:700;font-size:13px;color:#2563eb;text-decoration:none">${esc(c.customerName)}</a>`;
     const popup = `<div style="min-width:200px">
       ${customerBlock}

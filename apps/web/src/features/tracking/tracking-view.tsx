@@ -54,6 +54,7 @@ function TrackingViewInner({ initialExecutives, initialDate, role, actionConfig 
             // route is still loading — the map flies to the new person immediately.
             routeStale={t.routeStale}
             customers={t.customers}
+            bands={t.bands}
             checkins={t.checkins}
             customerDistricts={t.customerDistricts}
             selectedUserId={t.effectiveSelectedUserId}

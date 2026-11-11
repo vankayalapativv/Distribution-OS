@@ -26,10 +26,12 @@ describe("getDashboardMapCustomers", () => {
         { ...base, id: "c4", ageDays: 61, active: false }, // 60_plus
       ],
     });
-    const rows = await getDashboardMapCustomers(sql);
-    expect(rows.map((r) => r.bucket)).toEqual([null, "0_30", "30_45", "45_60", "60_plus"]);
-    expect(rows[0]).toMatchObject({ id: "c0", lat: 17.4, lng: 78.4, lastCollectionDays: null });
-    expect(rows[4].active).toBe(false);
+    const { customers, bands } = await getDashboardMapCustomers(sql);
+    // No dues_bands_load mock → the default 4 bands, keyed by ordinal ("0".."3").
+    expect(customers.map((r) => r.bucket)).toEqual([null, "0", "1", "2", "3"]);
+    expect(customers[0]).toMatchObject({ id: "c0", lat: 17.4, lng: 78.4, lastCollectionDays: null });
+    expect(customers[4].active).toBe(false);
+    expect(bands).toHaveLength(4);
   });
 
   it("coerces blank city/executive to null", async () => {
@@ -38,8 +40,8 @@ describe("getDashboardMapCustomers", () => {
         { id: "c1", name: "X", code: "C", city: "", lat: 1, lng: 2, executiveId: "", executiveName: "", outstanding: 0, ageDays: null, lastOrderDays: null, lastCollectionDays: null, active: false },
       ],
     });
-    const [r] = await getDashboardMapCustomers(sql);
-    expect(r).toMatchObject({ city: null, executiveId: null, executiveName: null, lastOrderDays: null });
+    const { customers } = await getDashboardMapCustomers(sql);
+    expect(customers[0]).toMatchObject({ city: null, executiveId: null, executiveName: null, lastOrderDays: null });
   });
 });
 

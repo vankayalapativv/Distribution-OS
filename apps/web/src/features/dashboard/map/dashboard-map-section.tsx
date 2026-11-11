@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet, errorMessage, type ActionConfig } from "@/lib/api-client";
-import { type MapCustomer } from "./map-helpers";
+import { type DuesBand, type MapCustomer } from "./map-helpers";
 import { MapLoadingOverlay } from "@/features/tracking/tracking-map-loading";
 import { useInViewport } from "./use-in-viewport";
 
@@ -28,12 +28,13 @@ export function DashboardMapSection({ actionConfig }: { readonly actionConfig: A
 
   const customersQuery = useQuery({
     queryKey: ["dashboard-map"],
-    queryFn: () => apiGet<{ customers: MapCustomer[] }>(actionConfig, "/dashboard/map"),
+    queryFn: () => apiGet<{ customers: MapCustomer[]; bands: DuesBand[] }>(actionConfig, "/dashboard/map"),
     staleTime: 300_000,
     enabled: inView, // don't fetch until the section is on screen
   });
 
   const customers = useMemo(() => customersQuery.data?.customers ?? [], [customersQuery.data]);
+  const bands = customersQuery.data?.bands;
 
   const showMap = inView && customersQuery.isSuccess; // mount the map so it can initialise under the overlay
 
@@ -78,7 +79,7 @@ export function DashboardMapSection({ actionConfig }: { readonly actionConfig: A
                   ready ? "opacity-100" : "opacity-0"
                 }`}
               >
-                <OsmMap customers={customers} onRenderComplete={() => setMapRendered(true)} />
+                <OsmMap customers={customers} bands={bands} onRenderComplete={() => setMapRendered(true)} />
               </div>
             )}
             {!overlayGone && (

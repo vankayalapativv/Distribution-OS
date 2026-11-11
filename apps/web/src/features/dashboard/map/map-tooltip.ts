@@ -1,5 +1,4 @@
-import { rupees, BUCKET_META, type DuesBucketKey, type MapCustomer } from "./map-helpers";
-import { BUCKET_ORDER } from "./map-constants";
+import { rupees, type BandMeta, type DuesBucketKey, type MapCustomer } from "./map-helpers";
 
 const HTML_ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 export function escapeHtml(s: string): string {
@@ -36,7 +35,7 @@ export function ensureTooltipStyles() {
 /** Sticky hover tooltip for a district: header (name · N customers), total dues,
  *  a collection-ageing TABLE (all 4 buckets: customers + ₹ owed), and the top
  *  executive(s). */
-export function districtHoverTooltip(name: string, list: MapCustomer[]): string {
+export function districtHoverTooltip(name: string, list: MapCustomer[], meta: BandMeta): string {
   const total = list.reduce((s, c) => s + (c.outstanding || 0), 0);
 
   const bucketCounts = new Map<DuesBucketKey, number>();
@@ -59,11 +58,11 @@ export function districtHoverTooltip(name: string, list: MapCustomer[]): string 
   const labelCell = "padding:3px 10px 3px 0;white-space:nowrap";
   const countCell = "padding:3px 10px 3px 0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums";
   const owedCell = "padding:3px 0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap";
-  const ageingRows = BUCKET_ORDER.map((b) => {
+  const ageingRows = meta.order.map((b) => {
     const ct = bucketCounts.get(b) ?? 0;
     const owed = bucketOwed.get(b) ?? 0;
     return `<tr>
-      <td style="${labelCell}"><span style="display:inline-block;width:8px;height:8px;border-radius:9999px;background:${BUCKET_META[b].color};margin-right:6px;vertical-align:middle"></span>${escapeHtml(BUCKET_META[b].label)}</td>
+      <td style="${labelCell}"><span style="display:inline-block;width:8px;height:8px;border-radius:9999px;background:${meta.color(b)};margin-right:6px;vertical-align:middle"></span>${escapeHtml(meta.label(b))}</td>
       <td style="${countCell}">${ct}</td>
       <td style="${owedCell}">${escapeHtml(rupees(owed))}</td>
     </tr>`;

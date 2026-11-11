@@ -10,7 +10,7 @@ vi.mock("../services/dashboard", () => ({
   getSuperAdminDashboard: vi.fn().mockResolvedValue({ s: 1 }),
 }));
 vi.mock("../services/dashboard-map", () => ({
-  getDashboardMapCustomers: vi.fn().mockResolvedValue([]),
+  getDashboardMapCustomers: vi.fn().mockResolvedValue({ customers: [], bands: [] }),
   getDashboardMapActivity: vi.fn().mockResolvedValue({ points: [] }),
 }));
 vi.mock("../services/sku-analytics", () => ({ getSkuAnalytics: vi.fn().mockResolvedValue({ skus: [] }) }));

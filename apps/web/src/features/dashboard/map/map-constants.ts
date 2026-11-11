@@ -1,5 +1,4 @@
 import L from "leaflet";
-import { type DuesBucketKey } from "./map-helpers";
 
 // Hyderabad city centre (state capital).
 export const HYDERABAD: [number, number] = [17.385, 78.4867];
@@ -49,5 +48,3 @@ export const DOT_STYLE: L.CircleMarkerOptions = {
   weight: 1.5,
   fillOpacity: 0.95,
 };
-
-export const BUCKET_ORDER: DuesBucketKey[] = ["0_30", "30_45", "45_60", "60_plus"];

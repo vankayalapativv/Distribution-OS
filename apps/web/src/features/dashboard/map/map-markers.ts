@@ -1,7 +1,7 @@
 import L from "leaflet";
 import {
-  rupees, bucketColor, bucketLabel, CLEAR_COLOR, orderChip, collectionChip,
-  type ChipStyle, type MapCustomer,
+  rupees, bucketColor, CLEAR_COLOR, orderChip, collectionChip,
+  type BandMeta, type ChipStyle, type MapCustomer,
 } from "./map-helpers";
 import { escapeHtml } from "./map-tooltip";
 
@@ -15,15 +15,15 @@ function chipSpan(s: ChipStyle): string {
  *  name (link to the customer page) + "city · assigned salesperson" + a dues line
  *  "₹<outstanding> due · <bucket label>" (₹ coloured by bucket, grey "No dues"),
  *  then last-order / last-collection activity chips. */
-export function customerPopupInner(c: MapCustomer): string {
+export function customerPopupInner(c: MapCustomer, meta: BandMeta): string {
   const rows = [
     `<a href="/customers/${encodeURIComponent(c.id)}" style="font-weight:700;font-size:13px;color:#2563eb;text-decoration:none">${escapeHtml(c.name)}</a>`,
   ];
-  const meta = [c.city, c.executiveName].filter(Boolean).map((s) => escapeHtml(String(s))).join(" · ");
-  if (meta) rows.push(`<div style="font-size:12px;color:#475569;margin-top:3px">${meta}</div>`);
+  const line = [c.city, c.executiveName].filter(Boolean).map((s) => escapeHtml(String(s))).join(" · ");
+  if (line) rows.push(`<div style="font-size:12px;color:#475569;margin-top:3px">${line}</div>`);
   rows.push(
     c.outstanding > 0
-      ? `<div style="font-size:12px;margin-top:4px"><b style="color:${bucketColor(c.bucket)}">${escapeHtml(rupees(c.outstanding))}</b> due · ${escapeHtml(bucketLabel(c.bucket))}</div>`
+      ? `<div style="font-size:12px;margin-top:4px"><b style="color:${bucketColor(c.bucket)}">${escapeHtml(rupees(c.outstanding))}</b> due · ${escapeHtml(meta.label(c.bucket))}</div>`
       : `<div style="font-size:12px;margin-top:4px;color:${CLEAR_COLOR}">No dues</div>`,
   );
   rows.push(
@@ -33,8 +33,8 @@ export function customerPopupInner(c: MapCustomer): string {
 }
 
 /** Standalone popup for a customer dot (shared by the dashboard + live-tracking maps). */
-export function customerDotPopup(c: MapCustomer): string {
-  return `<div style="min-width:190px">${customerPopupInner(c)}</div>`;
+export function customerDotPopup(c: MapCustomer, meta: BandMeta): string {
+  return `<div style="min-width:190px">${customerPopupInner(c, meta)}</div>`;
 }
 
 /** A small count badge at a district's centre — total customers in that district.

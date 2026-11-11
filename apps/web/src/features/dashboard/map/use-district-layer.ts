@@ -1,6 +1,6 @@
 import { useEffect, useRef, type Dispatch, type RefObject, type SetStateAction } from "react";
 import L from "leaflet";
-import { bucketColor, type MapCustomer } from "./map-helpers";
+import { bucketColor, type BandMeta, type MapCustomer } from "./map-helpers";
 import { districtAnchors } from "./district-helpers";
 import {
   HEAT_COLOR, HEAT_HOVER_BORDER, DISTRICT_LINE, SELECTED_DISTRICT_LINE, DOT_STYLE,
@@ -18,6 +18,7 @@ function drawSelectedDistrict(
   districts: readonly GeoJSON.Feature[],
   byDistrict: DistrictGroups,
   selected: string,
+  meta: BandMeta,
 ) {
   const feature = districts.find((f) => (f.properties?.name as string) === selected);
   if (feature) {
@@ -29,7 +30,7 @@ function drawSelectedDistrict(
   for (const c of byDistrict.get(selected) ?? []) {
     // Fill by dues-ageing bucket (slate for no-dues) — matches the Dues card.
     L.circleMarker([c.lat, c.lng], { ...DOT_STYLE, fillColor: bucketColor(c.bucket) })
-      .bindPopup(customerDotPopup(c))
+      .bindPopup(customerDotPopup(c, meta))
       .addTo(group);
   }
 }
@@ -42,6 +43,7 @@ function drawOverview(
   districts: readonly GeoJSON.Feature[],
   byDistrict: DistrictGroups,
   setSelected: Dispatch<SetStateAction<string | null>>,
+  meta: BandMeta,
 ) {
   const maxCount = Math.max(1, ...[...byDistrict.values()].map((l) => l.length));
   // Only districts that actually have customers are drawn (border + blue heat
@@ -59,7 +61,7 @@ function drawOverview(
       ...DISTRICT_LINE, // light-grey outline under the heat fill
     };
     const layer = L.geoJSON(f, { interactive: true, style: base });
-    layer.bindTooltip(districtHoverTooltip(name, list), {
+    layer.bindTooltip(districtHoverTooltip(name, list, meta), {
       sticky: true,
       direction: "top",
       offset: [0, -6],
@@ -89,7 +91,7 @@ function drawOverview(
   for (const list of byDistrict.values()) {
     for (const c of list) {
       L.circleMarker([c.lat, c.lng], { ...DOT_STYLE, fillColor: bucketColor(c.bucket) })
-        .bindPopup(customerDotPopup(c))
+        .bindPopup(customerDotPopup(c, meta))
         .addTo(group);
     }
   }
@@ -109,6 +111,7 @@ export function useDistrictLayer(
   districts: readonly GeoJSON.Feature[],
   selected: string | null,
   setSelected: Dispatch<SetStateAction<string | null>>,
+  meta: BandMeta,
 ) {
   const groupRef = useRef<L.LayerGroup | null>(null);
 
@@ -120,10 +123,10 @@ export function useDistrictLayer(
     const byDistrict = groupByDistrict(districts, customers);
     const group = L.layerGroup();
 
-    if (selected) drawSelectedDistrict(group, districts, byDistrict, selected);
-    else drawOverview(group, map, districts, byDistrict, setSelected);
+    if (selected) drawSelectedDistrict(group, districts, byDistrict, selected, meta);
+    else drawOverview(group, map, districts, byDistrict, setSelected, meta);
 
     group.addTo(map);
     groupRef.current = group;
-  }, [mapRef, customers, districts, selected, setSelected]);
+  }, [mapRef, customers, districts, selected, setSelected, meta]);
 }

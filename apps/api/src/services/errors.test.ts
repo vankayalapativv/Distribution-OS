@@ -158,7 +158,7 @@ describe("addErrorNote", () => {
 
 describe("cleanupOldErrors", () => {
   it("runs the prune when the daily gate opens", async () => {
-    const sql = makeSql({ "": ({ text }) => (text.includes("insert into system_settings") ? [{ key: "errors_last_prune_date" }] : []) });
+    const sql = makeSql({ "": ({ text }) => (text.includes("insert into system_flags") ? [{ key: "errors_last_prune_date" }] : []) });
     expect(await cleanupOldErrors(sql)).toEqual({ ran: true });
   });
 

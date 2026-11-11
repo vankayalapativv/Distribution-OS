@@ -89,7 +89,7 @@ export async function setCreditOverdueDays(sql: SqlClient, days: number): Promis
     /* upsert_credit_overdue_days */
     insert into system_settings (key, value)
     values ('credit_overdue_days', ${String(days)})
-    on conflict (key) do update set value = excluded.value, updated_at = now()
+    on conflict (enterprise_id, key) do update set value = excluded.value, updated_at = now()
   `;
 }
 
@@ -125,6 +125,6 @@ export async function setCompanyProfile(
     /* upsert_company_profile */
     insert into system_settings (key, value)
     select * from unnest(${keys}::text[], ${values}::text[])
-    on conflict (key) do update set value = excluded.value, updated_at = now()
+    on conflict (enterprise_id, key) do update set value = excluded.value, updated_at = now()
   `;
 }

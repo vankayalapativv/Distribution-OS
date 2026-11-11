@@ -391,12 +391,12 @@ export async function runDuesMaintenance(
         extract(hour from ${now}::timestamptz at time zone 'Asia/Kolkata')::int as hour
     ),
     claimed as (
-      insert into system_settings (key, value)
+      insert into system_flags (key, value)
       select 'dues_last_run_date', ist.today from ist
       where ist.hour >= ${runAfterHour}
       on conflict (key) do update
         set value = excluded.value, updated_at = now()
-        where system_settings.value <> excluded.value
+        where system_flags.value <> excluded.value
       returning key
     )
     select exists (select 1 from claimed) as "claimed"

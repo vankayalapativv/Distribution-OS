@@ -300,10 +300,10 @@ export async function addErrorNote(
 export async function cleanupOldErrors(sql: SqlClient): Promise<{ ran: boolean }> {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
   const [gate] = await sql`
-    insert into system_settings (key, value)
+    insert into system_flags (key, value)
     values ('errors_last_prune_date', ${today})
     on conflict (key) do update set value = excluded.value, updated_at = now()
-    where system_settings.value is distinct from excluded.value
+    where system_flags.value is distinct from excluded.value
     returning key`;
   if (!gate) return { ran: false };
 

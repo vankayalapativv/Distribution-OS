@@ -252,10 +252,10 @@ export async function clearNotifications(sql: SqlClient, context: { userId: stri
 export async function cleanupOldNotifications(sql: SqlClient): Promise<{ deleted: number }> {
   const [gate] = (await sql`
     /* notifications_cleanup_gate */
-    insert into system_settings (key, value)
+    insert into system_flags (key, value)
     values ('notifications_cleanup_last_run', now()::text)
     on conflict (key) do update set value = now()::text
-      where system_settings.value::timestamptz < now() - interval '6 days'
+      where system_flags.value::timestamptz < now() - interval '6 days'
     returning key
   `) as Row[];
   if (!gate) return { deleted: 0 }; // ran within the last 6 days — skip

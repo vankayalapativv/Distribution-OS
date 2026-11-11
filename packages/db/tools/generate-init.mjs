@@ -25,6 +25,7 @@ const GLOBAL = new Set([
   "error_events", // Error Monitor = platform-global observability
   "error_groups",
   "error_notes",
+  "system_flags", // global cron gate-markers (migration 0003); no enterprise_id
 ]);
 
 // Excluded entirely — the migration runner creates + owns `schema_migrations`.

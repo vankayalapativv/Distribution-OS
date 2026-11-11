@@ -396,7 +396,7 @@ export async function bulkCreateProducts(
     sql`/* bulk_upsert_brands */
       insert into brands (category, name)
       select 'oils', b from unnest(${distinctBrands}::text[]) as b
-      on conflict (category, name) do nothing`,
+      on conflict (enterprise_id, category, name) do nothing`,
     sql`/* bulk_insert_products */
       insert into products (id, product_name, brand, hsn_code, unit, status)
       select id, nm, br, hs, un, 'active'

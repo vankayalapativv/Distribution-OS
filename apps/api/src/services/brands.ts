@@ -43,7 +43,7 @@ export async function ensureBrand(
     /* upsert_brand */
     insert into brands (category, name)
     values (${category}, ${name})
-    on conflict (category, name) do nothing
+    on conflict (enterprise_id, category, name) do nothing
   `;
   return name;
 }

@@ -152,11 +152,11 @@ export async function setInvoiceNumberConfig(sql: SqlClient, input: { prefix: st
   const finYear = finYearOf(todayYmd());
   await sql`
     insert into system_settings (key, value) values ('invoice_number_prefix', ${prefix})
-    on conflict (key) do update set value = excluded.value, updated_at = now()
+    on conflict (enterprise_id, key) do update set value = excluded.value, updated_at = now()
   `;
   await sql`
     insert into invoice_series (prefix, fin_year, next_seq) values (${prefix}, ${finYear}, ${input.nextNumber})
-    on conflict (prefix, fin_year) do update set next_seq = excluded.next_seq, updated_at = now()
+    on conflict (enterprise_id, prefix, fin_year) do update set next_seq = excluded.next_seq, updated_at = now()
   `;
 }
 
@@ -267,7 +267,7 @@ async function allocateAndInsertInvoice(sql: SqlClient, a: AllocateInvoiceArgs) 
   const saleAllocs = await Promise.all(c.lines.map((l) =>
     allocateSaleFefo(sql, { locationId: input.locationId, productId: l.productId, packSizeLitres: l.packSizeLitres, qtyUnits: l.qtyUnits })));
   // Allocate a gap-free number (find-or-create the FY series, then atomic bump).
-  await sql`insert into invoice_series (prefix, fin_year) values (${prefix}, ${fy}) on conflict (prefix, fin_year) do nothing`;
+  await sql`insert into invoice_series (prefix, fin_year) values (${prefix}, ${fy}) on conflict (enterprise_id, prefix, fin_year) do nothing`;
   const [s] = await sql`
     /* allocate_invoice_number */
     update invoice_series set next_seq = next_seq + 1, updated_at = now()

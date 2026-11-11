@@ -63,7 +63,7 @@ npx wrangler secret list                          # verify all present
 ## 3. Register the LIVE webhook
 
 - [ ] In the Razorpay **live** dashboard → Webhooks → add:
-      `https://sri-aparajita-api.vardhansystems.workers.dev/api/v1/webhooks/razorpay`
+      `https://distribution-os-api.vardhansystems.workers.dev/api/v1/webhooks/razorpay`
 - [ ] Signing secret = the `RAZORPAY_WEBHOOK_SECRET` you set in Step 2.
 - [ ] Subscribe to these 8 events:
       `subscription.activated`, `subscription.charged`, `subscription.pending`,

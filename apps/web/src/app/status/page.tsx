@@ -7,7 +7,7 @@ import { StatusView } from "../../features/status/status-view";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "System Status — Sri Aparajitha Enterprise Distribution Management System",
+  title: "System Status — Distribution OS",
 };
 
 export default function StatusPage() {

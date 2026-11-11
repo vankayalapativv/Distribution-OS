@@ -65,7 +65,7 @@
 - Sales-return / credit-note / incentive / target forms: client validation doesn't cap per-line return qty / credit amount / percentages to their server limits (server is authoritative; late 422 instead of inline guidance).
 - Several **timezone** nits where a default date range or picker uses the browser/UTC clock instead of the IST helper (dashboard "Today", expenditures default range, market-note default date) — near-zero impact for a single Hyderabad client.
 - Blob object URLs not revoked (ledger, MI media); skeleton flashes on refetch in a couple of hooks; a few debounce `useEffect`s depend on a freshly-recreated `url` object.
-- `products-api.ts:27` hardcodes `http://localhost:8787` as the base-URL fallback → product client calls hit localhost if `SRI_APARAJITA_API_BASE_URL` is unset in prod.
+- `products-api.ts:27` hardcodes `http://localhost:8787` as the base-URL fallback → product client calls hit localhost if `DISTRIBUTION_OS_API_BASE_URL` is unset in prod.
 - Minor: a react key `brand:${b.brand}` can collide for same-name brands; "undefined items" renders if the API omits `oilLines`; order export truncates to page 1 if `total` is ever omitted; `isLive` depends on the client clock.
 
 ---

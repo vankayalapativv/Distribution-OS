@@ -6,7 +6,7 @@ import { describe, expect, test, vi } from "vitest";
 const USER_SUB = "neon-subject-0000-4000-8000-000000000004";
 
 vi.mock("../lib/neon-auth", () => ({
-  verifyNeonToken: async () => ({ subject: USER_SUB, email: "field@sriaparajita.com" }),
+  verifyNeonToken: async () => ({ subject: USER_SUB, email: "field@distributionos.com" }),
 }));
 
 vi.mock("@neondatabase/serverless", () => ({

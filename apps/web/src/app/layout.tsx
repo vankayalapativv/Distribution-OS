@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { BRAND } from "@sri-aparajita/shared";
+import { BRAND } from "@distribution-os/shared";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { WebErrorReporter } from "@/components/web-error-reporter";
@@ -10,7 +10,7 @@ import { SidebarCollapsedProvider } from "@/features/shell/sidebar-state";
 import { SIDEBAR_COLLAPSED_COOKIE } from "@/features/shell/sidebar-cookie";
 
 export const metadata: Metadata = {
-  title: `${BRAND.name} Distribution OS`,
+  title: BRAND.name,
   description: "Distribution management dashboard",
 };
 

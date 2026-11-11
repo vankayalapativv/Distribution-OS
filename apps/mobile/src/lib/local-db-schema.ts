@@ -19,7 +19,7 @@ import { SCHEMA_4 } from "./local-db-schema-4";
 //   brand+unit, pack_memory), collections + customer_invoices +
 //   customer_credit, and the per-customer history caches (cached_orders/
 //   collections/ledger, customer_detail_cache, order_detail_cache). These were
-//   dropped in v19; Phase 1 of the Sri-Aparajita→Beyond parity restores them.
+//   dropped in v19; Phase 1 of the Distribution-OS→Beyond parity restores them.
 // v22 (Phase 2c): collections gain latitude/longitude/geocoded_address so the
 //   proof photo's stamp geo survives for the offline upload on sync.
 export const LOCAL_SCHEMA_VERSION = 23;

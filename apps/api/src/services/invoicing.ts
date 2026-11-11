@@ -18,7 +18,7 @@ import { recomputeOrderFulfillment } from "./fulfillment";
 import { recomputeCustomerBalances } from "./reconcile-recompute";
 import { getSystemSettings } from "./system-settings";
 import { nextOrderCode, num, str } from "./orders-shared";
-import { buildInvoiceDoc, type PdfData } from "@sri-aparajita/shared";
+import { buildInvoiceDoc, type PdfData } from "@distribution-os/shared";
 import { balanceStmt, COMPANY_STATE_CODE, finYearOf, lotBalanceStmt, movementStmt, round2 } from "./stock-shared";
 import { allocateSaleFefo, currentSaleLots, fefoSplit, getBalancesForSkus, listAvailableLots } from "./stock";
 

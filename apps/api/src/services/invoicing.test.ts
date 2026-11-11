@@ -11,14 +11,14 @@ const { listAvailableLots } = vi.hoisted(() => ({ listAvailableLots: vi.fn().moc
 const { fefoSplit } = vi.hoisted(() => ({ fefoSplit: vi.fn().mockReturnValue([{ lotId: "lot-1", qty: 2 }]) }));
 const { recomputeCustomerBalances } = vi.hoisted(() => ({ recomputeCustomerBalances: vi.fn().mockResolvedValue(undefined) }));
 const { recomputeOrderFulfillment } = vi.hoisted(() => ({ recomputeOrderFulfillment: vi.fn().mockResolvedValue(undefined) }));
-const { getSystemSettings } = vi.hoisted(() => ({ getSystemSettings: vi.fn().mockResolvedValue({ company: { name: "Sri Aparajita", gstin: "36XXX" } }) }));
+const { getSystemSettings } = vi.hoisted(() => ({ getSystemSettings: vi.fn().mockResolvedValue({ company: { name: "Distribution OS", gstin: "36XXX" } }) }));
 const { buildInvoiceDoc } = vi.hoisted(() => ({ buildInvoiceDoc: vi.fn().mockResolvedValue({ output: () => new ArrayBuffer(8) }) }));
 
 vi.mock("./stock", () => ({ getBalancesForSkus, allocateSaleFefo, currentSaleLots, listAvailableLots, fefoSplit }));
 vi.mock("./reconcile-recompute", () => ({ recomputeCustomerBalances }));
 vi.mock("./fulfillment", () => ({ recomputeOrderFulfillment }));
 vi.mock("./system-settings", () => ({ getSystemSettings }));
-vi.mock("@sri-aparajita/shared", () => ({ buildInvoiceDoc }));
+vi.mock("@distribution-os/shared", () => ({ buildInvoiceDoc }));
 
 import {
   cancelInvoice,
@@ -486,7 +486,7 @@ describe("getInvoicePdfData", () => {
   it("assembles seller/buyer/lines/totals", async () => {
     const sql = makeSql({ invoice_pdf_header: [header], invoice_items_detail: [] });
     const data = await getInvoicePdfData(sql, "inv-1");
-    expect(data.company).toMatchObject({ name: "Sri Aparajita" });
+    expect(data.company).toMatchObject({ name: "Distribution OS" });
     expect(data.buyer.name).toBe("Ravi Motors");
     expect(data.buyer.address).toBe("Main Rd, Hyderabad, Telangana");
     expect(data.totals).toMatchObject({ taxable: 200, grand: 236 });

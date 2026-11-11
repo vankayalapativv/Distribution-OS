@@ -6,9 +6,9 @@ function disabledPage(): Response {
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sri Aparajita MCP — unavailable</title>
+<title>Distribution OS MCP — unavailable</title>
 <style>:root{color-scheme:light dark}body{font-family:ui-sans-serif,system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:Canvas;color:CanvasText}.card{width:min(380px,92vw);border:1px solid color-mix(in srgb,CanvasText 15%,transparent);border-radius:14px;padding:28px 26px;text-align:center}h1{font-size:18px;margin:0 0 8px}p{color:color-mix(in srgb,CanvasText 60%,transparent);font-size:13.5px;margin:0}</style>
-</head><body><div class="card"><h1>Sri Aparajita MCP</h1><p>This connector is currently turned off. Ask an administrator to enable it in Settings → MCP.</p></div></body></html>`;
+</head><body><div class="card"><h1>Distribution OS MCP</h1><p>This connector is currently turned off. Ask an administrator to enable it in Settings → MCP.</p></div></body></html>`;
   return new Response(html, { status: 403, headers: { "content-type": "text/html; charset=utf-8" } });
 }
 
@@ -37,7 +37,7 @@ function loginPage(actionUrl: string, clientName: string | undefined, error: str
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sri Aparajita MCP — sign in</title>
+  <title>Distribution OS MCP — sign in</title>
   <style>
     :root { color-scheme: light dark; }
     body { font-family: ui-sans-serif, system-ui, sans-serif; display: grid; place-items: center;
@@ -56,7 +56,7 @@ function loginPage(actionUrl: string, clientName: string | undefined, error: str
 </head>
 <body>
   <form class="card" method="POST" action="${actionUrl}">
-    <h1>Sri Aparajita MCP</h1>
+    <h1>Distribution OS MCP</h1>
     <p><strong>${client}</strong> wants to connect to your business data (read-only). Enter the passphrase to allow it.</p>
     <label for="passphrase">Passphrase</label>
     <input id="passphrase" name="passphrase" type="password" autocomplete="current-password" autofocus required />
@@ -93,7 +93,7 @@ export const authHandler: ExportedHandler<Env> = {
     const url = new URL(request.url);
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return new Response("Sri Aparajita MCP server — add as a custom connector pointing at /mcp", {
+      return new Response("Distribution OS MCP server — add as a custom connector pointing at /mcp", {
         headers: { "content-type": "text/plain" },
       });
     }

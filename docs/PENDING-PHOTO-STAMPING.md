@@ -33,7 +33,7 @@ Photo capture helpers today: `pickFromCamera()` / `pickFromGallery()` in `photos
    *current* time & location at pick time — accepted trade-off; see EXIF refinement below.)
 4. **Scope:** ALL THREE surfaces above (customer, receipts, delivery/odometer).
 5. **Stamp fields (all selected):** address + date/time (always) PLUS **SE/driver name**,
-   **GPS coordinates**, **customer/shop name** (where known), and a **"Sri Aparajita Automobile"** label.
+   **GPS coordinates**, **customer/shop name** (where known), and a **"Distribution OS"** label.
 6. **Placement/look:** semi-transparent dark **bottom band**, white multi-line text
    (address wraps, then coords, then date·time·name, then customer).
 7. **Geocoding provider:** **Google Geocoding API** (reuse the existing Google Maps key),
@@ -41,7 +41,7 @@ Photo capture helpers today: `pickFromCamera()` / `pickFromGallery()` in `photos
 
 ### Stamp layout (bottom band)
 ```
-📍 Sri Aparajita Automobile
+📍 Distribution OS
 12-3-45 Main Rd, Kukatpally, Hyderabad, Telangana 500072   (omit line if offline)
 17.42390, 78.47380
 25 Jul 2026 · 3:52 PM · Murali

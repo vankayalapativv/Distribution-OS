@@ -60,7 +60,7 @@ describe("auth routes (public)", () => {
       {
         method: "POST",
         headers: { "content-type": "application/json", "user-agent": "okhttp/4.12.0" },
-        body: JSON.stringify({ email: "a@b.c", password: "pw", device: "SriAparajita/1.1.2 (Android 13; samsung; SM-G991B)" }),
+        body: JSON.stringify({ email: "a@b.c", password: "pw", device: "DistributionOS/1.1.2 (Android 13; samsung; SM-G991B)" }),
       },
       ENV,
     );
@@ -68,7 +68,7 @@ describe("auth routes (public)", () => {
       expect.anything(),
       "a@b.c",
       "pw",
-      "SriAparajita/1.1.2 (Android 13; samsung; SM-G991B)",
+      "DistributionOS/1.1.2 (Android 13; samsung; SM-G991B)",
     );
 
     // No body device → falls back to the request user-agent.

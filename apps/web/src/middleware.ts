@@ -29,7 +29,7 @@ async function neonSessionValid(session: string): Promise<boolean> {
 
 export async function middleware(req: NextRequest): Promise<NextResponse> {
   const session = req.cookies.get("sa_session")?.value;
-  const legacy = req.cookies.get("sri_aparajita_auth")?.value;
+  const legacy = req.cookies.get("distribution_os_auth")?.value;
 
   // Only act when a Neon session is the sole credential: if it no longer mints a
   // token it was revoked/expired → clear it and return to /login. A legacy token

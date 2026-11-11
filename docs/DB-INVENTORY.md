@@ -1,4 +1,4 @@
-# Database Inventory — Sri Aparajita Automobiles & Lubricants
+# Database Inventory — Distribution OSs & Lubricants
 
 Single-client (standalone) deployment. Analysis date: **2026-07-21**; verified and corrected **2026-07-22** (table count 66 → 69 after migrations 0032/0033; `branches` added to unused; `territory_assignments` reclassified as unused).
 Method: every app table (from `packages/db/migrations/`) cross-referenced against all SQL usage in `apps/api`, `apps/web`, `apps/mobile`, combined with live-DB row counts (`pg_stat_user_tables`).

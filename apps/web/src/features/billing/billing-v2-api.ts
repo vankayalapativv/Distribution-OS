@@ -59,7 +59,7 @@ export interface BillingReceiptV2 {
 }
 
 function getApiBaseUrl(): string {
-  return process.env.SRI_APARAJITA_API_BASE_URL ?? "http://localhost:8787/api/v1";
+  return process.env.DISTRIBUTION_OS_API_BASE_URL ?? "http://localhost:8787/api/v1";
 }
 
 /** Server-side fetch of a paid month's receipt; null if not found / not paid. */

@@ -1,12 +1,12 @@
 # Distribution OS — Per-Enterprise MCP in the SaaS
 
-> **Status: PLANNING ONLY — no code.** How the deployed read-only MCP server (`apps/mcp`, Cloudflare Worker `sri-aparajita-mcp`) becomes multi-enterprise. Companion to [`SAAS-PLAN.md`](SAAS-PLAN.md) (this is **Phase 4**). **All findings from the actual code (2026-11-11), not memory.** Locked decisions: **RLS-forced raw SQL** (keep `run_sql`) + **MCP is in the SaaS build** (not deferred).
+> **Status: PLANNING ONLY — no code.** How the deployed read-only MCP server (`apps/mcp`, Cloudflare Worker `distribution-os-mcp`) becomes multi-enterprise. Companion to [`SAAS-PLAN.md`](SAAS-PLAN.md) (this is **Phase 4**). **All findings from the actual code (2026-11-11), not memory.** Locked decisions: **RLS-forced raw SQL** (keep `run_sql`) + **MCP is in the SaaS build** (not deferred).
 
 ## What the code does today (grounded)
 
 | Area | Current code | SaaS impact |
 |------|-------------|-------------|
-| **Auth** | `auth.ts` — a **single shared passphrase** gates `/authorize`; on success mints an OAuth session hardcoded to **`userId: "sri-aparajita-owner"`**. `scope = mcp:read`. | ⚠️ **No per-enterprise identity.** Must become per-enterprise credential → `props.enterpriseId`. |
+| **Auth** | `auth.ts` — a **single shared passphrase** gates `/authorize`; on success mints an OAuth session hardcoded to **`userId: "distribution-os-owner"`**. `scope = mcp:read`. | ⚠️ **No per-enterprise identity.** Must become per-enterprise credential → `props.enterpriseId`. |
 | **Config** | `ConfigDO` (singleton `idFromName("config")`) holds `{ enabled, passphrase }`, set from web **Settings → MCP**. | ⚠️ Becomes **per-enterprise** config (one record per `enterprise_id`): own enable flag + own passphrase. |
 | **SQL** | `run_sql` takes **arbitrary raw SQL** (`z.string()`) → `runReadOnlySql(REPLICA_DATABASE_URL, query)` on the Neon **read replica**. Read-only enforced physically by the replica. | ⚠️ **Nothing scopes rows today** — the #1 isolation risk. Needs RLS + per-request GUC. |
 | **Tools** | `run_sql`, `get_audit_log`, `render_map` (map also reads the replica via `getOperatingArea`). | ⚠️ All three must run under the caller's `enterprise_id`. |
@@ -26,7 +26,7 @@ The model keeps writing free-form `SELECT`s, but **Postgres RLS physically filte
 ### 2. Per-enterprise credential + identity
 
 - Each enterprise gets its **own MCP passphrase** (shown in *their* Settings → MCP, same UX as today — passphrase-in-the-UI is by design, memory `mcp-settings-page`), stored in their per-enterprise config record.
-- `/authorize` resolves the submitted passphrase → the **owning `enterprise_id`**, and completes the OAuth authorization with `props: { enterpriseId }` (replacing the hardcoded `"sri-aparajita-owner"`). Every tool call then reads `enterpriseId` from props.
+- `/authorize` resolves the submitted passphrase → the **owning `enterprise_id`**, and completes the OAuth authorization with `props: { enterpriseId }` (replacing the hardcoded `"distribution-os-owner"`). Every tool call then reads `enterpriseId` from props.
 - **Endpoint:** one shared worker + `/mcp` is fine (the passphrase already disambiguates the enterprise); no per-enterprise subdomain needed. The enterprise adds it as a custom connector exactly as today.
 - **Enable switch stays per-enterprise:** the master `enabled` flag becomes per-enterprise, so an enterprise (or the platform owner) can turn their own connector off.
 

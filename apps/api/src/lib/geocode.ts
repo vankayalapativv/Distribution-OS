@@ -104,7 +104,7 @@ async function nominatimReverse(
     const res = await fetch(url, {
       signal: AbortSignal.timeout(timeoutMs),
       headers: {
-        "User-Agent": "SriAparajithaDMS/1.0 (support@vardhansystems.in)",
+        "User-Agent": "DistributionOSDMS/1.0 (support@vardhansystems.in)",
         Accept: "application/json",
       },
     });

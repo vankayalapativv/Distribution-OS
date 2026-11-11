@@ -33,7 +33,7 @@ describe("auth-revocation middleware", () => {
 
   it("does not validate when a legacy cookie is present, or no session", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 401 }));
-    expect((await middleware(reqWith({ sa_session: "x", sri_aparajita_auth: "legacy" }))).headers.get("location")).toBeNull();
+    expect((await middleware(reqWith({ sa_session: "x", distribution_os_auth: "legacy" }))).headers.get("location")).toBeNull();
     expect((await middleware(reqWith({}))).headers.get("location")).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });

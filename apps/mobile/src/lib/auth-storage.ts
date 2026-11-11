@@ -5,15 +5,15 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
-export const TOKEN_KEY = "sri_aparajita_auth_token";
-export const USER_KEY = "sri_aparajita_auth_user";
+export const TOKEN_KEY = "distribution_os_auth_token";
+export const USER_KEY = "distribution_os_auth_user";
 /** Neon Auth session cookie value — the long-lived credential JWTs are minted from. */
-export const SESSION_KEY = "sri_aparajita_neon_session";
+export const SESSION_KEY = "distribution_os_neon_session";
 /** Id of the last user who signed in on this (shared) device. Used to detect a
  *  user SWITCH on login and wipe the previous user's local data. Deliberately
  *  device-global (NOT cleared on logout), so a different next-user is detected
  *  even if a logout wipe was interrupted. */
-export const LAST_USER_KEY = "sri_aparajita_last_user_id";
+export const LAST_USER_KEY = "distribution_os_last_user_id";
 
 // expo-secure-store has no web implementation; the web build (dev preview
 // only — the shipped app is native) falls back to localStorage.

@@ -63,7 +63,7 @@ export async function startBackgroundUpdates(): Promise<boolean> {
       timeInterval: PING_INTERVAL_MS,
       distanceInterval: 0,
       foregroundService: {
-        notificationTitle: "Sri Aparajita — day tracking on",
+        notificationTitle: "Distribution OS — day tracking on",
         notificationBody: "Your route is recorded until the end of your day.",
       },
     });

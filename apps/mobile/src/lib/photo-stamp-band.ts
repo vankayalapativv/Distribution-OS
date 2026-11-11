@@ -70,7 +70,7 @@ export function buildLines(
   // The pin titles the place being visited — the customer's shop. When no
   // customer is linked (adding a customer, or a check-in before one is chosen)
   // fall back to the street address, then to the brand.
-  const title = ctx.customerName?.trim() || address || "Sri Aparajitha Automobile";
+  const title = ctx.customerName?.trim() || address || "Distribution OS Automobile";
   const lines = [`📍 ${title}`];
   if (fix) {
     // Don't repeat the address when it's already serving as the title.

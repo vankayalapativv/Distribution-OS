@@ -257,7 +257,7 @@ export const ordersRoutes = new Hono<ApiEnv>()
               await notifyOfficeWebPush(
                 sql,
                 vapid,
-                { title: "New order", body, tag: "sri-aparajita-order", url: "/orders" },
+                { title: "New order", body, tag: "distribution-os-order", url: "/orders" },
                 Math.floor(Date.now() / 1000),
               );
             }

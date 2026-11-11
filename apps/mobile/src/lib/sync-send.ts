@@ -1,7 +1,7 @@
 /**
  * Queue-item dispatcher: maps each queued offline write to its API call. Phase 2
  * grows this per entity; it currently handles the visit check-in / check-out
- * path (Sri Aparajita delivery stays online-first, so it is NOT queued here).
+ * path (Distribution OS delivery stays online-first, so it is NOT queued here).
  */
 import { apiFetch } from "./api";
 import { ApiRequestError } from "./api-core";

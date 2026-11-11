@@ -1,9 +1,9 @@
 # Neon Auth Migration Plan — all authentication → Neon Managed Better Auth
 
-**Status:** planned (2026-09-15). Scoped to authentication only; composes with the Sri Aparajita re-client + repo-split threads.
+**Status:** planned (2026-09-15). Scoped to authentication only; composes with the Distribution OS re-client + repo-split threads.
 **Driver:** kill the split-brain (custom HS256 + PBKDF2 password store vs legacy Neon/Stack Auth for SUPER_ADMIN) → **one identity system: Neon Managed Better Auth**, web **and** mobile.
 
-This is a **fresh instance** (Sri Aparajita, empty DB). So there is **no user-data migration** — we build the new auth and seed fresh, then delete the old code paths. "Migration" here = replace the auth implementation, not move accounts.
+This is a **fresh instance** (Distribution OS, empty DB). So there is **no user-data migration** — we build the new auth and seed fresh, then delete the old code paths. "Migration" here = replace the auth implementation, not move accounts.
 
 ---
 

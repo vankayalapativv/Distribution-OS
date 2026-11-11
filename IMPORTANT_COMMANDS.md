@@ -72,10 +72,10 @@ Full steps in `DEPLOY_GUIDE.md`.
 
 ```bash
 # API (Hono on Cloudflare Workers)
-pnpm --filter @sri-aparajita/api run deploy
+pnpm --filter @distribution-os/api run deploy
 
 # Web dashboard (Next.js via OpenNext on a Cloudflare Worker)
-pnpm --filter @sri-aparajita/web run deploy
+pnpm --filter @distribution-os/web run deploy
 ```
 
 - Deploys use `wrangler`; authenticate once per machine: `cd apps/api && npx wrangler login`.
@@ -89,7 +89,7 @@ pnpm --filter @sri-aparajita/web run deploy
 > Worker secret takes effect on that Worker's **next deploy** — redeploy after
 > rotating. `JWT_SECRET` must be identical on the API and Web workers.
 
-### API secrets — Cloudflare Worker `sri-aparajita-api`
+### API secrets — Cloudflare Worker `distribution-os-api`
 
 ```bash
 cd apps/api
@@ -105,7 +105,7 @@ login signing — must match Web), `NEON_AUTH_COOKIE_SECRET`,
 Non-secret config (`API_VERSION`, `ENVIRONMENT`, `NEON_JWKS_URL`, `REPORTS_*`, …)
 lives as plain `vars` in `apps/api/wrangler.jsonc` — edit there and redeploy.
 
-### Web secrets — Cloudflare Worker `sri-aparajita-web`
+### Web secrets — Cloudflare Worker `distribution-os-web`
 
 ```bash
 cd apps/web
@@ -113,7 +113,7 @@ npx wrangler secret list
 npx wrangler secret put <NAME>
 ```
 
-Known Web secrets: `SRI_APARAJITA_API_BASE_URL` (the API origin) and `JWT_SECRET`
+Known Web secrets: `DISTRIBUTION_OS_API_BASE_URL` (the API origin) and `JWT_SECRET`
 (**same value as the API's**).
 
 ### CI/CD secrets — GitHub Actions
@@ -133,7 +133,7 @@ Workers Scripts: Edit + Zone Workers Routes: Edit), `DATABASE_URL`.
 - Root **`.env`** — `DATABASE_URL`, `JWT_SECRET` (match the deployed API), and the
   rest of the API env used by local `wrangler dev`.
 - **`apps/web/.env.local`** — e.g. `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (Live Tracking
-  map), `SRI_APARAJITA_API_BASE_URL` (falls back to localhost:8787 if unset).
+  map), `DISTRIBUTION_OS_API_BASE_URL` (falls back to localhost:8787 if unset).
 
 ### Mobile / EAS build
 
@@ -155,16 +155,16 @@ pnpm install            # from repo root — installs every workspace
 pnpm dev                # runs API (:8787) + Web (:3000) together via Turborepo
 
 # or individually:
-pnpm --filter @sri-aparajita/api dev      # API only  (:8787)
-pnpm --filter @sri-aparajita/web dev      # Web only  (:3000)
+pnpm --filter @distribution-os/api dev      # API only  (:8787)
+pnpm --filter @distribution-os/web dev      # Web only  (:3000)
 cd apps/mobile && pnpm start              # Expo dev server (mobile)
 ```
 
 ## Checks (run before committing / deploying)
 
 ```bash
-pnpm --filter @sri-aparajita/api typecheck && pnpm --filter @sri-aparajita/api test
-pnpm --filter @sri-aparajita/web typecheck && pnpm --filter @sri-aparajita/web test
+pnpm --filter @distribution-os/api typecheck && pnpm --filter @distribution-os/api test
+pnpm --filter @distribution-os/web typecheck && pnpm --filter @distribution-os/web test
 cd apps/mobile && pnpm typecheck && pnpm test
 pnpm dlx expo-doctor                       # from apps/mobile — SDK/dep health
 pnpm check:cycles                          # API import-cycle guard (also a husky pre-commit hook)

@@ -14,7 +14,7 @@ import { reportMobileError } from "./report-error";
  * (Background kills / normal force-quits clear the flag first, so they don't
  * count.) It's a heuristic, so the report says so.
  */
-const KEY = "sri_aparajita_fg_active";
+const KEY = "distribution_os_fg_active";
 
 async function setActive(v: "0" | "1"): Promise<void> {
   try {

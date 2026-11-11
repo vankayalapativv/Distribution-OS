@@ -49,7 +49,7 @@ Stock lines reference **existing** catalogue SKUs by `productId + packSizeLitres
 - **Set-based + atomic**: insert all valid products + their segments + packs in one batched transaction (no round-trip per row — Workers subrequest cap; money/multi-write rule). Return `{ created: [...], errors: [{ row, message }] }`.
 - Tests: service + route, **100% lines** (per project standard). Includes dup-in-catalogue, dup-in-file, bad HSN, bad segment, quantity vs litres, empty payload.
 - Files: `apps/api/src/services/products.ts`, `apps/api/src/routes/products.ts`, `+ .test.ts`.
-- Acceptance: `pnpm --filter @sri-aparajita/api test` green + 100% new-code lines.
+- Acceptance: `pnpm --filter @distribution-os/api test` green + 100% new-code lines.
 
 ### Phase 2 — Web: Products template + upload
 - **Download template** button (Products page header): builds an `.xlsx` with

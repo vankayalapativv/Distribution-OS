@@ -61,9 +61,9 @@ export function reportWebError(
 /** Install window-level listeners once, for runtime errors outside React render. */
 export function installWebErrorReporting(): void {
   if (typeof window === "undefined") return;
-  const w = window as unknown as { __sriAparajitaErrHooked?: boolean };
-  if (w.__sriAparajitaErrHooked) return;
-  w.__sriAparajitaErrHooked = true;
+  const w = window as unknown as { __distributionOsErrHooked?: boolean };
+  if (w.__distributionOsErrHooked) return;
+  w.__distributionOsErrHooked = true;
 
   window.addEventListener("error", (e) => {
     reportWebError(e.error ?? new Error(e.message), { boundary: "window.onerror" });

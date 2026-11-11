@@ -22,7 +22,7 @@ vi.mock("@neondatabase/serverless", () => ({
     if (query.includes("system_settings_list")) {
       return [
         { key: "credit_overdue_days", value: "45" },
-        { key: "company_legal_name", value: "Sri Aparajita Enterprises" },
+        { key: "company_legal_name", value: "Distribution OS" },
         { key: "company_gstin", value: "36ABCDE1234F1Z5" },
       ];
     }
@@ -67,7 +67,7 @@ describe("system-settings routes", () => {
       const body = await res.json();
       expect(body.data.creditOverdueDays).toBe(45);
       expect(body.data.company).toMatchObject({
-        legalName: "Sri Aparajita Enterprises",
+        legalName: "Distribution OS",
         gstin: "36ABCDE1234F1Z5",
         addressLine1: "",
         addressLine2: "",

@@ -6,7 +6,7 @@ import { neonJwtFromSession } from "../../lib/neon-auth-server";
 /** Holds the Neon Managed Better Auth session (the app's primary login). */
 const NEON_SESSION_COOKIE = "sa_session";
 /** Legacy HS256 token cookie — kept as a fallback until the Neon Auth cutover. */
-const LEGACY_JWT_COOKIE = "sri_aparajita_auth";
+const LEGACY_JWT_COOKIE = "distribution_os_auth";
 
 // Neon access tokens are short-lived (~15 min), so we mint a fresh one from the
 // stored session on each server request — memoized per request/session so a

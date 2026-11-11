@@ -1,6 +1,6 @@
-# Sri Aparajita Mobile App — Build & Release Guide
+# Distribution OS Mobile App — Build & Release Guide
 
-The complete, from-scratch guide for the **Sri Aparajita Distribution** field app
+The complete, from-scratch guide for the **Distribution OS Distribution** field app
 (`apps/mobile`): setting up a machine, running the app in development,
 debugging, changing the icon/name/splash, building an installable APK, and
 deploying the API it talks to.
@@ -133,7 +133,7 @@ these, rebuild the APK (section 5) — Expo Go won't show them.
 
 ```jsonc
 "expo": {
-  "name": "Sri Aparajita",        // ← display name
+  "name": "Distribution OS",        // ← display name
   "slug": "mobile",        // ← EAS project slug — do NOT change
   ...
 }
@@ -177,7 +177,7 @@ Configured via the `expo-splash-screen` plugin in the same file:
 - `"version": "1.0.0"` — the human-visible version; bump for each release.
 - Android `versionCode` is **auto-incremented by EAS** (`appVersionSource:
   "remote"` in `eas.json`) — you never touch it.
-- `"package": "com.vardhansystems.sriaparajita"` — the Android application id
+- `"package": "com.vardhansystems.distributionos"` — the Android application id
   (set 2026-08-01 for the Indus App Store release; was the Expo default
   `com.anonymous.mobile`).
   ⚠️ Changing it makes phones treat the next APK as a *different app*

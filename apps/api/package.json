@@ -1,5 +1,5 @@
 {
-  "name": "@sri-aparajita/api",
+  "name": "@distribution-os/api",
   "type": "module",
   "scripts": {
     "dev": "WRANGLER_LOG_PATH=../../.wrangler-logs wrangler dev --env-file ../../.env",
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
-    "@sri-aparajita/shared": "workspace:*",
+    "@distribution-os/shared": "workspace:*",
     "hono": "^4.13.8",
     "jspdf": "4.2.1",
     "jspdf-autotable": "5.0.8",

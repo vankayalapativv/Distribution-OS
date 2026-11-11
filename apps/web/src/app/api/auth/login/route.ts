@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { serverApiFetch } from "../../../../lib/server-api";
 import { neonJwtFromSession, neonSignIn } from "../../../../lib/neon-auth-server";
 import { isWebRole } from "../../../../features/auth/auth-role";
-import type { Role } from "@sri-aparajita/shared";
+import type { Role } from "@distribution-os/shared";
 
 const SESSION_COOKIE = "sa_session";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days

@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "sri-aparajita-api",
+  "name": "distribution-os-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-03",
   // global_fetch_strictly_public: make fetch() to our MCP Worker (and any other
@@ -13,7 +13,7 @@
   "vars": {
     "POSTHOG_PROJECT_TOKEN": "phc_pYEtGskjBGvMwCHivmsrMtKFkAxuWFyHbeUjicf2udUE",
     "POSTHOG_HOST": "https://eu.i.posthog.com",
-    "MCP_SERVER_ORIGIN": "https://sri-aparajita-mcp.vardhansystems.workers.dev"
+    "MCP_SERVER_ORIGIN": "https://distribution-os-mcp.vardhansystems.workers.dev"
   },
   // "vars": {
   //   "MY_VAR": "my-variable"
@@ -25,11 +25,11 @@
   //   }
   // ],
   // Customer/market-intelligence photos. Local dev simulates R2 automatically;
-  // for production run: wrangler r2 bucket create sri-aparajita-photos
+  // for production run: wrangler r2 bucket create distribution-os-photos
   "r2_buckets": [
     {
       "binding": "PHOTOS",
-      "bucket_name": "sri-aparajita-photos"
+      "bucket_name": "distribution-os-photos"
     }
   ],
   "triggers": {

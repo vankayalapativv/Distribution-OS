@@ -1,5 +1,5 @@
 /** The two queries behind the New Order screen: oils + credit load in parallel
- *  on open. Bearings are no longer offered on this screen (Sri Aparajita is
+ *  on open. Bearings are no longer offered on this screen (Distribution OS is
  *  oils-only; the catalogue is organised by brand tabs).
  *
  *  The oils catalogue reads through the SQLite read-cache (useCachedQuery): the

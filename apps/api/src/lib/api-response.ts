@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { BRAND } from "@sri-aparajita/shared";
+import { BRAND } from "@distribution-os/shared";
 import type { ApiEnv, ApiFailure, ApiSuccess } from "../types";
 
 export function success<T>(c: Context<ApiEnv>, data: T): ApiSuccess<T> {

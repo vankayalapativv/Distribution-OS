@@ -4,7 +4,7 @@
 
 > **Status: PLANNING ONLY — do not write code yet.** This document is the deliverable for now; implementation comes later.
 
-> **Build approach:** Distribution OS is a **clone of this entire codebase into a new project/repo**, rebranded from "Sri Aparajita" to **"Distribution OS"**. The owner will provide the fresh API keys (Razorpay, Neon, Cloudflare, Neon Auth, EAS/Play, PostHog, maps). The **existing Sri Aparajita system stays on its own deployment, untouched** — this work does not modify it. Whether/when Sri Aparajita is later onboarded into Distribution OS as an enterprise is an open decision (below).
+> **Build approach:** Distribution OS is a **clone of this entire codebase into a new project/repo**, rebranded from "Distribution OS" to **"Distribution OS"**. The owner will provide the fresh API keys (Razorpay, Neon, Cloudflare, Neon Auth, EAS/Play, PostHog, maps). The **existing Distribution OS system stays on its own deployment, untouched** — this work does not modify it. Whether/when Distribution OS is later onboarded into Distribution OS as an enterprise is an open decision (below).
 
 > Terminology: a customer company that buys our product is an **enterprise**. We never say "tenant." The isolation key on every table is **`enterprise_id`**.
 
@@ -24,7 +24,7 @@
 | Signup gating | **Owner approves each** new enterprise (pending queue) — not auto-provisioned |
 | Support | **Impersonation** allowed (enter an enterprise to help), **fully audit-logged** |
 | Product / brand | **Distribution OS** — new repo, new domain, new mobile app + package id, new EAS project |
-| Build approach | **Clone this codebase → a new project**, rebrand; the existing Sri Aparajita deployment is **untouched** |
+| Build approach | **Clone this codebase → a new project**, rebrand; the existing Distribution OS deployment is **untouched** |
 | Billing start | **Billable immediately** on owner approval — no free trial |
 | Signup verification | Applicant verifies **email + phone via OTP** before entering the approval queue |
 | Owner dashboard | Separate subdomain **`admin.` (e.g. admin.distributionos…)** with its own auth |
@@ -43,7 +43,7 @@
   - Billing is still `billing_charges` (no enterprise col) at a hardcoded **₹708/active user/mo** (`UNIT_AMOUNT_PAISA`), charged monthly via Razorpay orders; GST billing invoice issued manually.
 - **Web** (`apps/web`, Next.js on Workers): auth via Neon Auth (SUPER_ADMIN) + HS256 (MANAGER/ACCOUNTANT). Now also carries the **Stock** pages (`/stock/*` home + entry), **Invoices** (upload + in-system generate), **Reports → Profitability**, the **Margin simulator**, and **Excel bulk import** (Products + stock-in/opening). Settings page (`features/settings/*`) holds company identity, bank, invoice series, godowns, and `system_settings` (key-value rules).
 - **API** (`apps/api`, Hono/Workers): `requireRole`/`requireAuth` resolve the user; `getSqlClient(c)` returns the Neon client. Billing in `services/billing-v2.ts` + `routes/razorpay-webhook.ts`.
-- **Mobile** (`apps/mobile`, Expo SDK 57): single app "Sri Aparajitha Enterprise", pkg `com.vardhansystems.sriaparajita`, one EAS project, sideloaded APK (`indus`). OTA via EAS (currently needs the runtime-string pin — see memory `expo-ota-updates`).
+- **Mobile** (`apps/mobile`, Expo SDK 57): single app "Distribution OS", pkg `com.vardhansystems.distributionos`, one EAS project, sideloaded APK (`indus`). OTA via EAS (currently needs the runtime-string pin — see memory `expo-ota-updates`).
 - **MCP** (`apps/mcp`, Worker): read-only SQL, single shared passphrase (config DO), scoped to the one DB.
 
 ## Target architecture
@@ -94,13 +94,13 @@
 ## Phased rollout (build in the new Distribution OS clone — greenfield, no live data)
 
 - **Phase 0 — Plan.** This document + the open decisions below. **We are here. No code yet.**
-- **Phase 1 — Clone & rebrand.** Clone this codebase into the new Distribution OS repo/project; rebrand Sri Aparajita → Distribution OS across web/mobile/MCP; wire the owner's fresh API keys (Razorpay, Neon, Cloudflare, Neon Auth, EAS/Play, PostHog, maps); deploy a working single-company baseline. Greenfield — no production data to preserve.
+- **Phase 1 — Clone & rebrand.** Clone this codebase into the new Distribution OS repo/project; rebrand Distribution OS → Distribution OS across web/mobile/MCP; wire the owner's fresh API keys (Razorpay, Neon, Cloudflare, Neon Auth, EAS/Play, PostHog, maps); deploy a working single-company baseline. Greenfield — no production data to preserve.
 - **Phase 2 — Enterprise foundation.** `enterprises` table; `enterprise_id` on all tables + every query; auth carries `enterprise_id`; scoped-query helper + Postgres **RLS**; **email-or-phone + password** login (globally unique). **`users` carries `enterprise_id` too** — one person = one enterprise (locked 2026-11-11), so the users table is RLS-scoped like the rest and never leaks people across enterprises (login resolves a global-unique email/phone to that one account). Seed one demo enterprise to develop against.
 - **Phase 3 — Onboarding + approval + billing (one coupled phase; merged 2026-11-11).** The signup wizard, the owner's approval queue, and per-enterprise billing config ship together, because **approval sets the price and starts billing** — they can't be separated. Pieces: (a) public **self-serve signup** (login only) + **email OTP** (Resend) → mandatory onboarding wizard (auto-saved draft) → submit = `pending` enterprise; (b) owner dashboard on the **`admin.` subdomain** — **approval queue** (approve + set price / reject + reason), enterprises list + status, GST subscription-invoice upload; (c) **per-enterprise billing** — `enterprise_billing_config` written at approval, `billing-v2` + banner/blocked-screen made enterprise-aware, monthly charges on the 1st (an enterprise approved mid-month rides free until the next 1st). Full detail → [`docs/ONBOARDING-PLAN.md`](ONBOARDING-PLAN.md) + [`docs/ADMIN-DASHBOARD-PLAN.md`](ADMIN-DASHBOARD-PLAN.md). **Deferred to a later phase:** suspend/activate, **impersonation (audit-logged)**, cross-enterprise analytics, phone OTP.
 - **Phase 4 — MCP per-enterprise scoping.** Full detail → [`docs/MCP-SAAS-PLAN.md`](MCP-SAAS-PLAN.md): keep the raw-SQL `run_sql` tool but make it safe via **RLS-forced queries** (low-priv reader role + per-request `app.enterprise_id` GUC from the OAuth session props, not model input); per-enterprise passphrase → `enterpriseId`; audit + map scoped the same way. **In the SaaS build, not deferred.** Go-live gated on the MCP cross-enterprise leak test.
 - **Phase 5 — Mobile rebrand + Play Store + runtime-policy fix + OTA.** Full detail → [`docs/MOBILE-SAAS-PLAN.md`](MOBILE-SAAS-PLAN.md): enterprise-aware login (`/me` + JWT carry `enterprise_id`), **neutral branding everywhere** (no per-enterprise logo), **fully server-driven dues bands** (drop the fixed 4-bucket union, OTA-able), tracking auto-stop from the enterprise's onboarding config (native, in the APK). The app has **no onboarding surface** — field staff are admin-provisioned on web.
 - **Phase 6 — Hardening.** Automated **cross-enterprise leak tests** (web + API + MCP paths), per-enterprise observability, rate limits, backups. Then (deferred features) suspend/activate, impersonation, cross-enterprise analytics, phone OTP.
-- **Later (open):** optionally migrate the existing Sri Aparajita data into Distribution OS as an enterprise.
+- **Later (open):** optionally migrate the existing Distribution OS data into Distribution OS as an enterprise.
 
 ## Top risks
 - **Data isolation** (financial data) is the #1 risk → RLS + scoped helper + automated cross-enterprise leak tests, not just one of them.
@@ -109,12 +109,12 @@
 - Don't let a future agent revert `enterprise_id` — update Hard Rule #6 in Phase 1.
 
 ## Resolved (from the owner)
-- Product = **Distribution OS** · Build = **clone this codebase into a new project** (owner provides API keys), Sri Aparajita untouched · Routing = **one domain, enterprise-from-login** · Login = **email or phone + password, globally unique** · Signup = **owner-approved**, verified by **email OTP (v1; phone OTP deferred)**, **billing starts at approval** · Cockpit = **separate `admin.` subdomain** · Support = **impersonation, audit-logged (deferred past v1)**.
+- Product = **Distribution OS** · Build = **clone this codebase into a new project** (owner provides API keys), Distribution OS untouched · Routing = **one domain, enterprise-from-login** · Login = **email or phone + password, globally unique** · Signup = **owner-approved**, verified by **email OTP (v1; phone OTP deferred)**, **billing starts at approval** · Cockpit = **separate `admin.` subdomain** · Support = **impersonation, audit-logged (deferred past v1)**.
 - **Isolation (locked 2026-11-11)** = **ONE shared DB + `enterprise_id` + Postgres RLS** (not DB-per-enterprise) — see the §1 callout. **`users` carries `enterprise_id` and is RLS-scoped** — **one person = one enterprise** (a login belongs to exactly one company; a person in two companies needs two logins).
 - **Billing basis (locked 2026-11-11)** = per-seat counts **all active users** (every role: SUPER_ADMIN/MANAGER/ACCOUNTANT/SE/LOGISTICS), matching today's "₹708 per active user". Charges generate **on the 1st**; an enterprise approved mid-month **rides free until the next 1st** (no proration).
 - **Repricing** = raising a price later (e.g. ₹600→₹700/user) is **fully supported, no re-subscribe / no re-auth** — billing is **one-time monthly orders, not a subscription/mandate**, so the owner edits `enterprise_billing_config` and it **applies from the next charge** (paid/past charges untouched). Detail in [`docs/ADMIN-DASHBOARD-PLAN.md`](ADMIN-DASHBOARD-PLAN.md) → *Repricing*.
 - **Onboarding (locked 2026-11-11)** = **self-serve signup (login only) → mandatory multi-step wizard (auto-saved draft) → owner approves + sets price, or rejects with a reason** — see §4 and the full spec in [`docs/ONBOARDING-PLAN.md`](ONBOARDING-PLAN.md).
-- **Overdue model (locked 2026-11-11)** = a customer is overdue the moment an invoice passes **that customer's own credit days** — the company-wide `credit_overdue_days` grace is **removed**; dues bands are **per-enterprise configurable** (variable count, each `from–to days` + a label). **Scope: Distribution OS (the SaaS clone) ONLY — the live Sri Aparajita app keeps its current 60-day grace, untouched.**
+- **Overdue model (locked 2026-11-11)** = a customer is overdue the moment an invoice passes **that customer's own credit days** — the company-wide `credit_overdue_days` grace is **removed**; dues bands are **per-enterprise configurable** (variable count, each `from–to days` + a label). **Scope: Distribution OS (the SaaS clone) ONLY — the live Distribution OS app keeps its current 60-day grace, untouched.**
 - **Owner dashboard v1 (locked 2026-11-11)** = approval queue (approve + set price / reject + reason) · enterprises list + status · per-enterprise billing (price + ledger + override) · GST subscription-invoice upload. Suspend/activate, impersonation and cross-enterprise analytics are **deferred** — see [`docs/ADMIN-DASHBOARD-PLAN.md`](ADMIN-DASHBOARD-PLAN.md).
 - **Mobile (locked 2026-11-11)** = **no onboarding surface** (field staff admin-provisioned on web) · **neutral branding everywhere** · **fully server-driven dues bands** · enterprise-aware login (`/me` + JWT carry `enterprise_id`) · tracking auto-stop from onboarding config — see [`docs/MOBILE-SAAS-PLAN.md`](MOBILE-SAAS-PLAN.md).
 - **MCP (locked 2026-11-11)** = **in the SaaS build** (not deferred) · keep raw-SQL `run_sql` but **RLS-forced** (low-priv reader + per-request `app.enterprise_id` GUC from OAuth props) · per-enterprise passphrase → `enterpriseId` · go-live gated on an MCP leak test — see [`docs/MCP-SAAS-PLAN.md`](MCP-SAAS-PLAN.md).
@@ -122,5 +122,5 @@
 ## Open decisions (still need the owner's input — NOT assumed, for later)
 1. **Password reset** for phone-only accounts — SMS OTP? And which SMS/OTP provider? (Signup verification itself is email OTP for v1 via Resend; phone OTP deferred.)
 2. **Owner-dashboard staff** — you only, or will you add team members later (needs its own roles/permissions)?
-3. **Sri Aparajita migration** — if/when to onboard the existing company into Distribution OS as an enterprise (vs leaving it on its current deployment forever).
+3. **Distribution OS migration** — if/when to onboard the existing company into Distribution OS as an enterprise (vs leaving it on its current deployment forever).
 4. **Exact brand assets** — final web domain, mobile app display name, Android package id (e.g. `com.<you>.distributionos`), logo/icon.

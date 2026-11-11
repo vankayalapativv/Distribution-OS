@@ -22,7 +22,7 @@ export const authRoutes = new Hono<ApiEnv>()
     const identifier = (optionalString(body, "identifier") ?? optionalString(body, "email") ?? "").trim();
     if (!identifier) throw new ApiError("VALIDATION_ERROR", "Email or phone is required.", 422);
     const password = requiredString(body, "password");
-    // The app sends a descriptive device string (e.g. "SriAparajita/1.1.2
+    // The app sends a descriptive device string (e.g. "DistributionOS/1.1.2
     // (Android 13; samsung; SM-G991B)"); forward it so the session is labelled
     // with the real phone on the admin "Manage sessions" screen. Fall back to
     // the request's own user-agent.

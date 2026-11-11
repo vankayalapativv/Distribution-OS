@@ -24,5 +24,5 @@ export async function listManagedProducts(): Promise<ManagedProduct[]> {
 }
 
 export function getProductsActionConfig(): { apiBaseUrl: string } {
-  return { apiBaseUrl: process.env.SRI_APARAJITA_API_BASE_URL ?? "http://localhost:8787/api/v1" };
+  return { apiBaseUrl: process.env.DISTRIBUTION_OS_API_BASE_URL ?? "http://localhost:8787/api/v1" };
 }

@@ -1,4 +1,4 @@
-# Sri Aparajita Distribution — Mobile App Plan (Sales Executive)
+# Distribution OS Distribution — Mobile App Plan (Sales Executive)
 
 **Created:** 2026-07-09 (restored to original scope) · **Owner:** Vishnu (solo, with Claude)
 **Platform:** React Native + Expo · **Roles:** SALES_EXECUTIVE (LOGISTICS later, own plan)
@@ -176,7 +176,7 @@ The customer page is now the SE's main workspace (beat plans stay hidden):
 - **Add Sale / Add Collection** per customer. First action of the day auto-records an **unplanned visit** with a GPS fix (VISIT-RULES.md) — `ensureTodayVisit` in sync-core, one per customer per day; API `POST /visits/checkin` now accepts `customerId` without a beat stop.
 - **Credit gate**: outstanding shown in the hero card; overdue beyond `credit_overdue_days` → red alert band + "🔒 Sale blocked" (Add Collection stays enabled). Server-computed.
 - **Last 5 sales / last 5 collections** from the server (SE now allowed on `GET /orders?customerId=`), with queued-local items overlaid, skeletons, and per-section error states with Retry. Fixed a real API bug found on the way: `listCollections` accepted customerId/fromDate/toDate filters but never applied them (returned all collections org-wide).
-- **Market intelligence = photos**: multi-select upload (expo-image-picker) → `POST /customers/:id/photos` (multipart) → **Cloudflare R2** (`sri-aparajita-photos` bucket, binding `PHOTOS`; local dev simulated by wrangler — for prod run `wrangler r2 bucket create sri-aparajita-photos`). Authenticated streaming via `GET /photos/:id`; thumbnails via **expo-image** (RN core Image fails on authenticated URIs on Android). Migration `0010` dropped the unused competitor_* tables and added `customer_photos`.
+- **Market intelligence = photos**: multi-select upload (expo-image-picker) → `POST /customers/:id/photos` (multipart) → **Cloudflare R2** (`distribution-os-photos` bucket, binding `PHOTOS`; local dev simulated by wrangler — for prod run `wrangler r2 bucket create distribution-os-photos`). Authenticated streaming via `GET /photos/:id`; thumbnails via **expo-image** (RN core Image fails on authenticated URIs on Android). Migration `0010` dropped the unused competitor_* tables and added `customer_photos`.
 
 ## Customer ownership & SE edit (2026-07-10, verified live)
 

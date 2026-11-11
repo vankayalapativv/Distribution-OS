@@ -11,12 +11,12 @@ describe("paymentModeLabel", () => {
 });
 
 describe("getActionConfig", () => {
-  const original = process.env.SRI_APARAJITA_API_BASE_URL;
-  afterEach(() => { process.env.SRI_APARAJITA_API_BASE_URL = original; });
+  const original = process.env.DISTRIBUTION_OS_API_BASE_URL;
+  afterEach(() => { process.env.DISTRIBUTION_OS_API_BASE_URL = original; });
   it("uses the configured base url, else the local worker", () => {
-    process.env.SRI_APARAJITA_API_BASE_URL = "https://api.test/v1";
+    process.env.DISTRIBUTION_OS_API_BASE_URL = "https://api.test/v1";
     expect(getActionConfig()).toEqual({ apiBaseUrl: "https://api.test/v1" });
-    delete process.env.SRI_APARAJITA_API_BASE_URL;
+    delete process.env.DISTRIBUTION_OS_API_BASE_URL;
     expect(getActionConfig().apiBaseUrl).toBe("http://localhost:8787/api/v1");
   });
 });

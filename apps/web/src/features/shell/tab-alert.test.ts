@@ -30,7 +30,7 @@ describe("tab-alert", () => {
     setHidden(false);
     vi.stubGlobal("Notification", FakeNotification);
     const title = document.title;
-    alertHidden({ title: "New collection", body: "New collection received", tag: "sri-aparajita-collection" });
+    alertHidden({ title: "New collection", body: "New collection received", tag: "distribution-os-collection" });
     expect(FakeNotification.instances).toHaveLength(0);
     expect(document.title).toBe(title);
   });
@@ -39,8 +39,8 @@ describe("tab-alert", () => {
     vi.useFakeTimers();
     setHidden(true);
     vi.stubGlobal("Notification", FakeNotification);
-    document.title = "Sri Aparajita";
-    alertHidden({ title: "New collection", body: "New collection received", tag: "sri-aparajita-collection" });
+    document.title = "Distribution OS";
+    alertHidden({ title: "New collection", body: "New collection received", tag: "distribution-os-collection" });
     expect(FakeNotification.instances).toHaveLength(1);
     expect(FakeNotification.instances[0].title).toBe("New collection");
     expect(FakeNotification.instances[0].options).toMatchObject({
@@ -55,12 +55,12 @@ describe("tab-alert", () => {
     vi.useFakeTimers();
     setHidden(true);
     vi.stubGlobal("Notification", FakeNotification);
-    document.title = "Sri Aparajita — Orders";
-    alertHidden({ title: "New order", body: "a", tag: "sri-aparajita-order" });
-    alertHidden({ title: "New collection", body: "b", tag: "sri-aparajita-collection" });
+    document.title = "Distribution OS — Orders";
+    alertHidden({ title: "New order", body: "a", tag: "distribution-os-order" });
+    alertHidden({ title: "New collection", body: "b", tag: "distribution-os-collection" });
     vi.advanceTimersByTime(900);
     expect(document.title).toContain("2 new alerts");
     clearTabAlert();
-    expect(document.title).toBe("Sri Aparajita — Orders");
+    expect(document.title).toBe("Distribution OS — Orders");
   });
 });

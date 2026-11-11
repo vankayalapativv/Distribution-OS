@@ -75,7 +75,7 @@ config, so there is no coverage floor and no visibility into which core domain l
 
 ### G-0206 · Release workflow uploads under a stale package name — Low
 `indus-release.yml` uploads to Indus with `package_name: "com.vardhansystems.beyond"`, but the
-built app is `com.vardhansystems.sriaparajita` (app.json). Likely a re-client leftover — verify
+built app is `com.vardhansystems.distributionos` (app.json). Likely a re-client leftover — verify
 whether the Indus listing identifier is intentionally still `beyond`. *(governance/correctness)*
 
 ---
@@ -110,7 +110,7 @@ Reviewed this phase and marked `[x]`: `apps/web/eslint.config.mjs`, `apps/mobile
 Non-ledger config also reviewed: `.github/workflows/indus-release.yml`, `turbo.json`, all
 `package.json` script blocks.
 
-**Scope note:** a fourth app, **`apps/mcp`** (`@sri-aparajita/mcp`, excluded from `dev` and given
+**Scope note:** a fourth app, **`apps/mcp`** (`@distribution-os/mcp`, excluded from `dev` and given
 its own `vitest.config.ts`), exists but is **outside the agreed audit scope** (api/web/mobile/
 packages). Recorded here so "not reviewed" is a deliberate, logged decision — flag if you want it
 folded into scope.

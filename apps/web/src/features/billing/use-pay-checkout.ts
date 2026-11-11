@@ -114,7 +114,7 @@ export function usePayCheckout(
     const rzp = new window.Razorpay({
       key: order.keyId,
       order_id: order.orderId,
-      name: "Sri Aparajita",
+      name: "Distribution OS",
       description: `Monthly access for ${order.seats} user(s) (${rupeesLabel})`,
       handler: (resp: CheckoutResponse) => void confirmAndPoll(resp),
       modal: { ondismiss: () => setPhase("idle") },

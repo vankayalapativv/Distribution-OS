@@ -11,7 +11,7 @@ vi.mock("./health-history", () => ({
   COMPONENTS: [{ key: "api", name: "API" }, { key: "database", name: "Database" }],
   readState: h.readState, recordObservations: h.recordObservations, writeState: h.writeState,
 }));
-vi.mock("@sri-aparajita/shared", () => ({ BRAND: { name: "SA" } }));
+vi.mock("@distribution-os/shared", () => ({ BRAND: { name: "SA" } }));
 
 import { inStatusWindow, runHealthMonitor } from "./health-monitor";
 

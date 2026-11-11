@@ -24,7 +24,7 @@ async function main() {
         process.exit(1);
     }
     const sql = postgres(databaseUrl);
-    console.log("\nSri Aparajita Distribution — First-Time Setup");
+    console.log("\nDistribution OS Distribution — First-Time Setup");
     hr();
     console.log("Creates the Super Admin account, linked to Neon Managed Auth.");
     console.log("FIRST create the admin in Neon Auth (sign up) to obtain their user id");

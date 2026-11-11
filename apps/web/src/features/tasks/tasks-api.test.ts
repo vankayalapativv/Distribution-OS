@@ -7,18 +7,18 @@ vi.mock("../../lib/server-api", () => ({ serverApiFetch: (...a: unknown[]) => se
 import { getActionConfig, listCustomersLite, listTaskAssignees, listTasks } from "./tasks-api";
 
 const ok = (data: unknown) => ({ ok: true, json: () => Promise.resolve({ success: true, data }) });
-const original = process.env.SRI_APARAJITA_API_BASE_URL;
+const original = process.env.DISTRIBUTION_OS_API_BASE_URL;
 afterEach(() => {
-  if (original === undefined) delete process.env.SRI_APARAJITA_API_BASE_URL;
-  else process.env.SRI_APARAJITA_API_BASE_URL = original;
+  if (original === undefined) delete process.env.DISTRIBUTION_OS_API_BASE_URL;
+  else process.env.DISTRIBUTION_OS_API_BASE_URL = original;
   serverApiFetch.mockReset();
 });
 
 describe("getActionConfig", () => {
   it("uses the env URL or the local fallback", () => {
-    process.env.SRI_APARAJITA_API_BASE_URL = "https://api.example/v1";
+    process.env.DISTRIBUTION_OS_API_BASE_URL = "https://api.example/v1";
     expect(getActionConfig().apiBaseUrl).toBe("https://api.example/v1");
-    delete process.env.SRI_APARAJITA_API_BASE_URL;
+    delete process.env.DISTRIBUTION_OS_API_BASE_URL;
     expect(getActionConfig().apiBaseUrl).toBe("http://localhost:8787/api/v1");
   });
 });

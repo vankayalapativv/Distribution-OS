@@ -17,12 +17,12 @@ export default function LoginScreen() {
         bottomOffset={24}
       >
         <Image
-          source={require("../../assets/images/sri-aparajita-logo.png")}
+          source={require("../../assets/images/distribution-os-logo.png")}
           // Native aspect ratio of the wordmark (726×344) — height must match
           // or expo-image letterboxes it small inside the box.
           style={{ width: 280, height: 133, alignSelf: "center" }}
           contentFit="contain"
-          accessibilityLabel="Sri Aparajitha — Automobile & Lubricants"
+          accessibilityLabel="Distribution OS — Automobile & Lubricants"
         />
         {/* <Text className="mt-3 text-base text-muted-foreground">Field team sign in</Text> */}
 

@@ -70,5 +70,5 @@ export async function getInitialDashboardMetrics(): Promise<DashboardMetrics> {
 }
 
 export function getMetricsApiBaseUrl(): string {
-  return process.env.SRI_APARAJITA_API_BASE_URL ?? "http://localhost:8787/api/v1";
+  return process.env.DISTRIBUTION_OS_API_BASE_URL ?? "http://localhost:8787/api/v1";
 }

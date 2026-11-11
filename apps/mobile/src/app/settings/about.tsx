@@ -57,7 +57,7 @@ export default function AboutScreen() {
         </View>
 
         <Text className="text-center text-xs text-muted-foreground">
-          Sri Aparajitha Distribution
+          Distribution OS Distribution
         </Text>
       </ScrollView>
     </SafeAreaView>

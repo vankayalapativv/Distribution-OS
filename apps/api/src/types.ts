@@ -1,7 +1,7 @@
 import type { R2Bucket } from "@cloudflare/workers-types";
-import type { Role } from "@sri-aparajita/shared";
+import type { Role } from "@distribution-os/shared";
 
-// Role codes are defined once in @sri-aparajita/shared and re-exported here so the
+// Role codes are defined once in @distribution-os/shared and re-exported here so the
 // ~64 existing `import { Role } from "../types"` sites keep working (audit G-0102/G-0103).
 export type { Role };
 
@@ -36,11 +36,11 @@ export interface ApiEnv {
     GOOGLE_GEOCODING_API_KEY?: string;
     /** Resend API key (secret) for the scheduled client report emails. */
     RESEND_API_KEY?: string;
-    /** From header, e.g. "Sri Aparajita Reports <reports@updates.vardhansystems.in>". */
+    /** From header, e.g. "Distribution OS Reports <reports@updates.vardhansystems.in>". */
     REPORTS_FROM?: string;
     /** Recipient of the client report emails. */
     REPORTS_TO?: string;
-    /** Public web base URL for the "View in Sri Aparajita" report link. */
+    /** Public web base URL for the "View in Distribution OS" report link. */
     REPORTS_WEB_BASE_URL?: string;
     /** Health monitor (#7): DB round-trip (ms) above which status is "degraded". Default 2000. */
     HEALTH_DEGRADED_MS?: string;
@@ -65,7 +65,7 @@ export interface ApiEnv {
     /** PostHog error tracking (exceptions only): public project token + host. */
     POSTHOG_PROJECT_TOKEN?: string;
     POSTHOG_HOST?: string;
-    /** Inbound MCP server (apps/mcp) origin, e.g. https://sri-aparajita-mcp.<acct>.workers.dev (var). */
+    /** Inbound MCP server (apps/mcp) origin, e.g. https://distribution-os-mcp.<acct>.workers.dev (var). */
     MCP_SERVER_ORIGIN?: string;
     /** Shared bearer secret for the MCP server's /admin/* API (secret). Must match apps/mcp. */
     MCP_ADMIN_SECRET?: string;

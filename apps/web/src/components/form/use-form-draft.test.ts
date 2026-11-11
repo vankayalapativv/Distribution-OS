@@ -16,14 +16,14 @@ const isEmpty = (f: Form) => !f.amount && !f.remark;
 describe("form-draft helpers — #5 never-drop-writes", () => {
   it("round-trips a draft through localStorage under a namespaced key", () => {
     expect(readDraft<Form>("k")).toBeNull();
-    localStorage.setItem("sri-aparajita:draft:k", JSON.stringify({ amount: "500", remark: "hi" }));
+    localStorage.setItem("distribution-os:draft:k", JSON.stringify({ amount: "500", remark: "hi" }));
     expect(readDraft<Form>("k")).toEqual({ amount: "500", remark: "hi" });
     clearDraft("k");
     expect(readDraft<Form>("k")).toBeNull();
   });
 
   it("returns null (never throws) on corrupt JSON", () => {
-    localStorage.setItem("sri-aparajita:draft:bad", "{not json");
+    localStorage.setItem("distribution-os:draft:bad", "{not json");
     expect(readDraft<Form>("bad")).toBeNull();
   });
 
@@ -59,7 +59,7 @@ describe("form-draft helpers — #5 never-drop-writes", () => {
   });
 
   it("drops a stale draft once the open form is emptied", async () => {
-    localStorage.setItem("sri-aparajita:draft:e", JSON.stringify({ amount: "5", remark: "" }));
+    localStorage.setItem("distribution-os:draft:e", JSON.stringify({ amount: "5", remark: "" }));
     renderHook(() => useFormDraft({ key: "e", value: EMPTY, enabled: true, isEmpty }));
     // Open + empty → the effect clears the stale entry synchronously.
     expect(readDraft<Form>("e")).toBeNull();

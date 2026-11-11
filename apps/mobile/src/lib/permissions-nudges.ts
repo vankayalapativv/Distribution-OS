@@ -16,7 +16,7 @@ export async function runStartDayNudges(confirm: ConfirmFn): Promise<void> {
     const proceed = await confirm({
       title: "Allow scheduled tracking",
       message:
-        'Sri Aparajitha needs the "Alarms & reminders" permission to record your location on time. Turn it on for Sri Aparajitha on the next screen.',
+        'Distribution OS needs the "Alarms & reminders" permission to record your location on time. Turn it on for Distribution OS on the next screen.',
       confirmLabel: "Open settings",
       cancelLabel: "Skip",
     });

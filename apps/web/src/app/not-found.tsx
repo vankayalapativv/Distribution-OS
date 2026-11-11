@@ -10,7 +10,7 @@ import { getAuthToken } from "@/features/auth/server-session";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Page not found — Sri Aparajitha Enterprise",
+  title: "Page not found — Distribution OS",
 };
 
 export default async function NotFound() {

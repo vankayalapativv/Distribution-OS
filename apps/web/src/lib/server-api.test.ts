@@ -4,7 +4,7 @@ import { serverApiFetch } from "./server-api";
 // Force the local-dev public-fetch path with a single fixed base, so the mocked
 // global fetch is what serverApiFetch calls (the service binding is absent here).
 beforeEach(() => {
-  vi.stubEnv("SRI_APARAJITA_API_BASE_URL", "http://api.test/api/v1");
+  vi.stubEnv("DISTRIBUTION_OS_API_BASE_URL", "http://api.test/api/v1");
 });
 
 afterEach(() => {

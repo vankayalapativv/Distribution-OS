@@ -72,8 +72,8 @@ to fix now.
 
 **Cheap-now / expensive-later items** (each a gap row):
 
-- **G-0302 — Extract hardcoded client identity into config.** "Sri Aparajita" appears in 37 files,
-  "sriaparajita" in 5; only 2 `system_settings` keys exist. Branding, catalogue, invoice (BAL)
+- **G-0302 — Extract hardcoded client identity into config.** "Distribution OS" appears in 37 files,
+  "distributionos" in 5; only 2 `system_settings` keys exist. Branding, catalogue, invoice (BAL)
   format, emails, and R2 bucket are code/env-baked. Pull them into a config table / branding
   file / env so a new client needs **zero code edits**. *High — this is the SaaS gate, and it
   improves the single-client build too.*

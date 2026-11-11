@@ -28,7 +28,7 @@ import { queryClient } from "../lib/query-client";
  * recoverable screen instead of a hard crash / white screen.
  */
 export function ErrorBoundary({ error, retry }: Readonly<ErrorBoundaryProps>) {
-  console.error("[SriAparajitaCrash] render error:", error?.message, error?.stack);
+  console.error("[DistributionOSCrash] render error:", error?.message, error?.stack);
   reportMobileError(error, { boundary: "root-render", fatal: true });
   return <ErrorScreen error={error} retry={retry} />;
 }

@@ -139,7 +139,7 @@ Managed Better Auth (EdDSA JWTs). The app maps the token `sub` → `users.app_lo
 
 - **Neon Postgres** — via `@neondatabase/serverless` (HTTP driver), `DATABASE_URL` secret.
 - **Neon Managed Better Auth** — JWT verification via `NEON_JWKS_URL` (EdDSA/JWKS).
-- **Cloudflare R2** — `PHOTOS` binding (bucket `sri-aparajita-photos`) for photos/proofs/attachments.
+- **Cloudflare R2** — `PHOTOS` binding (bucket `distribution-os-photos`) for photos/proofs/attachments.
 - **Cloudflare Cron** — `*/3 * * * *` trigger.
 - **Resend** — transactional email (`RESEND_API_KEY`, `ALERT_FROM`, `REPORTS_FROM/TO`).
 - **Web Push (VAPID)** — `VAPID_PUBLIC_KEY/PRIVATE_KEY/SUBJECT` for web push; Expo push for mobile.

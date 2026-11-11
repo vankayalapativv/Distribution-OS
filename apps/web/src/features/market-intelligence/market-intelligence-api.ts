@@ -91,6 +91,6 @@ export async function listCustomersLite(): Promise<CustomerLite[]> {
 
 export function getActionConfig(): { apiBaseUrl: string } {
   return {
-    apiBaseUrl: process.env.SRI_APARAJITA_API_BASE_URL ?? "http://localhost:8787/api/v1",
+    apiBaseUrl: process.env.DISTRIBUTION_OS_API_BASE_URL ?? "http://localhost:8787/api/v1",
   };
 }

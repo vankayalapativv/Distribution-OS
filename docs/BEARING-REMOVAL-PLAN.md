@@ -1,6 +1,6 @@
 # Bearing removal — deferred plan (as of 2026-10-04)
 
-**Status: NOT STARTED. Deferred by the user on 2026-10-04.** This client (Sri Aparajita)
+**Status: NOT STARTED. Deferred by the user on 2026-10-04.** This client (Distribution OS)
 is **purely oils** — no bearings, no filters. Two related pieces of work are both deferred
 and captured here: **(1) the app-wide bearing removal** (this document, below), and **(2) the
 mobile Orders company/brand tabs** (see the dedicated section at the end). Neither is built

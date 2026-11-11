@@ -1,5 +1,5 @@
 /**
- * Shared internals for the Sri Aparajitha Hono API client (base URL, error type,
+ * Shared internals for the Distribution OS Hono API client (base URL, error type,
  * session-header side effects, envelope parsing). Split out of api.ts so that
  * module stays small; apiFetch / apiUpload live there and import these.
  *

@@ -1,7 +1,7 @@
 /**
  * Offline visit writes for the customer-page check-in / check-out.
  *
- * Sri Aparajita's field check-in is an *unplanned* visit (from the customer
+ * Distribution OS's field check-in is an *unplanned* visit (from the customer
  * page, no beat stop). The local `visits` row is keyed by the check-in's
  * deterministic `clientUuid`; its `server_id` is filled in by the sync-send
  * handler once the check-in POST succeeds. FIFO ordering guarantees a same-day

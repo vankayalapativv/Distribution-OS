@@ -1,4 +1,4 @@
-# Best Practices — Sri Aparajita Distribution Management System
+# Best Practices — Distribution OS Distribution Management System
 
 A living, stack-specific checklist for this repo. Rules are phrased as **DO / DON'T** and tailored to
 our actual architecture (Hono on Cloudflare Workers + Neon Postgres, Next.js web, React Native/Expo mobile,

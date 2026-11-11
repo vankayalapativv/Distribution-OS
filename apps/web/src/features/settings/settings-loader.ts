@@ -11,7 +11,7 @@ import type { SettingsRole, SystemSettings, UserProfile } from "./settings-share
 // Public URL passed to the client component for browser-side calls (the
 // browser reaches the API directly — no Worker-to-Worker restriction).
 function getApiBaseUrl(): string {
-  return process.env.SRI_APARAJITA_API_BASE_URL ?? "http://localhost:8787/api/v1";
+  return process.env.DISTRIBUTION_OS_API_BASE_URL ?? "http://localhost:8787/api/v1";
 }
 
 export interface SettingsProps {

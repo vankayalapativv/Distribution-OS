@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Sri Aparajitha Enterprise",
-    "slug": "sri-aparajita-automobiles-and-lubricants",
+    "name": "Distribution OS",
+    "slug": "distribution-os-automobiles-and-lubricants",
     "version": "1.1.2",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
@@ -35,11 +35,11 @@
         "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.vardhansystems.sriaparajita",
+      "package": "com.vardhansystems.distributionos",
       "googleServicesFile": "./google-services.json"
     },
     "ios": {
-      "bundleIdentifier": "com.vardhansystems.sriaparajita",
+      "bundleIdentifier": "com.vardhansystems.distributionos",
       "buildNumber": "1",
       "supportsTablet": false,
       "infoPlist": {
@@ -68,17 +68,17 @@
         "expo-location",
         {
           "isAndroidBackgroundLocationEnabled": true,
-          "locationAlwaysAndWhenInUsePermission": "Sri Aparajita records your route during your work day, from Start Day to End Day.",
-          "locationAlwaysPermission": "Sri Aparajita records your route during your work day, from Start Day to End Day.",
-          "locationWhenInUsePermission": "Sri Aparajita uses your location for visit check-ins."
+          "locationAlwaysAndWhenInUsePermission": "Distribution OS records your route during your work day, from Start Day to End Day.",
+          "locationAlwaysPermission": "Distribution OS records your route during your work day, from Start Day to End Day.",
+          "locationWhenInUsePermission": "Distribution OS uses your location for visit check-ins."
         }
       ],
       "expo-image",
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Sri Aparajita uses the camera to photograph customer shops and shelves.",
-          "photosPermission": "Sri Aparajita uploads photos you choose for customer records."
+          "cameraPermission": "Distribution OS uses the camera to photograph customer shops and shelves.",
+          "photosPermission": "Distribution OS uploads photos you choose for customer records."
         }
       ],
       "@react-native-community/datetimepicker",
@@ -97,7 +97,7 @@
           "android": {
             "enableMinifyInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true,
-            "extraProguardRules": "-keep class com.vardhansystems.sriaparajita.tracking.** { *; }\n-keep class * extends androidx.work.ListenableWorker { *; }\n-keep class * extends com.facebook.react.ReactPackage { *; }\n-keep class expo.modules.adapters.react.apploader.** { *; }\n-keep class expo.modules.apploader.** { *; }\n-keep class expo.modules.taskManager.** { *; }"
+            "extraProguardRules": "-keep class com.vardhansystems.distributionos.tracking.** { *; }\n-keep class * extends androidx.work.ListenableWorker { *; }\n-keep class * extends com.facebook.react.ReactPackage { *; }\n-keep class expo.modules.adapters.react.apploader.** { *; }\n-keep class expo.modules.apploader.** { *; }\n-keep class expo.modules.taskManager.** { *; }"
           }
         }
       ],

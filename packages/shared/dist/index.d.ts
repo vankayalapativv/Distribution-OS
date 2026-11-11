@@ -43,18 +43,19 @@ export interface ApiFailure {
 export type ApiResponse<T> = ApiSuccess<T> | ApiFailure;
 /**
  * Client branding — the single source for the company/product name (architecture
- * audit G-0302). Previously "Sri Aparajita" was hardcoded across ~40 files, making
+ * audit G-0302). Previously "Distribution OS" was hardcoded across ~40 files, making
  * every new client a code fork. Consume `BRAND.*` instead of literals. For a full
  * SaaS/per-tenant setup this becomes runtime config; as a build constant it already
  * collapses the many hardcoded sites to one.
  */
 export declare const BRAND: {
-    /** Short display name (UI/tab title). */
-    readonly name: "Sri Aparajita Enterprises";
-    /** Registered/legal name — used on invoices; keep the legal spelling. */
-    readonly fullName: "Sri Aparajitha Enterprise";
+    /** Short display name (UI/tab title). Neutral product brand — per-enterprise
+     *  company names come from each enterprise's own onboarding data, not here. */
+    readonly name: "Distribution OS";
     /** Product/system name. */
-    readonly systemName: "Sri Aparajitha Enterprise Distribution Management System";
+    readonly fullName: "Distribution OS";
+    /** Product/system name. */
+    readonly systemName: "Distribution OS";
 };
 export { buildInvoiceDoc, DEFAULT_TERMS, type PdfData } from "./invoice-pdf.js";
 //# sourceMappingURL=index.d.ts.map

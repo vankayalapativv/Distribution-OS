@@ -85,10 +85,10 @@ export function DashboardShell({
               user asked for. Do not convert this to <Link> (which soft-navigates). */}
           <a
             href={ROLE_HOME[role]}
-            aria-label="Sri Aparajitha Enterprise — reload dashboard"
+            aria-label="Distribution OS — reload dashboard"
             className="flex flex-col leading-none transition-opacity hover:opacity-80"
           >
-            <span className="text-base font-extrabold tracking-tight text-primary sm:text-lg">Sri Aparajitha</span>
+            <span className="text-base font-extrabold tracking-tight text-primary sm:text-lg">Distribution OS</span>
             <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               Enterprise
             </span>

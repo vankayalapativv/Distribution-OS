@@ -43,7 +43,7 @@ describe("VAPID JWT", () => {
       {
         publicKey: "BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8",
         privateKey: "yfWPiYE-n46HLnH0KqZOF1fJJU3MYrct3AELtAQ-oRw",
-        subject: "mailto:ops@sri-aparajita.local",
+        subject: "mailto:ops@distribution-os.local",
       },
       1_700_000_000,
     );
@@ -51,7 +51,7 @@ describe("VAPID JWT", () => {
     expect(JSON.parse(new TextDecoder().decode(b64urlDecode(header)))).toEqual({ typ: "JWT", alg: "ES256" });
     const claims = JSON.parse(new TextDecoder().decode(b64urlDecode(payload)));
     expect(claims.aud).toBe("https://fcm.googleapis.com");
-    expect(claims.sub).toBe("mailto:ops@sri-aparajita.local");
+    expect(claims.sub).toBe("mailto:ops@distribution-os.local");
     expect(claims.exp).toBe(1_700_000_000 + 12 * 60 * 60);
     expect(b64urlDecode(sig)).toHaveLength(64); // ES256 raw r||s
   });
@@ -73,11 +73,11 @@ describe("sendWebPush request shape", () => {
         p256dh: RFC8291.uaPublic,
         auth: RFC8291.authSecret,
       },
-      { title: "New collection", body: "₹3,000 from Test Shop", tag: "sri-aparajita-collection" },
+      { title: "New collection", body: "₹3,000 from Test Shop", tag: "distribution-os-collection" },
       {
         publicKey: RFC8291.asPublic,
         privateKey: RFC8291.asPrivate,
-        subject: "mailto:ops@sri-aparajita.local",
+        subject: "mailto:ops@distribution-os.local",
       },
       1_700_000_000,
     );

@@ -37,7 +37,7 @@ const mapSpecSchema = z.object({
 });
 
 const RUN_SQL_DESCRIPTION =
-  "Run ONE read-only SQL query against the Sri Aparajita distribution database (a Neon read " +
+  "Run ONE read-only SQL query against the Distribution OS distribution database (a Neon read " +
   "replica — SELECT only; writes are rejected). Discover the schema with information_schema " +
   "(e.g. `select table_name, column_name, data_type from information_schema.columns where " +
   "table_schema='public'`). Results are capped at 5000 rows (a `truncated` flag signals more). " +
@@ -80,7 +80,7 @@ async function audit(
  */
 export function buildServer(getEnv: () => Env): McpServer {
   const server = new McpServer(
-    { name: "sri-aparajita-mcp", version: "0.1.0" },
+    { name: "distribution-os-mcp", version: "0.1.0" },
     { instructions: SERVER_INSTRUCTIONS },
   );
 

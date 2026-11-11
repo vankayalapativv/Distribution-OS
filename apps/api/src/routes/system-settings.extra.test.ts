@@ -27,7 +27,7 @@ describe("system-settings routes", () => {
   });
   it("PATCH / with credit days + full company (runs field refines)", async () => {
     const company = {
-      legalName: "Sri Aparajita", gstin: "22AAAAA0000A1Z5", addressLine1: "1 Road", addressLine2: "",
+      legalName: "Distribution OS", gstin: "22AAAAA0000A1Z5", addressLine1: "1 Road", addressLine2: "",
       city: "Hyderabad", state: "Telangana", pincode: "500001", phone: "9999999999", email: "a@b.co",
       bankAccountName: "SA", bankAccountNumber: "123456", bankIfsc: "HDFC0001234", upiId: "sa@okhdfc",
       termsAndConditions: "Pay in 30 days",

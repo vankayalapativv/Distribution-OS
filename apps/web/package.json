@@ -1,5 +1,5 @@
 {
-  "name": "@sri-aparajita/web",
+  "name": "@distribution-os/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -22,7 +22,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@maplibre/maplibre-gl-leaflet": "^0.1.4",
-    "@sri-aparajita/shared": "workspace:*",
+    "@distribution-os/shared": "workspace:*",
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",

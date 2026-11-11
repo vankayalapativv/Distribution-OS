@@ -26,7 +26,7 @@ declare global {
     MAPS_DO: DurableObjectNamespace<MapsStoreDO>;
     /** HMAC secret for signing short-lived /m/<id> map links (secret). */
     MAP_SIGNING_SECRET: string;
-    /** Public origin of this Worker, e.g. https://sri-aparajita-mcp.<acct>.workers.dev (var). */
+    /** Public origin of this Worker, e.g. https://distribution-os-mcp.<acct>.workers.dev (var). */
     PUBLIC_ORIGIN: string;
     /** KVNamespace the OAuth provider reads — injected at runtime as a DO shim. */
     OAUTH_KV: KVNamespace;

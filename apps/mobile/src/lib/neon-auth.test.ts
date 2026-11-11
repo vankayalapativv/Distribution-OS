@@ -70,6 +70,6 @@ describe("neonSignIn — sends the identifier + device descriptor for session la
     expect(body.identifier).toBe("9985294475");
     expect(body.email).toBeUndefined();
     expect(body.password).toBe("pw");
-    expect(body.device).toBe("SriAparajita/1.1.2 (Android 13; samsung; SM-G991B)");
+    expect(body.device).toBe("DistributionOS/1.1.2 (Android 13; samsung; SM-G991B)");
   });
 });

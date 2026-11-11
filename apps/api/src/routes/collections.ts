@@ -219,7 +219,7 @@ export const collectionsRoutes = new Hono<ApiEnv>()
               await notifyOfficeWebPush(
                 sql,
                 vapid,
-                { title: "New collection", body, tag: "sri-aparajita-collection", url: "/collections" },
+                { title: "New collection", body, tag: "distribution-os-collection", url: "/collections" },
                 Math.floor(Date.now() / 1000),
               );
             }

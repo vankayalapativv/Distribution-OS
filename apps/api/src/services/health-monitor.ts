@@ -1,5 +1,5 @@
 import type { R2Bucket } from "@cloudflare/workers-types";
-import { BRAND } from "@sri-aparajita/shared";
+import { BRAND } from "@distribution-os/shared";
 import type { SqlClient } from "../lib/db";
 import { checkHealth, degradedMsFromEnv, type HealthStatus } from "./health";
 import {

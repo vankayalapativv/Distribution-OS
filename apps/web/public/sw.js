@@ -1,4 +1,4 @@
-/* Sri Aparajita service worker — Web Push for browser-closed notifications.
+/* Distribution OS service worker — Web Push for browser-closed notifications.
  * Receives encrypted push messages and shows an OS notification even when no
  * tab is open. Clicking focuses an existing dashboard tab or opens one. */
 
@@ -9,7 +9,7 @@ self.addEventListener("push", (event) => {
   } catch {
     data = {};
   }
-  const title = data.title || "Sri Aparajita";
+  const title = data.title || "Distribution OS";
   const options = {
     body: data.body || "",
     tag: data.tag || "beyond",

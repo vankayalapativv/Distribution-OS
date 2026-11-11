@@ -164,7 +164,7 @@ All locked — see **§0**. (Transfer/Adjust = manual pick, FEFO default, one lo
 
 ## 12. Rollout (local = prod — be careful)
 1. Land code + migration `0015` behind the additive schema (nothing breaks pre-deploy).
-2. Apply `0015` (`pnpm --filter @sri-aparajita/db run migrate`; user-run, prod-gated).
+2. Apply `0015` (`pnpm --filter @distribution-os/db run migrate`; user-run, prod-gated).
 3. Run the one-off backfill **only if** real stock exists (currently empty → skip).
 4. Deploy API, then web.
 5. Smoke-test: receive a batch → transfer part of it to the other godown → confirm the destination lot carries the expiry and Near-expiry reflects remaining; negative-adjust a lot → confirm Near-expiry drops it.

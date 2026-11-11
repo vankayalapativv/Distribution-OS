@@ -54,11 +54,11 @@ describe("describeDevice", () => {
   });
 
   it("names the phone from the Expo app's device string", () => {
-    expect(describeDevice("SriAparajita/1.1.2 (Android 13; samsung; SM-G991B)")).toBe("Samsung SM-G991B");
+    expect(describeDevice("DistributionOS/1.1.2 (Android 13; samsung; SM-G991B)")).toBe("Samsung SM-G991B");
     // model already carrying the brand isn't doubled up
-    expect(describeDevice("SriAparajita/1.1.2 (Android 14; Google; Pixel 8)")).toBe("Google Pixel 8");
+    expect(describeDevice("DistributionOS/1.1.2 (Android 14; Google; Pixel 8)")).toBe("Google Pixel 8");
     // unknown manufacturer → model alone
-    expect(describeDevice("SriAparajita/1.1.2 (Android 12; Unknown; Redmi Note 10)")).toBe("Redmi Note 10");
+    expect(describeDevice("DistributionOS/1.1.2 (Android 12; Unknown; Redmi Note 10)")).toBe("Redmi Note 10");
   });
 
   it("returns a generic Browser label when nothing matches", () => {

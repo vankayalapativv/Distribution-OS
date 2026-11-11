@@ -10,8 +10,8 @@ describe("Android native tracking service (capture + upload)", () => {
     // expo.android.package, so derive it rather than hard-coding, and only
     // assert on it when a local prebuild has produced it.
     const serviceTemplate = read("plugins/native-tracking/ForegroundLocationService.kt");
-    expect(serviceTemplate).toContain('File(filesDir, "SQLite/sri-aparajita.db")');
-    expect(serviceTemplate).not.toContain('openOrCreateDatabase("sri-aparajita.db"');
+    expect(serviceTemplate).toContain('File(filesDir, "SQLite/distribution-os.db")');
+    expect(serviceTemplate).not.toContain('openOrCreateDatabase("distribution-os.db"');
     expect(serviceTemplate).toContain("FusedLocationProviderClient");
     expect(serviceTemplate).toContain("requestLocationUpdates");
     expect(serviceTemplate).toContain("insert or ignore into gps_pings");

@@ -1,6 +1,6 @@
 # Crash Reporting — Options & In-House Design
 
-How to get visibility into app crashes for the Sri Aparajita mobile app, and the
+How to get visibility into app crashes for the Distribution OS mobile app, and the
 plan for a **simple in-house crash log viewable in the Super Admin
 dashboard**. Written 2026-07-13 after a native crash on a Motorola Edge 50
 Neo was diagnosed by hand via `adb logcat`.

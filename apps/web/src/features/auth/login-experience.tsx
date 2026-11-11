@@ -78,7 +78,7 @@ export function LoginExperience({ error }: { readonly error?: string }) {
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-fit max-w-full flex-col justify-center">
         <div className="border-b border-border pb-5">
           <h1 className="whitespace-nowrap text-4xl font-extrabold tracking-tight text-primary">
-            Sri Aparajita Enterprises
+            Distribution OS
           </h1>
         </div>
 

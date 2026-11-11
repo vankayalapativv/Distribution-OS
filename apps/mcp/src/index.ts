@@ -12,7 +12,7 @@ import { handleAdminRoute } from "./admin";
 export { OAuthKvDO, AuditLogDO, MapsStoreDO, ConfigDO };
 
 /**
- * Sri Aparajita MCP server — v2 STATELESS MCP behind an OAuth 2.1 passphrase gate.
+ * Distribution OS MCP server — v2 STATELESS MCP behind an OAuth 2.1 passphrase gate.
  *
  * OAuth state (auth codes, grants, tokens) is stored in a single strongly
  * consistent Durable Object instead of Cloudflare KV, so the code written during

@@ -1,5 +1,5 @@
 /**
- * Minimal API client for the Sri Aparajitha Hono API — the request/upload entry points.
+ * Minimal API client for the Distribution OS Hono API — the request/upload entry points.
  * Base URL, error type, and low-level helpers live in ./api-core.
  *
  * Access tokens are short-lived Neon EdDSA JWTs. Every authenticated request is

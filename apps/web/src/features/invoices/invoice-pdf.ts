@@ -1,14 +1,14 @@
 /**
  * Thin web wrappers over the shared invoice PDF renderer. The BAL-layout renderer
- * lives in @sri-aparajita/shared — the single source of truth, rendered on demand
+ * lives in @distribution-os/shared — the single source of truth, rendered on demand
  * from data (never stored). These fetch the self-contained payload
  * (`GET /invoices/:id/pdf-data`) and render to download or open in a new tab.
  */
-import { buildInvoiceDoc, type PdfData } from "@sri-aparajita/shared";
+import { buildInvoiceDoc, type PdfData } from "@distribution-os/shared";
 import { apiRequest, type ActionConfig } from "@/lib/api-client";
 
-export { DEFAULT_TERMS } from "@sri-aparajita/shared";
-export type { PdfData } from "@sri-aparajita/shared";
+export { DEFAULT_TERMS } from "@distribution-os/shared";
+export type { PdfData } from "@distribution-os/shared";
 
 async function renderDoc(cfg: ActionConfig, invoiceId: string) {
   const data = await apiRequest<PdfData>(cfg, "GET", `/invoices/${invoiceId}/pdf-data`);

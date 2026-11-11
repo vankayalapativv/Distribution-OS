@@ -4,7 +4,7 @@
  * The enqueue payload is byte-for-byte what `submitOrder` POSTs, so the queued
  * replay is identical to a direct submit (idempotent via clientUuid).
  *
- * Sri Aparajita's order screen is oils-only; a line carries a product + pack
+ * Distribution OS's order screen is oils-only; a line carries a product + pack
  * size + segment.
  */
 import { type LocalDb, withTransaction } from "../local-db";

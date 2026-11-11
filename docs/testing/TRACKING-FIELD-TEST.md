@@ -32,7 +32,7 @@ These are the thresholds baked into the shipped code. Test against *these*, not 
 ## Pre-flight (once, before any scenario)
 
 - [ ] Uninstall any older build first (avoids keystore/signature and stale-DB confusion).
-- [ ] Install **versionCode 5** APK. Confirm in Settings → Apps → Sri Aparajita → App details that versionCode = 5.
+- [ ] Install **versionCode 5** APK. Confirm in Settings → Apps → Distribution OS → App details that versionCode = 5.
 - [ ] Log in as a real **SALES_EXECUTIVE** test account.
 - [ ] On first Start Day, grant location **"Allow all the time"** (background), not just "While using". Grant notifications.
 - [ ] Have a web dashboard open on `/dashboard/tracking` (SUPER_ADMIN or MANAGER) to watch the same SE live.
@@ -44,7 +44,7 @@ These are the thresholds baked into the shipped code. Test against *these*, not 
 
 Purpose: prove the happy path before stressing it.
 
-1. [ ] Tap **Start Day**. Confirm the persistent notification appears: *"Sri Aparajita day tracking on / Your route is recorded until you end your day."*
+1. [ ] Tap **Start Day**. Confirm the persistent notification appears: *"Distribution OS day tracking on / Your route is recorded until you end your day."*
 2. [ ] Walk/drive so location actually changes.
 3. [ ] After ~10 min, confirm on the dashboard: SE shows **Fresh/Live**, point count increasing (~1 every 3 min), map trail drawing.
 4. [ ] Confirm points reached Neon (dashboard "last seen" timestamp within 3–4 min of now).
@@ -68,7 +68,7 @@ Purpose: this is what a real SE workday looks like. Most OEM tracking failures s
 
 ## Scenario 3 — Removed from recents / swipe-away (survival)
 
-1. [ ] Start Day. Open the recents/app-switcher and **swipe the Sri Aparajita card away**.
+1. [ ] Start Day. Open the recents/app-switcher and **swipe the Distribution OS card away**.
 2. [ ] Confirm the notification **persists** and points **keep flowing** (this is what `START_STICKY` + foreground service should give us on stock Android).
 
 **Pass:** tracking survives swipe-away. **Note:** on some aggressive OEMs swipe-away == force-stop; if it dies here, record the OEM — that becomes a battery-exemption UX requirement, not a code bug.

@@ -68,7 +68,7 @@ export const visitsRoutes = new Hono<ApiEnv>()
             await notifyOfficeWebPush(
               sql,
               vapid,
-              { title: "New check-in", body, tag: "sri-aparajita-visit", url: "/tracking" },
+              { title: "New check-in", body, tag: "distribution-os-visit", url: "/tracking" },
               Math.floor(Date.now() / 1000),
             );
           }

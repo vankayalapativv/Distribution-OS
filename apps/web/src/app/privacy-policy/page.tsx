@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Sri Aparajita Automobile",
+  title: "Privacy Policy — Distribution OS",
   description:
-    "Privacy Policy for the Sri Aparajita Automobile app, published by Sri Aparajita Distribution Systems.",
+    "Privacy Policy for the Distribution OS app, published by Distribution OS Distribution Systems.",
 };
 
 // Static legal page — no auth, no data fetching. Served publicly at
@@ -12,9 +12,9 @@ export const metadata: Metadata = {
 export const dynamic = "force-static";
 
 const EFFECTIVE_DATE = "9 September 2026";
-const ENTITY = "Sri Aparajita Distribution Systems";
-const APP_NAME = "Sri Aparajita Automobile";
-const PACKAGE = "com.vardhansystems.sriaparajita";
+const ENTITY = "Distribution OS Distribution Systems";
+const APP_NAME = "Distribution OS";
+const PACKAGE = "com.vardhansystems.distributionos";
 const CONTACT_EMAIL = "support@vardhansystems.in";
 
 function Section({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {

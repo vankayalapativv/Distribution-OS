@@ -6,7 +6,7 @@ import { OrderOilLines } from "./order-oil-lines";
 
 type Draft = ReturnType<typeof useOrderDraft>;
 
-/** The order's oil line items (Sri Aparajita is oils-only). Reads everything it
+/** The order's oil line items (Distribution OS is oils-only). Reads everything it
  *  needs from the shared order-draft state. */
 export function OrderLineItemsTabs({
   draft,

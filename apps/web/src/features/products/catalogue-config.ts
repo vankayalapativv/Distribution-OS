@@ -1,6 +1,6 @@
 import type { ManagedProduct } from "./products-api";
 
-// The catalogue is oils-only (Sri Aparajita sells lubricants).
+// The catalogue is oils-only (Distribution OS sells lubricants).
 export type CatalogueCategory = "oils";
 export type CatalogueRow = ManagedProduct;
 

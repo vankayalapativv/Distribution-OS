@@ -84,9 +84,9 @@ app.use(
       "http://localhost:8081",
       "http://127.0.0.1:8081",
       // Deployed web dashboard (client-side browser calls)
-      "https://sri-aparajita-web.vardhansystems.workers.dev",
-      // Custom domain for the Sri Aparajitha web dashboard
-      "https://sriaparajita.vardhansystems.in",
+      "https://distribution-os-web.vardhansystems.workers.dev",
+      // Custom domain for the Distribution OS web dashboard
+      "https://distributionos.vardhansystems.in",
     ],
     allowHeaders: [
       "Authorization",

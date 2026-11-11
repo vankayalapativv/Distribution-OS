@@ -22,6 +22,6 @@ export interface AuditFilterOptions {
 /** Server-passed API base for the client table (auth token added by the page). */
 export function getAuditActionConfig(): { apiBaseUrl: string } {
   return {
-    apiBaseUrl: process.env.SRI_APARAJITA_API_BASE_URL ?? "http://localhost:8787/api/v1",
+    apiBaseUrl: process.env.DISTRIBUTION_OS_API_BASE_URL ?? "http://localhost:8787/api/v1",
   };
 }

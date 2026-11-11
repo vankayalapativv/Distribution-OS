@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
 /**
- * Sri Aparajita dialog system — one shared frame for every dialog in the app.
+ * Distribution OS dialog system — one shared frame for every dialog in the app.
  *
  * Structure: <DialogContent size> wraps a flex column capped at 85vh. Compose
  *   <DialogHeader>   — pinned title + optional description (border-b)

@@ -8,7 +8,7 @@
  * runner and any restricted JS context — the crypto-backed id generator lives in
  * gps-session (which already pulls in expo modules).
  */
-export const GPS_TASK = "sri-aparajita-day-gps";
+export const GPS_TASK = "distribution-os-day-gps";
 export const PING_INTERVAL_MS = 3 * 60 * 1000;
 // Near-duplicate collapse floor — NOT a cadence gate. Well below the 3-min
 // cadence so a slightly-early scheduled fix isn't dropped (which would double the
@@ -18,13 +18,13 @@ export const MIN_PING_GAP_MS = 90_000;
 // cached/stale fused fix isn't mis-dated (wrong day / out of order on the map).
 export const MAX_FIX_AGE_MS = 150_000;
 export const FUTURE_SKEW_MS = 60_000; // guard a fix timestamped in the future
-export const DAY_ON_KEY = "sri_aparajita_day_tracking_on";
+export const DAY_ON_KEY = "distribution_os_day_tracking_on";
 // Date-stamped "the SE ended their day" flag — blocks re-start for the rest of
 // the IST day (the day closes itself via this; there's no fixed-hour auto-stop).
-export const DAY_ENDED_KEY = "sri_aparajita_day_ended";
-export const DAY_START_ODO_KEY = "sri_aparajita_day_start_odometer";
-export const CLIENT_SESSION_KEY = "sri_aparajita_tracking_client_session_id";
-export const SERVER_SESSION_KEY = "sri_aparajita_tracking_server_session_id";
+export const DAY_ENDED_KEY = "distribution_os_day_ended";
+export const DAY_START_ODO_KEY = "distribution_os_day_start_odometer";
+export const CLIENT_SESSION_KEY = "distribution_os_tracking_client_session_id";
+export const SERVER_SESSION_KEY = "distribution_os_tracking_server_session_id";
 export const CLOSURE_RECOVERY_INTERVAL_MS = 3 * 60 * 1000;
 // Native GPS calls / one-shot fixes can hang (wedged foreground service, GPS lock
 // that won't settle). Bound them so End / photo capture never block forever.

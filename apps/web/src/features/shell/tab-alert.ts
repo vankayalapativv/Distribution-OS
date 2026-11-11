@@ -78,7 +78,7 @@ function startFlash(): void {
   const badge = badgeDataUrl(unseen);
   flashTimer = setInterval(() => {
     phase = !phase;
-    document.title = phase ? `🔔 ${label()}` : originalTitle ?? "Sri Aparajitha Enterprise";
+    document.title = phase ? `🔔 ${label()}` : originalTitle ?? "Distribution OS";
     faviconLink().setAttribute("href", phase ? badge : originalFavicon ?? "");
   }, 900);
 }

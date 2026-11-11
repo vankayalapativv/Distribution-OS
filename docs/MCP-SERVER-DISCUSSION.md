@@ -1,11 +1,11 @@
-# Sri Aparajita MCP Server — Build Spec
+# Distribution OS MCP Server — Build Spec
 
 > **Status:** Implementation-ready spec. **No code written yet** — build on the owner's go.
 > **Last updated:** 2026-08-13
 > **Discussion history:** condensed in memory (`project-mcp-server-discussion`). Architecture
 > diagram (private): https://claude.ai/code/artifact/1370d792-7b78-434a-b5de-0e16f9b48ddb
 
-A **remote, read-only, OAuth-gated MCP server** that lets the owner + admin ask the Sri Aparajita
+A **remote, read-only, OAuth-gated MCP server** that lets the owner + admin ask the Distribution OS
 lubricant-distribution business questions in natural language from **Claude**, backed by a
 single ad-hoc SQL tool over a **read-only Neon replica**. Built as a **Cloudflare Worker** on
 the existing stack.
@@ -27,7 +27,7 @@ the existing stack.
 | DB access role | Dedicated **`mcp_readonly` role, `SELECT`-only**. |
 | Guardrails | **row cap 5000**, **`statement_timeout` 15s**, audit log per query. |
 | Data exposure | **Everything** (full schema + full data incl. customer PII) — owner's own data. |
-| Deploy URL | A **`workers.dev` subdomain** (e.g. `sri-aparajita-mcp.<account>.workers.dev`). |
+| Deploy URL | A **`workers.dev` subdomain** (e.g. `distribution-os-mcp.<account>.workers.dev`). |
 | Cost profile | Workers ~$0–5/mo; replica compute scales to zero (idle = ~$0); no extra storage. |
 
 ---
@@ -104,7 +104,7 @@ apiHandler: <createMcpHandler result>, clientIdMetadataDocumentEnabled:true, ...
 **`wrangler.jsonc` essentials:**
 ```jsonc
 {
-  "name": "sri-aparajita-mcp",
+  "name": "distribution-os-mcp",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
   "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "<create via wrangler>" }]
@@ -123,7 +123,7 @@ apiHandler: <createMcpHandler result>, clientIdMetadataDocumentEnabled:true, ...
 
 ## 5. OAuth + Google gate
 
-- `OAuthProvider({ apiRoute: "/mcp", apiHandler: mcpHandler, clientIdMetadataDocumentEnabled: true, resourceMetadata: { resource: "https://sri-aparajita-mcp.<account>.workers.dev/mcp" }, defaultHandler: googleAuthHandler, ... })`.
+- `OAuthProvider({ apiRoute: "/mcp", apiHandler: mcpHandler, clientIdMetadataDocumentEnabled: true, resourceMetadata: { resource: "https://distribution-os-mcp.<account>.workers.dev/mcp" }, defaultHandler: googleAuthHandler, ... })`.
 - `defaultHandler` (`google-auth.ts`) runs the **upstream Google** flow: redirect to Google →
   callback → read the **verified email** → **allow only `support@vardhansystems.in`** (reject
   everyone else with a clear message) → issue the MCP grant.
@@ -137,7 +137,7 @@ apiHandler: <createMcpHandler result>, clientIdMetadataDocumentEnabled:true, ...
 **Tool:** `run_sql`
 - **Input:** `{ "query": string }`  — a single read-only SQL statement.
 - **Description (matters — the model picks tools from it):** "Run ONE read-only SQL query
-  against the Sri Aparajita distribution database (a Neon read replica). SELECT only; no writes.
+  against the Distribution OS distribution database (a Neon read replica). SELECT only; no writes.
   Discover the schema with `information_schema` (e.g. `select table_name, column_name,
   data_type from information_schema.columns where table_schema='public'`). Results are capped
   at 5000 rows. Prefer explicit `LIMIT`s. Money is `numeric`; dates are IST."
@@ -190,12 +190,12 @@ are measured as ORDERED (orders), bearings as BILLED (invoices)** — don't mix 
       field; passphrase login = simplest real gate for 2 trusted users, no Google Cloud project.)
 - [x] **Phase 3 — deploy + connect (DEPLOYED 2026-08-13, verified live).** Created KV
       `OAUTH_KV` (id `57a40507909f423392fba3d926966adb`), set secrets `REPLICA_DATABASE_URL`
-      + `MCP_PASSPHRASE`, `wrangler deploy`. **Live URL: `https://sri-aparajita-mcp.vardhansystems.workers.dev`**
+      + `MCP_PASSPHRASE`, `wrangler deploy`. **Live URL: `https://distribution-os-mcp.vardhansystems.workers.dev`**
       (MCP endpoint `/mcp`). Account: vishnuvardhan@vardhansystems.in. **Verified in prod**:
       `/mcp` no-token→401 + WWW-Authenticate; AS metadata (https issuer); full flow register→
       authorize form→wrong-pass 401→correct-pass→token(mcp:read)→`/mcp` runs run_sql (290
       customers). REMAINING (owner, in Claude UI): **Claude → Settings → Connectors → Add
-      custom connector → URL `https://sri-aparajita-mcp.vardhansystems.workers.dev/mcp`, leave OAuth
+      custom connector → URL `https://distribution-os-mcp.vardhansystems.workers.dev/mcp`, leave OAuth
       fields blank (DCR) → connect → enter the passphrase.**
 - [ ] **Phase 4 — harden**: confirm timeout + row cap fire; enable the audit log; add a basic
       rate limit; smoke-test the example questions (§9).

@@ -1,13 +1,13 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 /**
- * Single entry point for every server-side call to the Sri Aparajita API.
+ * Single entry point for every server-side call to the Distribution OS API.
  *
  * On Cloudflare (deployed) it uses the `API` **service binding** — a public
  * fetch to the API's `*.workers.dev` URL fails with Cloudflare error 1042
  * (a Worker cannot fetch another Worker on the same account over workers.dev).
  * Locally (`next dev`) the binding isn't present, so it falls back to a
- * public fetch against `SRI_APARAJITA_API_BASE_URL` (or the localhost dev ports).
+ * public fetch against `DISTRIBUTION_OS_API_BASE_URL` (or the localhost dev ports).
  *
  * `path` is the API path WITHOUT the version prefix, e.g. "/auth/login",
  * "/customers", "/me".
@@ -50,8 +50,8 @@ async function fetchOnce(path: string, init: RequestInit): Promise<Response> {
   }
 
   // Local dev: public fetch, trying the configured base or the dev ports.
-  const bases = process.env.SRI_APARAJITA_API_BASE_URL
-    ? [process.env.SRI_APARAJITA_API_BASE_URL]
+  const bases = process.env.DISTRIBUTION_OS_API_BASE_URL
+    ? [process.env.DISTRIBUTION_OS_API_BASE_URL]
     : [
         "http://localhost:8787/api/v1",
         "http://localhost:8788/api/v1",
@@ -62,7 +62,7 @@ async function fetchOnce(path: string, init: RequestInit): Promise<Response> {
   for (const base of bases) {
     try {
       const response = await fetch(`${base}${path}`, init);
-      if (response.ok || process.env.SRI_APARAJITA_API_BASE_URL) return response;
+      if (response.ok || process.env.DISTRIBUTION_OS_API_BASE_URL) return response;
     } catch (error) {
       lastError = error;
     }

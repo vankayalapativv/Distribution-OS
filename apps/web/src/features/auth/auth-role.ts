@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
-import type { Role } from "@sri-aparajita/shared";
+import type { Role } from "@distribution-os/shared";
 import { getAuthToken } from "./server-session";
 import { serverApiFetch } from "../../lib/server-api";
 
-// Role codes are defined once in @sri-aparajita/shared; `AppRole` is kept as the
+// Role codes are defined once in @distribution-os/shared; `AppRole` is kept as the
 // web-local alias so existing usages are unchanged (audit G-0102/G-0103).
 export type AppRole = Role;
 

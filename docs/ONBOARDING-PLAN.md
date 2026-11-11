@@ -5,7 +5,7 @@
 ## Vocabulary (so nobody gets confused)
 
 - **Platform owner** = you (Vardhan Systems). Runs the `admin.` cockpit, belongs to **no enterprise**, approves signups and sets prices.
-- **Enterprise** = a customer company that buys Distribution OS (the equivalent of "Sri Aparajita" today). The whole app is multi-enterprise; every business row is scoped by `enterprise_id` (shared DB + Postgres RLS — `SAAS-PLAN.md` §1).
+- **Enterprise** = a customer company that buys Distribution OS (the equivalent of "Distribution OS" today). The whole app is multi-enterprise; every business row is scoped by `enterprise_id` (shared DB + Postgres RLS — `SAAS-PLAN.md` §1).
 - **Enterprise SUPER_ADMIN** = the person who signs up. Their signup creates **their own login**, and — once approved — they are the first SUPER_ADMIN of the enterprise they configured.
 
 ## The shape of the flow
@@ -107,7 +107,7 @@ Handled in the cockpit — full detail in [`ADMIN-DASHBOARD-PLAN.md`](ADMIN-DASH
 
 **Locked decision:** drop the company-wide **`credit_overdue_days` grace**. A customer is **overdue — and credit-blocked — the moment an invoice passes that customer's own `credit_days`** (i.e. `today > due_date`, where `due_date = invoice_date + customer.credit_days`). "Block right at their terms."
 
-> **Scope (locked 2026-11-11): Distribution OS (the SaaS clone) ONLY.** The existing **live Sri Aparajita app is untouched** — it keeps its current 60-day `credit_overdue_days` grace. Do **not** apply this change to the production Sri Aparajita deployment.
+> **Scope (locked 2026-11-11): Distribution OS (the SaaS clone) ONLY.** The existing **live Distribution OS app is untouched** — it keeps its current 60-day `credit_overdue_days` grace. Do **not** apply this change to the production Distribution OS deployment.
 
 This touches three places that currently add the global grace:
 

@@ -6,7 +6,7 @@ describe("LoginExperience", () => {
   test("renders email and password form", () => {
     render(<LoginExperience />);
 
-    expect(screen.getByRole("heading", { name: "Sri Aparajita Enterprises" }))
+    expect(screen.getByRole("heading", { name: "Distribution OS" }))
       .toBeInTheDocument();
     expect(screen.getByLabelText("Email or phone number")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();

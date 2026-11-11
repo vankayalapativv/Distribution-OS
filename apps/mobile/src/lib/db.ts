@@ -30,7 +30,7 @@ export function getLocalDb(): LocalDb | null {
   if (!instance) {
     // Lazy require so the web bundle never touches the native module.
     const { openDatabaseSync } = require("expo-sqlite") as typeof import("expo-sqlite");
-    instance = wrapExpoDb(openDatabaseSync("sri-aparajita.db"));
+    instance = wrapExpoDb(openDatabaseSync("distribution-os.db"));
     migrateLocalDb(instance);
   }
   return instance;

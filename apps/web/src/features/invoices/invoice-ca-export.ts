@@ -53,5 +53,5 @@ export async function downloadCaExport(data: InvoiceExport): Promise<void> {
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(docsAoa), "Docs");
 
-  XLSX.writeFile(wb, `sri-aparajita-gstr1-${data.period.from}_${data.period.to}.xlsx`);
+  XLSX.writeFile(wb, `distribution-os-gstr1-${data.period.from}_${data.period.to}.xlsx`);
 }

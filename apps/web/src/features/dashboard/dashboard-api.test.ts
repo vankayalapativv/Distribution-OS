@@ -80,12 +80,12 @@ describe("getInitialDashboardMetrics", () => {
 });
 
 describe("getMetricsApiBaseUrl", () => {
-  const original = process.env.SRI_APARAJITA_API_BASE_URL;
-  beforeEach(() => { delete process.env.SRI_APARAJITA_API_BASE_URL; });
-  afterEach(() => { process.env.SRI_APARAJITA_API_BASE_URL = original; });
+  const original = process.env.DISTRIBUTION_OS_API_BASE_URL;
+  beforeEach(() => { delete process.env.DISTRIBUTION_OS_API_BASE_URL; });
+  afterEach(() => { process.env.DISTRIBUTION_OS_API_BASE_URL = original; });
 
   it("uses the env var when set", () => {
-    process.env.SRI_APARAJITA_API_BASE_URL = "https://api.example/v1";
+    process.env.DISTRIBUTION_OS_API_BASE_URL = "https://api.example/v1";
     expect(getMetricsApiBaseUrl()).toBe("https://api.example/v1");
   });
 

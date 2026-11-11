@@ -7,7 +7,7 @@ import {
 } from "./company";
 
 const full: CompanyProfile = {
-  legalName: "Sri Aparajita Enterprises",
+  legalName: "Distribution OS",
   gstin: "36ABCDE1234F1Z5",
   addressLine1: "Door 5, MG Road",
   addressLine2: "Near Clock Tower",

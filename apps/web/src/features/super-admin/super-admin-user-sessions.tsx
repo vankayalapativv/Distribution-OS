@@ -40,13 +40,13 @@ const matchLabel = (ua: string, rules: [RegExp, string][], fallback: string): st
  *  report a client library rather than a browser UA: a web login's session is
  *  minted server-side (node/undici) — the login route forwards the browser UA so
  *  new web sessions read as "Chrome on Windows" etc. The Expo app sends a custom
- *  device string on sign-in (`SriAparajita/1.1.2 (Android 13; samsung;
+ *  device string on sign-in (`DistributionOS/1.1.2 (Android 13; samsung;
  *  SM-G991B)`), forwarded by the API as the session user-agent, so a phone
  *  session reads as its real model ("Samsung SM-G991B"). Older app builds that
  *  predate that send still arrive as OkHttp → generic "Mobile app (Android)". */
 export function describeDevice(ua: string | null): string {
   if (!ua) return "Unknown device";
-  const sa = /SriAparajita\/\S+ \(Android [^;]+; ([^;]+); ([^)]+)\)/.exec(ua);
+  const sa = /DistributionOS\/\S+ \(Android [^;]+; ([^;]+); ([^)]+)\)/.exec(ua);
   if (sa) {
     const manufacturer = sa[1].trim();
     const model = sa[2].trim();

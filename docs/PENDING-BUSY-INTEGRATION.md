@@ -1,10 +1,10 @@
-# PENDING — BusyWin → Sri Aparajita Integration (read-only ongoing sync)
+# PENDING — BusyWin → Distribution OS Integration (read-only ongoing sync)
 
 **Status:** SPECCED, not started. Blocked on schema discovery (Phase 0).
 **Decided:** 2026-08-10, from the "Integration using BUSY Web Service" package BUSY shared.
 **Owner context:** distributor runs **BusyWin** (Busy Accounting) as the book of record for
-invoicing, purchases/stock, ledgers and GST. Sri Aparajita is the cloud DMS. Goal is to **mirror**
-Busy's data into Sri Aparajita for viewing/analytics — Busy stays authoritative.
+invoicing, purchases/stock, ledgers and GST. Distribution OS is the cloud DMS. Goal is to **mirror**
+Busy's data into Distribution OS for viewing/analytics — Busy stays authoritative.
 
 ---
 
@@ -12,8 +12,8 @@ Busy's data into Sri Aparajita for viewing/analytics — Busy stays authoritativ
 
 | Question | Answer |
 |----------|--------|
-| Direction / goal | **Ongoing sync** — Busy stays book of record, Sri Aparajita mirrors it |
-| Read or write | **Read-only for now** (Busy → Sri Aparajita only; no write-back) |
+| Direction / goal | **Ongoing sync** — Busy stays book of record, Distribution OS mirrors it |
+| Read or write | **Read-only for now** (Busy → Distribution OS only; no write-back) |
 | Sync window | **Office hours only, 9AM–8PM, Sun off** — no 24/7 needed |
 | Connector on the office PC | **Yes, acceptable** (vs exposing the port via a tunnel) |
 | BusyWin host | **Single office desktop**, on 9AM–8PM |
@@ -63,39 +63,39 @@ Busy's data into Sri Aparajita for viewing/analytics — Busy stays authoritativ
 ## 3. Architecture (recommended)
 
 ```
-Office desktop (9AM–8PM, Mon–Sat)          Cloud (Sri Aparajita)
+Office desktop (9AM–8PM, Mon–Sat)          Cloud (Distribution OS)
 ┌─────────────────────────────┐            ┌───────────────────────────┐
 │  BusyWin (open + logged in)  │            │  Workers API (Hono)        │
 │  └─ Web Service :981 (local) │            │  POST /integrations/busy/  │
 │         ▲  SC=1 SQL (read)   │            │       sync  (shared secret)│
 │         │                    │  HTTPS     │         │                  │
 │  ┌──────┴───────────┐  ───────────────▶   │         ▼                  │
-│  │  Sri Aparajita Connector │  outbound only     │  Neon: busy_* mirror tables│
+│  │  Distribution OS Connector │  outbound only     │  Neon: busy_* mirror tables│
 │  │  (poll, delta)    │                    │  → read-only views in app  │
 │  └───────────────────┘                    └───────────────────────────┘
 ```
 
 **Connector, not tunnel — why:** the web service takes the Busy username/password in **plain
 HTTP headers** and runs **arbitrary SQL**. Exposing port 981 to the internet (tunnel) is a real
-risk. A connector keeps Busy on `localhost` and makes **outbound HTTPS only** to Sri Aparajita — no
+risk. A connector keeps Busy on `localhost` and makes **outbound HTTPS only** to Distribution OS — no
 inbound firewall/router changes, nothing exposed. Standard Busy/Tally integration pattern.
 
 **Connector** = a small Windows program (a scheduled task / tray app / service). Each cycle,
 during office hours only:
 1. SC=1 query Busy for rows changed since the last watermark.
 2. Convert XML recordset → JSON.
-3. `POST` to the Sri Aparajita endpoint with a shared secret over HTTPS.
-4. Sri Aparajita upserts into `busy_*` mirror tables (idempotent on Busy's `VchCode`).
+3. `POST` to the Distribution OS endpoint with a shared secret over HTTPS.
+4. Distribution OS upserts into `busy_*` mirror tables (idempotent on Busy's `VchCode`).
 
 **Delta / watermark:** Busy's `VchCode` is a monotonic unique id. Track the max synced
 `VchCode` (and a last-modified marker if the schema has one) per entity; pull `WHERE VchCode >
 @last`. Re-pull a trailing window (e.g. last N days) each run to catch in-place edits, since
 edits reuse the same `VchCode`. (Exact modified-timestamp column TBD in Phase 0.)
 
-**Sync cadence:** every ~5–15 min, 09:00–20:00 IST Mon–Sat. Mirrors how Sri Aparajita already gates
+**Sync cadence:** every ~5–15 min, 09:00–20:00 IST Mon–Sat. Mirrors how Distribution OS already gates
 its cloud cron to office hours (see `project-cron-cost-window`).
 
-**Security:** connector holds Busy creds locally + a Sri Aparajita API secret; Sri Aparajita endpoint
+**Security:** connector holds Busy creds locally + a Distribution OS API secret; Distribution OS endpoint
 authenticates the secret and is the only writer to `busy_*` tables. No Busy creds in the cloud.
 
 ---
@@ -135,7 +135,7 @@ we need, plus the exact SQL for each entity.
 - `busy_gst_summary` (derived rollups by period × rate × in/out) — or compute on read.
 - `busy_sync_state` (per-entity watermark: last `vch_code`, last run, row counts, last error).
 
-All read-only in the app — displayed as "from BusyWin" so it's not confused with Sri Aparajita's own
+All read-only in the app — displayed as "from BusyWin" so it's not confused with Distribution OS's own
 invoicing/stock/ledger modules (which coexist; product decision on merging deferred).
 
 ---
@@ -147,13 +147,13 @@ invoicing/stock/ledger modules (which coexist; product decision on merging defer
   end-to-end (mirror table + read-only screen). Proves the whole pipe.
 - **Phase 2** — **Purchases / Material Receipts** (stock inward) + **Ledger**.
 - **Phase 3** — **GST summaries** in-app.
-- **Later (out of scope now)** — write-back (Sri Aparajita → Busy voucher creation via SC=2), if ever.
+- **Later (out of scope now)** — write-back (Distribution OS → Busy voucher creation via SC=2), if ever.
 
 ---
 
 ## 7. GST — options recap
 1. **No GST endpoint** in the web service (confirmed — only SC 1–9).
-2. **Summaries in Sri Aparajita**: derive CGST/SGST/IGST/HSN rollups from synced Sale/Purchase vouchers
+2. **Summaries in Distribution OS**: derive CGST/SGST/IGST/HSN rollups from synced Sale/Purchase vouchers
    (needs the tax columns from Phase 0). Good for dashboards, **not filing**.
 3. **Filing returns** (GSTR-1/3B/2B portal format): use **Busy's own native GST export** (the
    connector can grab the generated file), or the **GSTN portal API via a GSP** — a separate

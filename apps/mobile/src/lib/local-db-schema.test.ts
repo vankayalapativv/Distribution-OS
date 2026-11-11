@@ -52,7 +52,7 @@ describe("local sqlite schema", () => {
     for (const table of EXPECTED_TABLES) expect(names).toContain(table);
   });
 
-  test("the products cache carries the Sri Aparajita brand + unit columns", () => {
+  test("the products cache carries the Distribution OS brand + unit columns", () => {
     const db = createTestDb();
     migrateLocalDb(db);
     const cols = db

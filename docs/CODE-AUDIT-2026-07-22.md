@@ -1,4 +1,4 @@
-# Code Audit — Sri Aparajita Distribution Management System
+# Code Audit — Distribution OS Distribution Management System
 
 **Date:** 2026-07-22   **Scope:** `apps/web` (Next.js/React), `apps/api` (Hono/Workers/Neon), `apps/mobile` (React Native/Expo), `packages/db`
 **Dimensions:** Security & auth · Data integrity · Frontend correctness · Performance & cost

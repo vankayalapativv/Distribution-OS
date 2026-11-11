@@ -8,20 +8,20 @@ import { reportMobileError } from "./report-error";
  */
 export function installGlobalErrorLogging(): void {
   const g = globalThis as unknown as {
-    __sriAparajitaErrHooked?: boolean;
+    __distributionOsErrHooked?: boolean;
     ErrorUtils?: {
       getGlobalHandler: () => (e: unknown, isFatal?: boolean) => void;
       setGlobalHandler: (h: (e: unknown, isFatal?: boolean) => void) => void;
     };
   };
-  if (g.__sriAparajitaErrHooked || !g.ErrorUtils) return;
-  g.__sriAparajitaErrHooked = true;
+  if (g.__distributionOsErrHooked || !g.ErrorUtils) return;
+  g.__distributionOsErrHooked = true;
 
   const previous = g.ErrorUtils.getGlobalHandler();
   g.ErrorUtils.setGlobalHandler((err, isFatal) => {
     const e = err as Error | undefined;
     console.error(
-      `[SriAparajitaCrash] ${isFatal ? "FATAL" : "non-fatal"} JS error:`,
+      `[DistributionOSCrash] ${isFatal ? "FATAL" : "non-fatal"} JS error:`,
       e?.message,
       e?.stack,
     );

@@ -2,8 +2,8 @@
 
 Phased cleanup of the SonarCloud findings for the whole monorepo (web + api + mobile + packages).
 
-- **Dashboard:** https://sonarcloud.io/dashboard?id=vankayalapativv_Sri-Aparajita-Distribution-OS
-- **Org / project:** `vankayalapativv` / `vankayalapativv_Sri-Aparajita-Distribution-OS`
+- **Dashboard:** https://sonarcloud.io/dashboard?id=vankayalapativv_Distribution-OS
+- **Org / project:** `vankayalapativv` / `vankayalapativv_Distribution-OS`
 - **Scan config:** [`sonar-project.properties`](../sonar-project.properties); run with `SONAR_TOKEN=… pnpm sonar`
 - **Scope:** everything, **including `apps/mobile`** (JS-only changes ship via OTA).
 

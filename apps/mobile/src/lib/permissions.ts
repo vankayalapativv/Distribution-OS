@@ -34,7 +34,7 @@ async function ensureForegroundLocation(confirm: ConfirmFn): Promise<StartDayPer
   const openSettings = await confirm({
     title: "Location is required",
     message:
-      "Sri Aparajitha records the area you cover during your day. Please allow location access to start your day.",
+      "Distribution OS records the area you cover during your day. Please allow location access to start your day.",
     confirmLabel: "Open settings",
     cancelLabel: "Not now",
   });
@@ -84,9 +84,9 @@ async function ensureBackgroundLocation(confirm: ConfirmFn): Promise<StartDayPer
 async function ensureBatteryExemption(confirm: ConfirmFn): Promise<StartDayPermissionResult | null> {
   if (await isIgnoringBatteryOptimizations()) return null;
   const proceed = await confirm({
-    title: "Allow Sri Aparajitha to run all day",
+    title: "Allow Distribution OS to run all day",
     message:
-      'To record your route reliably even with the screen off, Sri Aparajitha must run without battery limits. Tap "Allow" on the next screen, then tap "Start day" again.',
+      'To record your route reliably even with the screen off, Distribution OS must run without battery limits. Tap "Allow" on the next screen, then tap "Start day" again.',
     confirmLabel: "Continue",
     cancelLabel: "Not now",
   });

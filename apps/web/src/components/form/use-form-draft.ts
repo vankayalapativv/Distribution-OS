@@ -12,7 +12,7 @@ import { useEffect } from "react";
  * fields — so a receipt must always be re-attached.
  */
 
-const PREFIX = "sri-aparajita:draft:";
+const PREFIX = "distribution-os:draft:";
 
 function storage(): Storage | null {
   try {

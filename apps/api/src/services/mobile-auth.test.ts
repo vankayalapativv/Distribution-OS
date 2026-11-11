@@ -23,10 +23,10 @@ describe("neonSignIn", () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(res({ user }, { headers: { "set-cookie": COOKIE } }));
-    await neonSignIn(ENV, "a@b.c", "pw", "SriAparajita/1.1.2 (Android 13; samsung; SM-G991B)");
+    await neonSignIn(ENV, "a@b.c", "pw", "DistributionOS/1.1.2 (Android 13; samsung; SM-G991B)");
     const init = fetchSpy.mock.calls[0][1] as RequestInit;
     expect((init.headers as Record<string, string>)["user-agent"]).toBe(
-      "SriAparajita/1.1.2 (Android 13; samsung; SM-G991B)",
+      "DistributionOS/1.1.2 (Android 13; samsung; SM-G991B)",
     );
   });
 

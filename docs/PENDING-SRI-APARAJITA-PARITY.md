@@ -1,6 +1,6 @@
-# Pending — Sri Aparajita → Beyond feature parity (mobile)
+# Pending — Distribution OS → Beyond feature parity (mobile)
 
-**Goal:** bring **all** of Beyond's extra mobile features into the Sri Aparajita mobile app,
+**Goal:** bring **all** of Beyond's extra mobile features into the Distribution OS mobile app,
 **except** SA's product **SKUs / brands / catalogue** (those stay exactly as they are:
 Fuchs / Savsol / MFC oils, the six segments `Car·2W·3W·Commercial·Agri·Gear Oil`,
 SA's bearings model, **no Filters category**). Done **slowly, one phase at a time.**
@@ -59,7 +59,7 @@ Ported from Beyond, adapted to SA (tsc + 178 tests + lint green):
 - [x] **3b Mobile** (2026-10-14): full follow-up UX on top of the 3a API, adapted to SA's Phase-2a online-first visit flow (did NOT replace SA's `submitWrite`/`visit-queue` design with Beyond's inline branching). Local `customer_followups` table added as schema **v23** (+ logout-wipe). Core store/lib copied verbatim from Beyond (`followups-store` + `followups` + the 5-case store test). Capture: SA's `checkout` now captures an optional follow-up reminder via the ported `DateTimePickerCard` (new `useFollowupPicker` hook, mirroring `useNoOutcomeReason`) after the no-outcome reason — on both the online-422 retry and the offline queue path; `followUpAt` is sent in the checkout POST (online) or the queued `visit_checkout` payload (offline, so the server creates it on sync), and mirrored locally so it resurfaces offline. Check-in popup (`showFollowupIfAny` in `checkin`), persistent `FollowupCard` on the customer page, Reminders-tab "Customer follow-ups" section (`FollowupReminderRow` + hook additions, kept SA's own assigned-task logic) + red tab badge (`pendingFollowupCount`, 8s poll). tsc + 209 mobile tests + lint (changed files) green.
 - [x] **3c Web** (2026-10-14): office "Outcomes & follow-ups" dashboard section (SUPER_ADMIN + MANAGER), ported from Beyond (`followups-api` + `followups-row` + `followups-section`), wired into `metrics-dashboard` after the map. Its own date-range picker + SE filter + paging; each visit shows its orders/collections (linked chips) and/or the no-outcome reason with a due-date chip (red when overdue) + office "Mark done" (`POST /followups/customers/:id/resolve`). Feed path pointed at SA's `/followups/feed` (Beyond used `/dashboard/followups`). Added a shared `lib/use-delayed-true` (SA only had a private copy in `use-paged-table`). tsc + 1838 web tests + lint (changed files) green.
 
-**✅ Phase 3 (customer follow-ups) COMPLETE** — API/DB (migration **applied to prod** 2026-10-14), mobile UX, and the web office feed. The Workers API was **deployed 2026-10-14** (`sri-aparajita-api`, version `405d85ad`), so the `/followups/*` routes + the `followup_due` reminder cron are live.
+**✅ Phase 3 (customer follow-ups) COMPLETE** — API/DB (migration **applied to prod** 2026-10-14), mobile UX, and the web office feed. The Workers API was **deployed 2026-10-14** (`distribution-os-api`, version `405d85ad`), so the `/followups/*` routes + the `followup_due` reminder cron are live.
 
 ## Phase 4 — Final sweep  ✅ DONE 2026-10-14
 File-by-file Beyond-vs-SA mobile comparison. **Result: feature parity reached — no missed features, no code changes needed.**
@@ -72,7 +72,7 @@ File-by-file Beyond-vs-SA mobile comparison. **Result: feature parity reached �
 - **Beat** → SA prefetches today's beat into `read_cache` via `beat/today-beat-online` (`fetchTodayBeat`); neither app surfaces a beat-screen cache indicator, so no gap.
 - **Only two online-only reads remain** in SA (`app/customer/edit.tsx`, `lib/use-edit-profile.ts`) — both **edit forms**, kept online by SA's deliberate stance (Phase 1d: "edit state, not a cache"). Beyond's cache-fallback pre-fill on customer-edit is a minor nicety, not a feature. Left as-is.
 
-**✅ ALL PHASES COMPLETE.** Sri Aparajita mobile is at feature parity with Beyond (minus SKUs/brands/catalogue, by design). Nothing pushed; no OTA published (held).
+**✅ ALL PHASES COMPLETE.** Distribution OS mobile is at feature parity with Beyond (minus SKUs/brands/catalogue, by design). Nothing pushed; no OTA published (held).
 
 ---
 *Created 2026-10-14. Tracks the parity effort across sessions.*

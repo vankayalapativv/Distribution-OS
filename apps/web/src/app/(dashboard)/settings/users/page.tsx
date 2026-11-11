@@ -21,7 +21,7 @@ export default async function SuperAdminSetupPage() {
     <SuperAdminSetup
       actionConfig={{
         apiBaseUrl:
-          process.env.SRI_APARAJITA_API_BASE_URL ?? "http://localhost:8787/api/v1",
+          process.env.DISTRIBUTION_OS_API_BASE_URL ?? "http://localhost:8787/api/v1",
         authToken,
       }}
       setupData={setupData}

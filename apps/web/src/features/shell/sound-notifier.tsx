@@ -55,8 +55,8 @@ function visitBody(lv: LatestVisit | null | undefined): string {
  * for notification permission); turning it on from Settings unlocks it too.
  */
 
-const KEY = "sri-aparajita:sound-on";
-const CHANGE_EVENT = "sri-aparajita:sound-changed";
+const KEY = "distribution-os:sound-on";
+const CHANGE_EVENT = "distribution-os:sound-changed";
 const POLL_MS = 20000;
 const ORDER_SRC = "/sounds/order.wav";
 const COLLECTION_SRC = "/sounds/collection.mp3";
@@ -239,15 +239,15 @@ export function SoundNotifier() {
         // lead with the executive's first name when present (see `*Body` helpers).
         if (o > p.o) {
           play(audio().order);
-          alertHidden({ title: "New order", body: orderBody(d.latestOrder), tag: "sri-aparajita-order" });
+          alertHidden({ title: "New order", body: orderBody(d.latestOrder), tag: "distribution-os-order" });
         }
         if (c > p.c) {
           play(audio().coll);
-          alertHidden({ title: "New collection", body: collectionBody(d.latestCollection), tag: "sri-aparajita-collection" });
+          alertHidden({ title: "New collection", body: collectionBody(d.latestCollection), tag: "distribution-os-collection" });
         }
         if (v > p.v) {
           play(audio().visit);
-          alertHidden({ title: "New check-in", body: visitBody(d.latestVisit), tag: "sri-aparajita-visit" });
+          alertHidden({ title: "New check-in", body: visitBody(d.latestVisit), tag: "distribution-os-visit" });
         }
       } catch {
         // network hiccup — ignore, next tick retries

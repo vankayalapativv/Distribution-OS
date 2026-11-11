@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "sri-aparajita-mcp",
+  "name": "distribution-os-mcp",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-08",
   "compatibility_flags": ["nodejs_compat"],
@@ -11,7 +11,7 @@
   // Object (fixes the cross-region KV race). No KV namespace needed anymore.
   "vars": {
     // Public origin used to build interactive map links; override per environment.
-    "PUBLIC_ORIGIN": "https://sri-aparajita-mcp.vardhansystems.workers.dev"
+    "PUBLIC_ORIGIN": "https://distribution-os-mcp.vardhansystems.workers.dev"
   },
   "durable_objects": {
     "bindings": [

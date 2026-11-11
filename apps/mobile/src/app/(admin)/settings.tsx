@@ -65,7 +65,7 @@ export default function AdminSettingsScreen() {
         </Pressable>
 
         <Text className="text-center text-xs text-muted-foreground">
-          Sri Aparajitha · v{OTA_BUILD}
+          Distribution OS · v{OTA_BUILD}
         </Text>
       </ScrollView>
     </SafeAreaView>

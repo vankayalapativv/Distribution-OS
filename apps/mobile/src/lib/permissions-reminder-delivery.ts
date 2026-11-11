@@ -22,7 +22,7 @@ export async function ensureReminderDelivery(confirm: ConfirmFn): Promise<void> 
     const proceed = await confirm({
       title: "Let reminders ring on time",
       message:
-        'Sri Aparajitha needs the "Alarms & reminders" permission so your reminder fires at the exact time. Turn it on for Sri Aparajitha on the next screen.',
+        'Distribution OS needs the "Alarms & reminders" permission so your reminder fires at the exact time. Turn it on for Distribution OS on the next screen.',
       confirmLabel: "Open settings",
       cancelLabel: "Skip",
     });
@@ -32,7 +32,7 @@ export async function ensureReminderDelivery(confirm: ConfirmFn): Promise<void> 
     const proceed = await confirm({
       title: "Keep reminders reliable",
       message:
-        "So reminders aren't delayed when your phone sleeps, allow Sri Aparajitha to run without battery limits. Tap \"Allow\" on the next screen.",
+        "So reminders aren't delayed when your phone sleeps, allow Distribution OS to run without battery limits. Tap \"Allow\" on the next screen.",
       confirmLabel: "Continue",
       cancelLabel: "Not now",
     });

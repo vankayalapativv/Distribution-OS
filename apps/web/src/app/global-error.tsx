@@ -39,7 +39,7 @@ export default function GlobalError({
         }}
       >
         <div style={{ lineHeight: 1 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: "#2563eb" }}>Sri Aparajitha Enterprise</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "#2563eb" }}>Distribution OS</div>
           <div
             style={{
               fontSize: 10,

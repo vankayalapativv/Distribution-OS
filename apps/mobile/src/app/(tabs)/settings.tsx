@@ -40,7 +40,7 @@ export default function SettingsScreen() {
         </Pressable>
 
         <Text className="text-center text-xs text-muted-foreground">
-          Sri Aparajitha SE · v{OTA_BUILD}
+          Distribution OS SE · v{OTA_BUILD}
         </Text>
       </ScrollView>
     </SafeAreaView>

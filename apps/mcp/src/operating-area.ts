@@ -6,7 +6,7 @@ export interface OperatingDistrict {
 }
 
 /**
- * The deployment's operating districts — the districts this Sri Aparajita client actually
+ * The deployment's operating districts — the districts this Distribution OS client actually
  * works in (a distributor covers a few districts, not all of India). Stored as a
  * JSON array in `system_settings` under `operating_area`, e.g.
  *   [{ "state": "Telangana", "name": "Nalgonda" }, …]

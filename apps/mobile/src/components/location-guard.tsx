@@ -12,13 +12,13 @@ const COPY: Record<LocationBlockReason, { title: string; body: string; cta: stri
     cta: "Open location settings",
   },
   foreground_denied: {
-    title: "Allow location for Sri Aparajitha",
-    body: 'Location permission for Sri Aparajitha was turned off. Open settings → Permissions → Location and choose "Allow all the time" to continue.',
+    title: "Allow location for Distribution OS",
+    body: 'Location permission for Distribution OS was turned off. Open settings → Permissions → Location and choose "Allow all the time" to continue.',
     cta: "Open app settings",
   },
   background_denied: {
     title: 'Set location to "Allow all the time"',
-    body: 'Sri Aparajitha must keep recording your route even when the app is in your pocket. Open settings → Permissions → Location and choose "Allow all the time".',
+    body: 'Distribution OS must keep recording your route even when the app is in your pocket. Open settings → Permissions → Location and choose "Allow all the time".',
     cta: "Open app settings",
   },
 };

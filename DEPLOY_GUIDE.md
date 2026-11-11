@@ -1,11 +1,11 @@
-# Sri Aparajita — Deployment Guide (API + Web)
+# Distribution OS — Deployment Guide (API + Web)
 
-How to deploy the two server-side pieces of the Sri Aparajita Distribution
+How to deploy the two server-side pieces of the Distribution OS Distribution
 Management System, from a fresh machine to routine releases:
 
-- **API** — Hono on **Cloudflare Workers** → `https://sri-aparajita-api.vardhansystems.workers.dev`
+- **API** — Hono on **Cloudflare Workers** → `https://distribution-os-api.vardhansystems.workers.dev`
 - **Web dashboard** — Next.js via **OpenNext** on a **Cloudflare Worker**
-  (not Pages) → `https://sri-aparajita-web.vardhansystems.workers.dev`
+  (not Pages) → `https://distribution-os-web.vardhansystems.workers.dev`
 - **Database** — **Neon** serverless PostgreSQL (shared by both, and by
   local development — there is one database)
 
@@ -85,7 +85,7 @@ These exist already — listed for disaster recovery / new environments:
 cd apps/api
 
 # R2 bucket for customer & market-intelligence photos (binding: PHOTOS)
-npx wrangler r2 bucket create sri-aparajita-photos
+npx wrangler r2 bucket create distribution-os-photos
 
 # Secrets (values from the team / Neon console)
 npx wrangler secret put DATABASE_URL     # Neon connection string
@@ -110,17 +110,17 @@ npx wrangler deploy         # ~20s; prints the version id
 
 ```bash
 # Health — service info JSON
-curl -s https://sri-aparajita-api.vardhansystems.workers.dev/ | head -c 120
+curl -s https://distribution-os-api.vardhansystems.workers.dev/ | head -c 120
 
 # Login path works end-to-end (200 expected with a valid test account)
 curl -s -o /dev/null -w "%{http_code}\n" \
-  -X POST https://sri-aparajita-api.vardhansystems.workers.dev/api/v1/auth/login \
+  -X POST https://distribution-os-api.vardhansystems.workers.dev/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"<test-account>","password":"<password>"}'
 
 # A protected route exists (401 = deployed & guarded; 404 = stale code)
 curl -s -o /dev/null -w "%{http_code}\n" \
-  https://sri-aparajita-api.vardhansystems.workers.dev/api/v1/tracking/executives
+  https://distribution-os-api.vardhansystems.workers.dev/api/v1/tracking/executives
 ```
 
 Live logs while testing: `npx wrangler tail api`.
@@ -141,7 +141,7 @@ database migrations (which is why migrations must stay additive).
 ## 4. Deploying the Web dashboard (`apps/web`)
 
 The Next.js app is compiled for Cloudflare by **OpenNext**
-(`@opennextjs/cloudflare`) and deployed as the Worker **`sri-aparajita-web`**
+(`@opennextjs/cloudflare`) and deployed as the Worker **`distribution-os-web`**
 with a static-assets binding. All the config is committed:
 
 - `apps/web/wrangler.toml` — worker name, `main = .open-next/worker.js`,
@@ -154,12 +154,12 @@ with a static-assets binding. All the config is committed:
 
 ```bash
 cd apps/web
-npx wrangler secret put SRI_APARAJITA_API_BASE_URL   # https://sri-aparajita-api.vardhansystems.workers.dev
+npx wrangler secret put DISTRIBUTION_OS_API_BASE_URL   # https://distribution-os-api.vardhansystems.workers.dev
 npx wrangler secret put JWT_SECRET            # SAME value as the API's JWT_SECRET
 ```
 
 `JWT_SECRET` must match the API's — the web server-side verifies the
-same HS256 session tokens. `SRI_APARAJITA_API_BASE_URL` is how the deployed web
+same HS256 session tokens. `DISTRIBUTION_OS_API_BASE_URL` is how the deployed web
 finds the deployed API (locally it falls back to `localhost:8787/8/9`).
 
 ### 4.2 Routine deploy
@@ -180,13 +180,13 @@ The OpenNext build takes a few minutes and ends with
 
 ### 4.3 Verify after deploy
 
-1. Open `https://sri-aparajita-web.vardhansystems.workers.dev` → redirects to
+1. Open `https://distribution-os-web.vardhansystems.workers.dev` → redirects to
    login (HTTP 307 is the healthy unauthenticated response).
 2. Log in as Super Admin / a test Manager and spot-check:
-   - Customers list loads (proves `SRI_APARAJITA_API_BASE_URL` + `JWT_SECRET`
+   - Customers list loads (proves `DISTRIBUTION_OS_API_BASE_URL` + `JWT_SECRET`
      are right — these break as "fetch failed" or instant logouts).
    - Live Tracking page renders the map (self-hosted basemap — see 4.4).
-3. `npx wrangler tail sri-aparajita-web` streams runtime errors if anything 500s.
+3. `npx wrangler tail distribution-os-web` streams runtime errors if anything 500s.
 
 ### 4.4 Maps — self-hosted, no API key
 
@@ -228,5 +228,5 @@ Same as the API, from `apps/web`:
 | Tail API logs | `cd apps/api && npx wrangler tail api` |
 | Deploy web | `cd apps/web && pnpm deploy` |
 | Web secrets | `cd apps/web && npx wrangler secret list` / `secret put NAME` |
-| Tail web logs | `cd apps/web && npx wrangler tail sri-aparajita-web` |
+| Tail web logs | `cd apps/web && npx wrangler tail distribution-os-web` |
 | List/rollback deploys | `npx wrangler deployments list` / `npx wrangler rollback` |

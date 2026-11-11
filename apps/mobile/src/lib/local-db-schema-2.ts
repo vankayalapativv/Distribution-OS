@@ -57,7 +57,7 @@ export const SCHEMA_2 = `
   );
   create index if not exists gps_pings_unsynced on gps_pings (synced, id);
 
-  -- Oil catalogue cache for offline order creation. Sri Aparajita products carry
+  -- Oil catalogue cache for offline order creation. Distribution OS products carry
   -- a brand (Fuchs / Savsol / MFC — the order screen's top tabs) and a unit
   -- ("litres" = pick a pack size, "quantity" = pieces), on top of segments +
   -- pack sizes. This CACHES the existing catalogue; it does not change the model.

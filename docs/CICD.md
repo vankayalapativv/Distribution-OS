@@ -100,8 +100,8 @@ An incremental runner (`packages/db/src/migrate.ts`) tracks applied files in a
   and immutable once merged (the runner warns on drift).
 - **Commands:**
   ```bash
-  pnpm --filter @sri-aparajita/db run migrate            # apply pending
-  pnpm --filter @sri-aparajita/db run migrate -- --status # show applied/pending
+  pnpm --filter @distribution-os/db run migrate            # apply pending
+  pnpm --filter @distribution-os/db run migrate -- --status # show applied/pending
   ```
 
 ## Local pre-push checks (same as CI)

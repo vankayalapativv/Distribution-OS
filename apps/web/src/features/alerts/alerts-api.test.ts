@@ -6,18 +6,18 @@ vi.mock("../../lib/server-api", () => ({ serverApiFetch: (...a: unknown[]) => se
 
 import { getActionConfig, listAlerts } from "./alerts-api";
 
-const original = process.env.SRI_APARAJITA_API_BASE_URL;
+const original = process.env.DISTRIBUTION_OS_API_BASE_URL;
 afterEach(() => {
-  if (original === undefined) delete process.env.SRI_APARAJITA_API_BASE_URL;
-  else process.env.SRI_APARAJITA_API_BASE_URL = original;
+  if (original === undefined) delete process.env.DISTRIBUTION_OS_API_BASE_URL;
+  else process.env.DISTRIBUTION_OS_API_BASE_URL = original;
   serverApiFetch.mockReset();
 });
 
 describe("getActionConfig", () => {
-  it("uses SRI_APARAJITA_API_BASE_URL when set, else the local worker", () => {
-    process.env.SRI_APARAJITA_API_BASE_URL = "https://api.example/v1";
+  it("uses DISTRIBUTION_OS_API_BASE_URL when set, else the local worker", () => {
+    process.env.DISTRIBUTION_OS_API_BASE_URL = "https://api.example/v1";
     expect(getActionConfig()).toEqual({ apiBaseUrl: "https://api.example/v1" });
-    delete process.env.SRI_APARAJITA_API_BASE_URL;
+    delete process.env.DISTRIBUTION_OS_API_BASE_URL;
     expect(getActionConfig().apiBaseUrl).toBe("http://localhost:8787/api/v1");
   });
 });

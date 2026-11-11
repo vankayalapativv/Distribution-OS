@@ -26,7 +26,7 @@ async function clearSessionAndRedirect(request: Request): Promise<NextResponse> 
     maxAge: 0,
   };
   response.cookies.set("sa_session", "", clear);
-  response.cookies.set("sri_aparajita_auth", "", clear); // legacy HS256 cookie
+  response.cookies.set("distribution_os_auth", "", clear); // legacy HS256 cookie
   return response;
 }
 

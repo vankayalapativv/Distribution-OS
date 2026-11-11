@@ -68,21 +68,21 @@ describe("single-resource fetchers", () => {
 });
 
 describe("getActionConfig", () => {
-  const original = process.env.SRI_APARAJITA_API_BASE_URL;
+  const original = process.env.DISTRIBUTION_OS_API_BASE_URL;
   beforeEach(() => {
-    delete process.env.SRI_APARAJITA_API_BASE_URL;
+    delete process.env.DISTRIBUTION_OS_API_BASE_URL;
   });
   afterEach(() => {
-    if (original === undefined) delete process.env.SRI_APARAJITA_API_BASE_URL;
-    else process.env.SRI_APARAJITA_API_BASE_URL = original;
+    if (original === undefined) delete process.env.DISTRIBUTION_OS_API_BASE_URL;
+    else process.env.DISTRIBUTION_OS_API_BASE_URL = original;
   });
 
   it("defaults to the localhost dev API", () => {
     expect(getActionConfig().apiBaseUrl).toBe("http://localhost:8787/api/v1");
   });
 
-  it("uses SRI_APARAJITA_API_BASE_URL when set", () => {
-    process.env.SRI_APARAJITA_API_BASE_URL = "https://api.example/api/v1";
+  it("uses DISTRIBUTION_OS_API_BASE_URL when set", () => {
+    process.env.DISTRIBUTION_OS_API_BASE_URL = "https://api.example/api/v1";
     expect(getActionConfig().apiBaseUrl).toBe("https://api.example/api/v1");
   });
 });

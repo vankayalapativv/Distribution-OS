@@ -4,9 +4,9 @@
 
 ## What exists so far
 
-- `packages/db/tools/_source-schema.sql` — the introspected Sri Aparajita live schema (`pg_dump --schema-only`, the true end-state). Source of truth for the consolidation.
+- `packages/db/tools/_source-schema.sql` — the introspected Distribution OS live schema (`pg_dump --schema-only`, the true end-state). Source of truth for the consolidation.
 - `packages/db/tools/generate-init.mjs` — deterministic generator. Re-run with `node packages/db/tools/generate-init.mjs`.
-- `packages/db/migrations/0001_init.sql` — **the single consolidated multi-enterprise baseline** (replaces the 23 old migrations, which are gone from this repo but preserved in the Sri Aparajita repo history).
+- `packages/db/migrations/0001_init.sql` — **the single consolidated multi-enterprise baseline** (replaces the 23 old migrations, which are gone from this repo but preserved in the Distribution OS repo history).
 - `packages/db/tools/verify-rls.mjs` — cross-enterprise leak test (the Phase-2 gate).
 
 ## Classification (locked with owner 2026-11-11)

@@ -8,9 +8,9 @@
  * command.
  *
  * Usage (from repo root):
- *   pnpm --filter @sri-aparajita/db run migrate            # apply all pending
- *   pnpm --filter @sri-aparajita/db run migrate -- --status    # list applied/pending
- *   pnpm --filter @sri-aparajita/db run migrate -- --baseline  # adopt on an EXISTING DB:
+ *   pnpm --filter @distribution-os/db run migrate            # apply all pending
+ *   pnpm --filter @distribution-os/db run migrate -- --status    # list applied/pending
+ *   pnpm --filter @distribution-os/db run migrate -- --baseline  # adopt on an EXISTING DB:
  *        record every current migration file as applied WITHOUT running it
  *
  * IMPORTANT for THIS repo: production and dev currently share one DB (audit

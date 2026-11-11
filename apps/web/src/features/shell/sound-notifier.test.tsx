@@ -50,7 +50,7 @@ describe("SoundNotifier", () => {
 
   /** Enable sound, mount, and unlock via a user gesture. */
   async function mountEnabled(fetchMock: ReturnType<typeof badgeSequence>) {
-    localStorage.setItem("sri-aparajita:sound-on", "1");
+    localStorage.setItem("distribution-os:sound-on", "1");
     vi.stubGlobal("fetch", fetchMock);
     render(<SoundNotifier />);
     window.dispatchEvent(new Event("pointerdown")); // browser unlock gesture
@@ -141,7 +141,7 @@ describe("SoundNotifier", () => {
 
   test("stays silent when the toggle is off (muted)", async () => {
     // Explicitly turned off — "0". (Unset defaults to ON now.)
-    localStorage.setItem("sri-aparajita:sound-on", "0");
+    localStorage.setItem("distribution-os:sound-on", "0");
     vi.stubGlobal("fetch", badgeSequence([
       { ordersNew: 0, collectionsNew: 0 },
       { ordersNew: 5, collectionsNew: 5 },

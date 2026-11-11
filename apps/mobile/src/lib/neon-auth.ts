@@ -26,14 +26,14 @@ const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
  * forwards it as the session's user-agent to Neon Auth; the web `describeDevice`
  * parses this exact shape. okhttp strips a custom User-Agent header on some
  * Android builds, so we send it in the body instead of as a header.
- * Shape: `SriAparajita/<appVersion> (Android <os>; <manufacturer>; <model>)`.
+ * Shape: `DistributionOS/<appVersion> (Android <os>; <manufacturer>; <model>)`.
  */
 function deviceUserAgent(): string {
   const version = Constants.expoConfig?.version ?? "0";
   const os = Device.osVersion ?? "?";
   const manufacturer = Device.manufacturer ?? "Unknown";
   const model = Device.modelName ?? "device";
-  return `SriAparajita/${version} (Android ${os}; ${manufacturer}; ${model})`;
+  return `DistributionOS/${version} (Android ${os}; ${manufacturer}; ${model})`;
 }
 
 /** fetch to our API with a hard timeout. */

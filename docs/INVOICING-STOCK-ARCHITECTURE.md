@@ -1,7 +1,7 @@
 # Invoicing & Stock Management — Architecture
 
 > **Status:** Design (approved decisions captured 2026-10-31). No code yet.
-> **Audience:** Sri Aparajita engineering + CA.
+> **Audience:** Distribution OS engineering + CA.
 > **Phasing:** Phase 1 = **Invoicing + Stock**. Phase 2 = **GST reports** (GSTR-1/3B). Phase 3 (optional) = live IRN/e-way generation.
 > **Verify tax facts against CBIC/GSTN before go-live** — thresholds and rates change.
 
@@ -224,10 +224,10 @@ Chosen UX (from the canvas prototype): **New Invoice = Layout A (single page)**,
 
 **To apply the migration** (hits the shared prod Neon DB — run it yourself). Check status first: it should list **only `0004_stock_and_invoicing.sql`** as pending (0001–0003 already recorded). If so, apply:
 ```bash
-pnpm --filter @sri-aparajita/db run migrate -- --status
+pnpm --filter @distribution-os/db run migrate -- --status
 ```
 ```bash
-pnpm --filter @sri-aparajita/db run migrate
+pnpm --filter @distribution-os/db run migrate
 ```
 If `--status` instead shows 0001–0003 as pending too, the tracking table is fresh — tell me before applying (0001–0003 must be baselined as already-applied, never re-run, and `--baseline` would wrongly skip 0004 as well).
 

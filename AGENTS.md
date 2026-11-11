@@ -1,4 +1,4 @@
-# Sri Aparajita Distribution Management System
+# Distribution OS Distribution Management System
 
 ## Business Domain
 
@@ -61,7 +61,7 @@ Or from the root: `pnpm dev` (Turborepo runs both).
 
 Dev servers are configured in `.claude/launch.json` — use the `preview_start` tool, not raw `Bash`, to start them.
 
-The web app tries ports 8787, 8788, 8789 in sequence when `SRI_APARAJITA_API_BASE_URL` is not set.
+The web app tries ports 8787, 8788, 8789 in sequence when `DISTRIBUTION_OS_API_BASE_URL` is not set.
 
 ## Key Database Tables
 
@@ -197,7 +197,7 @@ Suggest these to the user at the right moment:
 
 - **Users page (`/dashboard/super-admin/setup`, SUPER_ADMIN)** — row actions moved into a **kebab menu**: Edit, Set password, **Manage sessions**, Activate/Deactivate (guarded — can't deactivate or lock out another SUPER_ADMIN). CONTACT column split into email + phone; the Users stat card was removed; context-aware table shimmer added.
 - **Manage sessions dialog** (`features/super-admin/super-admin-sessions-dialog.tsx` + `super-admin-user-sessions.tsx`) — lists a Neon-Auth-linked user's active sign-ins via the BFF `/api/admin/sessions`, with **Sign out / Sign out all** (session revocation). The admin's own current session is flagged and, when revoked, the tab self-redirects to `/api/auth/logout`; `middleware.ts` enforces revocation on the next server render. The web login route forwards the browser User-Agent to Neon so web sessions read as e.g. "Chrome on macOS".
-- **Mobile session device labels** — the app sends a device string `SriAparajita/<ver> (Android <os>; <manufacturer>; <model>)` (from `expo-device`) in the **`/auth/login` body**; the API (`routes/auth.ts` → `services/mobile-auth.ts`) forwards it as the session **user-agent** to Neon (mirrors the web login BFF), and web `describeDevice` parses it → a phone reads as its real model ("Samsung SM-G991B"). Fallback source: `push_tokens.manufacturer/model` via `GET /super-admin/users/:id/device`.
+- **Mobile session device labels** — the app sends a device string `DistributionOS/<ver> (Android <os>; <manufacturer>; <model>)` (from `expo-device`) in the **`/auth/login` body**; the API (`routes/auth.ts` → `services/mobile-auth.ts`) forwards it as the session **user-agent** to Neon (mirrors the web login BFF), and web `describeDevice` parses it → a phone reads as its real model ("Samsung SM-G991B"). Fallback source: `push_tokens.manufacturer/model` via `GET /super-admin/users/:id/device`.
 - **Notification permission on login** — `registerPushToken()` (mobile `invoice-notifications.ts`) now **requests** notification permission on login instead of silently returning when it isn't granted. SEs/Logistics are also prompted at Start day/run; admins hit neither, so without this they were never prompted and registered no push token. NOTE: push SENDING still targets SALES_EXECUTIVE only.
 - **PostHog error tracking (exceptions only)** — added across web (`instrumentation-client.ts`), API (central error handler, direct fetch), and mobile (`src/lib/posthog.ts`, exceptions routed from `reportMobileError`). Runs **alongside** the in-house Error Monitor (`/errors/ingest`), not instead of it. Public `phc_` ingestion token in env (`NEXT_PUBLIC_/EXPO_PUBLIC_/POSTHOG_PROJECT_TOKEN`, host `https://eu.i.posthog.com`). Live on the field phones.
 - **⚠️ Mobile OTA / fingerprint (load-bearing ops)** — `apps/mobile` uses `runtimeVersion.policy: "fingerprint"`, but **local `@expo/fingerprint` no longer reproduces the EAS-built APK's hash** (`9796be6d…`): the local and EAS-cloud environments diverged, so a plain `eas update` from this machine tags a runtime the installed phones never match (silently misses them). To OTA the installed phones, **temporarily pin** `app.json` `"runtimeVersion"` to the literal string `9796be6d1e9ae1268f9aab0b2200425496b09588`, publish (`eas update --channel production --platform android --environment production`), then revert the pin. Only ever OTA JS that is **native-safe** for the Oct-5 APK (no new native module). Full details + per-OTA log in Claude memory `expo-ota-updates`. Durable fix (deferred): cut a fresh APK from `main` and move off the fingerprint policy.

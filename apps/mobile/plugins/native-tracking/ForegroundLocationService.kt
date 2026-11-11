@@ -164,7 +164,7 @@ class ForegroundLocationService : Service() {
     }
     return builder
       .setSmallIcon(R.drawable.notification_icon)
-      .setContentTitle("Sri Aparajita day tracking on")
+      .setContentTitle("Distribution OS day tracking on")
       .setContentText("Your route is recorded during your work day.")
       .setOngoing(true)
       .setCategory(Notification.CATEGORY_SERVICE)
@@ -179,7 +179,7 @@ class ForegroundLocationService : Service() {
       "Day tracking",
       NotificationManager.IMPORTANCE_LOW,
     ).apply {
-      description = "Shows while Sri Aparajita records work-day route locations."
+      description = "Shows while Distribution OS records work-day route locations."
     }
     manager.createNotificationChannel(channel)
   }
@@ -348,7 +348,7 @@ class ForegroundLocationService : Service() {
     }
     if (effectiveTimeMs - lastKeptMs < MIN_PING_GAP_MS) return
 
-    val databaseFile = File(filesDir, "SQLite/sri-aparajita.db").apply {
+    val databaseFile = File(filesDir, "SQLite/distribution-os.db").apply {
       parentFile?.mkdirs()
     }
     val db = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
@@ -402,7 +402,7 @@ class ForegroundLocationService : Service() {
     val token = prefs.getString(KEY_AUTH_TOKEN, null) ?: return
     val baseUrl = prefs.getString(KEY_BASE_URL, null)?.trimEnd('/') ?: return
     val serverSessionId = prefs.getString(KEY_SERVER_SESSION_ID, null)
-    val databaseFile = File(filesDir, "SQLite/sri-aparajita.db")
+    val databaseFile = File(filesDir, "SQLite/distribution-os.db")
     if (!databaseFile.exists()) return
     val db = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
     try {

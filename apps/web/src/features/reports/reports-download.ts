@@ -6,11 +6,11 @@
 import { reportAoa } from "./reports-aoa";
 import type { ReportKey, ReportSlice } from "./reports-types";
 
-/** Range-based file stem, e.g. sri-aparajita-oils-2026-08-28 (single day) or ..._end. */
+/** Range-based file stem, e.g. distribution-os-oils-2026-08-28 (single day) or ..._end. */
 function fileBase(key: ReportKey, slice: ReportSlice): string {
   const { start, end } = slice.period;
   const stamp = start === end ? start : `${start}_${end}`;
-  return `sri-aparajita-${key}-${stamp}`;
+  return `distribution-os-${key}-${stamp}`;
 }
 
 /** Excel sheet names cap at 31 chars and forbid a few symbols. */

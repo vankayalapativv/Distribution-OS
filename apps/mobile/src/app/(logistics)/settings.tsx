@@ -62,7 +62,7 @@ export default function LogisticsSettingsScreen() {
         ) : null}
 
         <Text className="text-center text-xs text-muted-foreground">
-          Sri Aparajitha Logistics · v{OTA_BUILD}
+          Distribution OS Logistics · v{OTA_BUILD}
         </Text>
       </ScrollView>
     </SafeAreaView>

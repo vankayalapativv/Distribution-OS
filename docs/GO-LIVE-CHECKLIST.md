@@ -6,12 +6,12 @@
 
 ## 1. Ship the code (manual deploy) — ✅ DONE (2026-10-01)
 - [x] **Pushed** to `origin/main`.
-- [x] **API deployed**: `https://sri-aparajita-api.vardhansystems.workers.dev` (cron `*/3` active) — health 200.
-- [x] **Web deployed**: `https://sriaparajita.vardhansystems.in` — `/login` 200.
-- Re-deploy anytime: `git push`, `pnpm --filter @sri-aparajita/api run deploy`, `pnpm --filter @sri-aparajita/web run deploy`.
+- [x] **API deployed**: `https://distribution-os-api.vardhansystems.workers.dev` (cron `*/3` active) — health 200.
+- [x] **Web deployed**: `https://distributionos.vardhansystems.in` — `/login` 200.
+- Re-deploy anytime: `git push`, `pnpm --filter @distribution-os/api run deploy`, `pnpm --filter @distribution-os/web run deploy`.
 
 > **Razorpay webhook URL (for step 2):**
-> `https://sri-aparajita-api.vardhansystems.workers.dev/api/v1/webhooks/razorpay`
+> `https://distribution-os-api.vardhansystems.workers.dev/api/v1/webhooks/razorpay`
 
 ## 2. Razorpay — switch to LIVE (CRITICAL — currently on TEST keys)
 - [ ] Set prod secrets to **live** values (Cloudflare Worker secrets on `apps/api`):

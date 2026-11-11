@@ -12,7 +12,7 @@ import { GRACE_DAYS, getBillingAccess } from "./billing-v2";
  * GST invoices are issued manually — this is purely a payment nudge.
  */
 
-const DEFAULT_FROM = "Sri Aparajita Billing <billing@updates.vardhansystems.in>";
+const DEFAULT_FROM = "Distribution OS Billing <billing@updates.vardhansystems.in>";
 
 type ReminderEnv = ApiEnv["Bindings"];
 
@@ -71,7 +71,7 @@ function emailHtml(opts: { heading: string; body: string; webUrl?: string }): st
     `<h2 style="font-size:17px;color:#0f172a;margin:0 0 8px;">${opts.heading}</h2>` +
     `<p style="color:#334155;font-size:14px;line-height:1.5;margin:0;">${opts.body}</p>` +
     link +
-    `<p style="color:#94a3b8;font-size:12px;margin:18px 0 0;">Sri Aparajita Distribution OS</p>` +
+    `<p style="color:#94a3b8;font-size:12px;margin:18px 0 0;">Distribution OS</p>` +
     `</div>`
   );
 }

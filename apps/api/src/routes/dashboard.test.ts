@@ -180,9 +180,9 @@ describe("dashboard routes", () => {
       "/api/v1/dashboard/manager",
       {
         headers: {
-          "X-Sri-Aparajita-User-Id": "00000000-0000-4000-8000-000000000001",
-          "X-Sri-Aparajita-Organization-Id": "00000000-0000-4000-8000-000000000100",
-          "X-Sri-Aparajita-Role": "SUPER_ADMIN",
+          "X-Distribution-OS-User-Id": "00000000-0000-4000-8000-000000000001",
+          "X-Distribution-OS-Organization-Id": "00000000-0000-4000-8000-000000000100",
+          "X-Distribution-OS-Role": "SUPER_ADMIN",
         },
       },
       {

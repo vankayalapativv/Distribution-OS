@@ -5,7 +5,7 @@ import type { PublicStatement } from "./statement-types";
 
 const base: PublicStatement = {
   company: {
-    legalName: "Sri Aparajita Enterprises",
+    legalName: "Distribution OS",
     gstin: "36ABCDE1234F1Z5",
     addressLine1: "12-3-45, MG Road",
     addressLine2: "",

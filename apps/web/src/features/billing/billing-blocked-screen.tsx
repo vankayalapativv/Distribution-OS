@@ -31,7 +31,7 @@ function StaticChrome({ role }: { readonly role: DashboardRole }) {
       {/* Top bar */}
       <div className="flex h-14 items-center gap-3 border-b border-border bg-card px-4">
         <div className="w-[216px] shrink-0 leading-tight">
-          <div className="text-[15px] font-bold tracking-tight text-primary">Sri Aparajita</div>
+          <div className="text-[15px] font-bold tracking-tight text-primary">Distribution OS</div>
           <div className="text-[9px] font-semibold tracking-[0.16em] text-muted-foreground">ENTERPRISE</div>
         </div>
         <div className="hidden h-9 max-w-sm flex-1 items-center rounded-lg border border-border bg-muted/40 px-3 text-[13px] text-muted-foreground sm:flex">
@@ -129,7 +129,7 @@ export function BillingBlockedScreen({
         <StaticChrome role={role} />
       ) : (
         <div className="absolute left-5 top-4 leading-tight">
-          <div className="text-sm font-bold tracking-tight text-primary">Sri Aparajita</div>
+          <div className="text-sm font-bold tracking-tight text-primary">Distribution OS</div>
           <div className="text-[8px] font-semibold tracking-[0.14em] text-muted-foreground">ENTERPRISE</div>
         </div>
       )}

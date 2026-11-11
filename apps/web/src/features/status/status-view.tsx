@@ -148,7 +148,7 @@ export function StatusView() {
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-1">
         <span className="text-lg font-extrabold tracking-tight text-primary">
-          Sri Aparajitha Enterprise Distribution Management System
+          Distribution OS
         </span>
         <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
           System Status

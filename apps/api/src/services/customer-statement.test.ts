@@ -10,7 +10,7 @@ import { makeSql } from "../test/sql-mock";
 
 const TOKEN = "11111111-2222-4333-8444-555555555555";
 const LEDGER = { openingBalance: 0, rows: [], closingBalance: 100 };
-const COMPANY = { name: "Sri Aparajita", gstin: "36XXX" };
+const COMPANY = { name: "Distribution OS", gstin: "36XXX" };
 
 afterEach(() => vi.clearAllMocks());
 

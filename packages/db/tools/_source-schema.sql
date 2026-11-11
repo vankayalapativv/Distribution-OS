@@ -1,14 +1,8 @@
--- Consolidated schema baseline for Sri Aparajita (generated 2026-10-29 from the
--- live DB via pg_dump --schema-only). Replaces migrations 0001–0100, which were
--- squashed into this single source of truth (full history remains in git).
--- On an EXISTING DB this file is recorded as applied via `migrate --baseline`
--- (NOT re-run). On a FRESH DB `migrate` runs it once to build the whole schema.
--- New changes go in new numbered files after this one (0002_*.sql, …).
-
 --
 -- PostgreSQL database dump
 --
 
+\restrict 7BUJdBnm25GwnbZYKT7z9utoZXLBhfKvuFdgO8Xnr5dTBQ6msGYgXKAuE8cyfB8
 
 -- Dumped from database version 18.6 (fd34222)
 -- Dumped by pg_dump version 18.4 (Homebrew)
@@ -26,14 +20,173 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
+-- Name: neon_auth; Type: SCHEMA; Schema: -; Owner: -
 --
 
+CREATE SCHEMA neon_auth;
+
+
+--
+-- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: account; Type: TABLE; Schema: neon_auth; Owner: -
+--
+
+CREATE TABLE neon_auth.account (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    "accountId" text NOT NULL,
+    "providerId" text NOT NULL,
+    "userId" uuid NOT NULL,
+    "accessToken" text,
+    "refreshToken" text,
+    "idToken" text,
+    "accessTokenExpiresAt" timestamp with time zone,
+    "refreshTokenExpiresAt" timestamp with time zone,
+    scope text,
+    password text,
+    "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: invitation; Type: TABLE; Schema: neon_auth; Owner: -
+--
+
+CREATE TABLE neon_auth.invitation (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    "organizationId" uuid NOT NULL,
+    email text NOT NULL,
+    role text,
+    status text NOT NULL,
+    "expiresAt" timestamp with time zone NOT NULL,
+    "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "inviterId" uuid NOT NULL
+);
+
+
+--
+-- Name: jwks; Type: TABLE; Schema: neon_auth; Owner: -
+--
+
+CREATE TABLE neon_auth.jwks (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    "publicKey" text NOT NULL,
+    "privateKey" text NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL,
+    "expiresAt" timestamp with time zone,
+    alg text,
+    crv text
+);
+
+
+--
+-- Name: member; Type: TABLE; Schema: neon_auth; Owner: -
+--
+
+CREATE TABLE neon_auth.member (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    "organizationId" uuid NOT NULL,
+    "userId" uuid NOT NULL,
+    role text NOT NULL,
+    "createdAt" timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: organization; Type: TABLE; Schema: neon_auth; Owner: -
+--
+
+CREATE TABLE neon_auth.organization (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    slug text NOT NULL,
+    logo text,
+    "createdAt" timestamp with time zone NOT NULL,
+    metadata text
+);
+
+
+--
+-- Name: project_config; Type: TABLE; Schema: neon_auth; Owner: -
+--
+
+CREATE TABLE neon_auth.project_config (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    endpoint_id text NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    trusted_origins jsonb NOT NULL,
+    social_providers jsonb NOT NULL,
+    email_provider jsonb,
+    email_and_password jsonb,
+    allow_localhost boolean NOT NULL,
+    plugin_configs jsonb,
+    webhook_config jsonb,
+    auth_logs_export_enabled boolean DEFAULT false
+);
+
+
+--
+-- Name: session; Type: TABLE; Schema: neon_auth; Owner: -
+--
+
+CREATE TABLE neon_auth.session (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    "expiresAt" timestamp with time zone NOT NULL,
+    token text NOT NULL,
+    "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp with time zone NOT NULL,
+    "ipAddress" text,
+    "userAgent" text,
+    "userId" uuid NOT NULL,
+    "impersonatedBy" text,
+    "activeOrganizationId" text
+);
+
+
+--
+-- Name: user; Type: TABLE; Schema: neon_auth; Owner: -
+--
+
+CREATE TABLE neon_auth."user" (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    email text NOT NULL,
+    "emailVerified" boolean NOT NULL,
+    image text,
+    "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    role text,
+    banned boolean,
+    "banReason" text,
+    "banExpires" timestamp with time zone
+);
+
+
+--
+-- Name: verification; Type: TABLE; Schema: neon_auth; Owner: -
+--
+
+CREATE TABLE neon_auth.verification (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    identifier text NOT NULL,
+    value text NOT NULL,
+    "expiresAt" timestamp with time zone NOT NULL,
+    "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
 
 --
 -- Name: alerts; Type: TABLE; Schema: public; Owner: -
@@ -72,7 +225,7 @@ CREATE TABLE public.attendance (
     updated_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT attendance_status_check CHECK ((status = ANY (ARRAY['present'::text, 'absent'::text, 'half_day'::text, 'leave'::text, 'week_off'::text])))
+    CONSTRAINT attendance_status_check CHECK ((status = ANY (ARRAY['present'::text, 'absent'::text, 'half_day'::text, 'leave'::text, 'week_off'::text, 'holiday'::text])))
 );
 
 
@@ -133,7 +286,6 @@ CREATE TABLE public.beat_plan_stops (
 CREATE TABLE public.beat_plans (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     plan_date date NOT NULL,
-    territory_id uuid,
     executive_id uuid NOT NULL,
     manager_id uuid,
     plan_status text DEFAULT 'planned'::text NOT NULL,
@@ -216,7 +368,6 @@ CREATE TABLE public.collections (
     collection_date date NOT NULL,
     customer_id uuid NOT NULL,
     collected_by_user_id uuid NOT NULL,
-    territory_id uuid,
     payment_mode text NOT NULL,
     payment_reference_number text,
     collection_amount numeric(14,2) NOT NULL,
@@ -362,7 +513,6 @@ CREATE TABLE public.customers (
     gst_number text,
     pan_number text,
     email text,
-    territory_id uuid,
     latitude numeric(10,7),
     longitude numeric(10,7),
     onboarding_date date,
@@ -587,6 +737,50 @@ CREATE TABLE public.expenditures (
 
 
 --
+-- Name: goods_receipt_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.goods_receipt_items (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    grn_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    pack_size_litres numeric(12,4) NOT NULL,
+    brand text,
+    qty_units numeric(14,2) NOT NULL,
+    rate numeric(14,4),
+    amount numeric(14,2),
+    batch_number text,
+    expiry_date date,
+    rack_no text,
+    shelf_no text,
+    bin_no text
+);
+
+
+--
+-- Name: goods_receipts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.goods_receipts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    grn_number text NOT NULL,
+    location_id uuid NOT NULL,
+    supplier_name text NOT NULL,
+    supplier_invoice_no text,
+    supplier_invoice_date date,
+    received_date date DEFAULT CURRENT_DATE NOT NULL,
+    reference text,
+    total_value numeric(14,2) DEFAULT 0 NOT NULL,
+    status text DEFAULT 'posted'::text NOT NULL,
+    note text,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT goods_receipts_status_check CHECK ((status = ANY (ARRAY['posted'::text, 'cancelled'::text])))
+);
+
+
+--
 -- Name: gps_points; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -637,6 +831,35 @@ CREATE TABLE public.gps_tracking_sessions (
 
 
 --
+-- Name: invoice_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invoice_items (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    invoice_id uuid NOT NULL,
+    product_id uuid,
+    description text,
+    pack_size_litres numeric(12,4),
+    brand text,
+    segment text,
+    hsn_code text DEFAULT '27101980'::text NOT NULL,
+    qty_units numeric(14,2) NOT NULL,
+    rate numeric(14,4) NOT NULL,
+    taxable_amount numeric(14,2) NOT NULL,
+    gst_rate numeric(5,2) DEFAULT 18 NOT NULL,
+    cgst numeric(14,2) DEFAULT 0 NOT NULL,
+    sgst numeric(14,2) DEFAULT 0 NOT NULL,
+    igst numeric(14,2) DEFAULT 0 NOT NULL,
+    line_total numeric(14,2) NOT NULL,
+    order_item_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    mrp numeric(12,2),
+    discount_pct numeric(5,2) DEFAULT 0 NOT NULL,
+    cogs_amount numeric(14,2)
+);
+
+
+--
 -- Name: invoice_line_allocations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -651,6 +874,20 @@ CREATE TABLE public.invoice_line_allocations (
 
 
 --
+-- Name: invoice_series; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invoice_series (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    prefix text DEFAULT 'SA/'::text NOT NULL,
+    fin_year text NOT NULL,
+    next_seq integer DEFAULT 1 NOT NULL,
+    pad_width integer DEFAULT 5 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: invoices; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -660,7 +897,6 @@ CREATE TABLE public.invoices (
     invoice_date date NOT NULL,
     customer_id uuid NOT NULL,
     sales_executive_id uuid,
-    territory_id uuid,
     gst_number text,
     billing_address text,
     invoice_gross_value numeric(14,2) DEFAULT 0 NOT NULL,
@@ -677,7 +913,6 @@ CREATE TABLE public.invoices (
     ageing_bucket text,
     payment_status text DEFAULT 'unpaid'::text NOT NULL,
     invoice_source text,
-    invoice_pdf_url text,
     approval_status text DEFAULT 'pending'::text NOT NULL,
     created_by uuid,
     approved_by uuid,
@@ -694,7 +929,23 @@ CREATE TABLE public.invoices (
     irn text,
     irn_qr text,
     reverse_charge boolean DEFAULT false NOT NULL,
-    place_of_supply text
+    place_of_supply text,
+    location_id uuid,
+    series_id uuid,
+    supply_type text,
+    buyer_state_code text,
+    cgst_amount numeric(14,2) DEFAULT 0 NOT NULL,
+    sgst_amount numeric(14,2) DEFAULT 0 NOT NULL,
+    igst_amount numeric(14,2) DEFAULT 0 NOT NULL,
+    doc_status text DEFAULT 'final'::text NOT NULL,
+    cancelled_at timestamp with time zone,
+    cancelled_by uuid,
+    cancel_reason text,
+    transport text,
+    gr_rr_no text,
+    transport_charge numeric(14,2) DEFAULT 0 NOT NULL,
+    CONSTRAINT invoices_doc_status_check CHECK ((doc_status = ANY (ARRAY['draft'::text, 'final'::text, 'cancelled'::text]))),
+    CONSTRAINT invoices_supply_type_check CHECK (((supply_type IS NULL) OR (supply_type = ANY (ARRAY['intra'::text, 'inter'::text]))))
 );
 
 
@@ -754,6 +1005,30 @@ CREATE TABLE public.market_notes (
 
 
 --
+-- Name: opening_stock_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.opening_stock_items (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    location_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    pack_size_litres numeric(12,4) NOT NULL,
+    brand text,
+    qty_units numeric(14,2) NOT NULL,
+    batch_number text,
+    expiry_date date,
+    rack_no text,
+    shelf_no text,
+    bin_no text,
+    opening_date date NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    rate numeric(12,4),
+    amount numeric(14,2)
+);
+
+
+--
 -- Name: order_items; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -788,7 +1063,6 @@ CREATE TABLE public.orders (
     order_date date NOT NULL,
     customer_id uuid NOT NULL,
     sales_executive_id uuid,
-    territory_id uuid,
     expected_invoice_value numeric(14,2),
     total_litres numeric(14,2),
     order_status text DEFAULT 'pending'::text NOT NULL,
@@ -810,7 +1084,9 @@ CREATE TABLE public.orders (
     client_uuid uuid,
     cancellation_note text,
     fulfillment_status text,
-    CONSTRAINT orders_fulfillment_status_check CHECK (((fulfillment_status IS NULL) OR (fulfillment_status = ANY (ARRAY['ordered'::text, 'partially_invoiced'::text, 'invoiced'::text, 'partially_delivered'::text, 'delivered'::text, 'partially_returned'::text, 'returned'::text, 'partially_cancelled'::text, 'cancelled'::text]))))
+    origin text DEFAULT 'standard'::text NOT NULL,
+    CONSTRAINT orders_fulfillment_status_check CHECK (((fulfillment_status IS NULL) OR (fulfillment_status = ANY (ARRAY['ordered'::text, 'partially_invoiced'::text, 'invoiced'::text, 'partially_delivered'::text, 'delivered'::text, 'partially_returned'::text, 'returned'::text, 'partially_cancelled'::text, 'cancelled'::text])))),
+    CONSTRAINT orders_origin_check CHECK ((origin = ANY (ARRAY['standard'::text, 'invoice'::text])))
 );
 
 
@@ -840,9 +1116,6 @@ CREATE TABLE public.payment_proofs (
 CREATE TABLE public.product_packs (
     product_id uuid NOT NULL,
     pack_size_litres numeric(12,4) NOT NULL,
-    mrp numeric,
-    mop numeric,
-    dlp numeric,
     scheme_per_litre numeric,
     coupon numeric,
     invoice_description text,
@@ -887,7 +1160,9 @@ CREATE TABLE public.push_tokens (
     user_id uuid NOT NULL,
     token text NOT NULL,
     platform text,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    manufacturer text,
+    model text
 );
 
 
@@ -951,6 +1226,17 @@ CREATE TABLE public.sales_returns (
     gross_amount numeric(14,2) DEFAULT 0 NOT NULL,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.schema_migrations (
+    filename text NOT NULL,
+    checksum text NOT NULL,
+    applied_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -1028,6 +1314,174 @@ CREATE TABLE public.section_seen (
 
 
 --
+-- Name: stock_adjustment_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_adjustment_items (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    adjustment_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    pack_size_litres numeric(12,4) NOT NULL,
+    brand text,
+    delta_units numeric(14,2) NOT NULL,
+    batch_id uuid
+);
+
+
+--
+-- Name: stock_adjustments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_adjustments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    adjustment_number text NOT NULL,
+    location_id uuid NOT NULL,
+    reason text NOT NULL,
+    note text,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    adjustment_date date DEFAULT ((now() AT TIME ZONE 'Asia/Kolkata'::text))::date NOT NULL,
+    CONSTRAINT stock_adjustments_reason_check CHECK ((reason = ANY (ARRAY['damage'::text, 'count_correction'::text, 'write_off'::text, 'expiry'::text, 'other'::text])))
+);
+
+
+--
+-- Name: stock_balances; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_balances (
+    location_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    pack_size_litres numeric(12,4) NOT NULL,
+    qty_units numeric(14,2) DEFAULT 0 NOT NULL,
+    reorder_level numeric(14,2),
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT stock_balances_nonneg CHECK ((qty_units >= (0)::numeric))
+);
+
+
+--
+-- Name: stock_locations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_locations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    code text,
+    address_line text,
+    city text,
+    state text DEFAULT 'Telangana'::text NOT NULL,
+    state_code text DEFAULT '36'::text NOT NULL,
+    pincode text,
+    is_default boolean DEFAULT false NOT NULL,
+    status text DEFAULT 'active'::text NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT stock_locations_status_check CHECK ((status = ANY (ARRAY['active'::text, 'inactive'::text])))
+);
+
+
+--
+-- Name: stock_lots; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_lots (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    product_id uuid NOT NULL,
+    pack_size_litres numeric NOT NULL,
+    brand text,
+    location_id uuid NOT NULL,
+    batch_number text,
+    expiry_date date,
+    rack_no text,
+    shelf_no text,
+    bin_no text,
+    received_date date,
+    qty_units numeric DEFAULT 0 NOT NULL,
+    source_type text,
+    source_id uuid,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    rate numeric(12,4),
+    CONSTRAINT stock_lots_qty_units_check CHECK ((qty_units >= (0)::numeric))
+);
+
+
+--
+-- Name: stock_movements; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_movements (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    location_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    pack_size_litres numeric(12,4) NOT NULL,
+    brand text,
+    qty_units numeric(14,2) NOT NULL,
+    litres numeric(14,2),
+    kind text NOT NULL,
+    ref_type text,
+    ref_id uuid,
+    note text,
+    moved_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    batch_id uuid,
+    CONSTRAINT stock_movements_kind_check CHECK ((kind = ANY (ARRAY['opening'::text, 'grn'::text, 'sale'::text, 'sale_reversal'::text, 'transfer_in'::text, 'transfer_out'::text, 'adjustment'::text, 'return'::text])))
+);
+
+
+--
+-- Name: stock_reorder_state; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_reorder_state (
+    location_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    pack_size_litres numeric(12,4) NOT NULL,
+    open_alert_id uuid,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: stock_transfer_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_transfer_items (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    transfer_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    pack_size_litres numeric(12,4) NOT NULL,
+    brand text,
+    qty_units numeric(14,2) NOT NULL,
+    from_batch_id uuid,
+    to_batch_id uuid
+);
+
+
+--
+-- Name: stock_transfers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_transfers (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    transfer_number text NOT NULL,
+    from_location_id uuid NOT NULL,
+    to_location_id uuid NOT NULL,
+    transfer_date date DEFAULT CURRENT_DATE NOT NULL,
+    note text,
+    status text DEFAULT 'posted'::text NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT stock_transfers_distinct_loc CHECK ((from_location_id <> to_location_id)),
+    CONSTRAINT stock_transfers_status_check CHECK ((status = ANY (ARRAY['posted'::text, 'cancelled'::text])))
+);
+
+
+--
 -- Name: system_settings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1085,57 +1539,6 @@ CREATE TABLE public.tasks (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     remind_at timestamp with time zone
-);
-
-
---
--- Name: team_members; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.team_members (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    team_id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    role_context text,
-    start_date date DEFAULT CURRENT_DATE NOT NULL,
-    end_date date,
-    is_active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
--- Name: teams; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.teams (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    name text NOT NULL,
-    manager_id uuid,
-    status text DEFAULT 'active'::text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
--- Name: territories; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.territories (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    territory_code text NOT NULL,
-    territory_name text NOT NULL,
-    state text,
-    district text,
-    area_cluster text,
-    market_type text,
-    estimated_monthly_potential_litres numeric(12,2),
-    competitor_intensity text,
-    priority_level text,
-    status text DEFAULT 'active'::text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -1230,7 +1633,6 @@ CREATE TABLE public.visits (
     visit_date date NOT NULL,
     executive_id uuid NOT NULL,
     customer_id uuid NOT NULL,
-    territory_id uuid,
     beat_plan_id uuid,
     planned_or_unplanned text NOT NULL,
     check_in_time timestamp with time zone,
@@ -1272,6 +1674,110 @@ CREATE TABLE public.web_push_subscriptions (
     auth text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+
+--
+-- Name: account account_pkey; Type: CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.account
+    ADD CONSTRAINT account_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: invitation invitation_pkey; Type: CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.invitation
+    ADD CONSTRAINT invitation_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: jwks jwks_pkey; Type: CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.jwks
+    ADD CONSTRAINT jwks_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: member member_pkey; Type: CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.member
+    ADD CONSTRAINT member_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: organization organization_pkey; Type: CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.organization
+    ADD CONSTRAINT organization_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: organization organization_slug_key; Type: CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.organization
+    ADD CONSTRAINT organization_slug_key UNIQUE (slug);
+
+
+--
+-- Name: project_config project_config_endpoint_id_key; Type: CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.project_config
+    ADD CONSTRAINT project_config_endpoint_id_key UNIQUE (endpoint_id);
+
+
+--
+-- Name: project_config project_config_pkey; Type: CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.project_config
+    ADD CONSTRAINT project_config_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: session session_pkey; Type: CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.session
+    ADD CONSTRAINT session_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: session session_token_key; Type: CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.session
+    ADD CONSTRAINT session_token_key UNIQUE (token);
+
+
+--
+-- Name: user user_email_key; Type: CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth."user"
+    ADD CONSTRAINT user_email_key UNIQUE (email);
+
+
+--
+-- Name: user user_pkey; Type: CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth."user"
+    ADD CONSTRAINT user_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: verification verification_pkey; Type: CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.verification
+    ADD CONSTRAINT verification_pkey PRIMARY KEY (id);
 
 
 --
@@ -1571,6 +2077,30 @@ ALTER TABLE ONLY public.expenditures
 
 
 --
+-- Name: goods_receipt_items goods_receipt_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipt_items
+    ADD CONSTRAINT goods_receipt_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: goods_receipts goods_receipts_grn_number_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipts
+    ADD CONSTRAINT goods_receipts_grn_number_key UNIQUE (grn_number);
+
+
+--
+-- Name: goods_receipts goods_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipts
+    ADD CONSTRAINT goods_receipts_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: gps_points gps_points_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1587,11 +2117,35 @@ ALTER TABLE ONLY public.gps_tracking_sessions
 
 
 --
+-- Name: invoice_items invoice_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_items
+    ADD CONSTRAINT invoice_items_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: invoice_line_allocations invoice_line_allocations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.invoice_line_allocations
     ADD CONSTRAINT invoice_line_allocations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: invoice_series invoice_series_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_series
+    ADD CONSTRAINT invoice_series_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: invoice_series invoice_series_prefix_fin_year_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_series
+    ADD CONSTRAINT invoice_series_prefix_fin_year_key UNIQUE (prefix, fin_year);
 
 
 --
@@ -1632,6 +2186,14 @@ ALTER TABLE ONLY public.market_note_items
 
 ALTER TABLE ONLY public.market_notes
     ADD CONSTRAINT market_notes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: opening_stock_items opening_stock_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opening_stock_items
+    ADD CONSTRAINT opening_stock_items_pkey PRIMARY KEY (id);
 
 
 --
@@ -1755,6 +2317,14 @@ ALTER TABLE ONLY public.sales_returns
 
 
 --
+-- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.schema_migrations
+    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (filename);
+
+
+--
 -- Name: se_incentives se_incentives_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1811,6 +2381,102 @@ ALTER TABLE ONLY public.section_seen
 
 
 --
+-- Name: stock_adjustment_items stock_adjustment_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_adjustment_items
+    ADD CONSTRAINT stock_adjustment_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_adjustments stock_adjustments_adjustment_number_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_adjustments
+    ADD CONSTRAINT stock_adjustments_adjustment_number_key UNIQUE (adjustment_number);
+
+
+--
+-- Name: stock_adjustments stock_adjustments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_adjustments
+    ADD CONSTRAINT stock_adjustments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_balances stock_balances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_balances
+    ADD CONSTRAINT stock_balances_pkey PRIMARY KEY (location_id, product_id, pack_size_litres);
+
+
+--
+-- Name: stock_locations stock_locations_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_locations
+    ADD CONSTRAINT stock_locations_code_key UNIQUE (code);
+
+
+--
+-- Name: stock_locations stock_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_locations
+    ADD CONSTRAINT stock_locations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_lots stock_lots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_lots
+    ADD CONSTRAINT stock_lots_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_movements stock_movements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_movements
+    ADD CONSTRAINT stock_movements_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_reorder_state stock_reorder_state_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_reorder_state
+    ADD CONSTRAINT stock_reorder_state_pkey PRIMARY KEY (location_id, product_id, pack_size_litres);
+
+
+--
+-- Name: stock_transfer_items stock_transfer_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_transfer_items
+    ADD CONSTRAINT stock_transfer_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_transfers stock_transfers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_transfers
+    ADD CONSTRAINT stock_transfers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_transfers stock_transfers_transfer_number_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_transfers
+    ADD CONSTRAINT stock_transfers_transfer_number_key UNIQUE (transfer_number);
+
+
+--
 -- Name: system_settings system_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1848,38 +2514,6 @@ ALTER TABLE ONLY public.task_comments
 
 ALTER TABLE ONLY public.tasks
     ADD CONSTRAINT tasks_pkey PRIMARY KEY (id);
-
-
---
--- Name: team_members team_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.team_members
-    ADD CONSTRAINT team_members_pkey PRIMARY KEY (id);
-
-
---
--- Name: teams teams_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.teams
-    ADD CONSTRAINT teams_pkey PRIMARY KEY (id);
-
-
---
--- Name: territories territories_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.territories
-    ADD CONSTRAINT territories_pkey PRIMARY KEY (id);
-
-
---
--- Name: territories territories_territory_code_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.territories
-    ADD CONSTRAINT territories_territory_code_key UNIQUE (territory_code);
 
 
 --
@@ -1968,6 +2602,62 @@ ALTER TABLE ONLY public.web_push_subscriptions
 
 ALTER TABLE ONLY public.web_push_subscriptions
     ADD CONSTRAINT web_push_subscriptions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: account_userId_idx; Type: INDEX; Schema: neon_auth; Owner: -
+--
+
+CREATE INDEX "account_userId_idx" ON neon_auth.account USING btree ("userId");
+
+
+--
+-- Name: invitation_email_idx; Type: INDEX; Schema: neon_auth; Owner: -
+--
+
+CREATE INDEX invitation_email_idx ON neon_auth.invitation USING btree (email);
+
+
+--
+-- Name: invitation_organizationId_idx; Type: INDEX; Schema: neon_auth; Owner: -
+--
+
+CREATE INDEX "invitation_organizationId_idx" ON neon_auth.invitation USING btree ("organizationId");
+
+
+--
+-- Name: member_organizationId_idx; Type: INDEX; Schema: neon_auth; Owner: -
+--
+
+CREATE INDEX "member_organizationId_idx" ON neon_auth.member USING btree ("organizationId");
+
+
+--
+-- Name: member_userId_idx; Type: INDEX; Schema: neon_auth; Owner: -
+--
+
+CREATE INDEX "member_userId_idx" ON neon_auth.member USING btree ("userId");
+
+
+--
+-- Name: organization_slug_uidx; Type: INDEX; Schema: neon_auth; Owner: -
+--
+
+CREATE UNIQUE INDEX organization_slug_uidx ON neon_auth.organization USING btree (slug);
+
+
+--
+-- Name: session_userId_idx; Type: INDEX; Schema: neon_auth; Owner: -
+--
+
+CREATE INDEX "session_userId_idx" ON neon_auth.session USING btree ("userId");
+
+
+--
+-- Name: verification_identifier_idx; Type: INDEX; Schema: neon_auth; Owner: -
+--
+
+CREATE INDEX verification_identifier_idx ON neon_auth.verification USING btree (identifier);
 
 
 --
@@ -2265,6 +2955,20 @@ CREATE UNIQUE INDEX expenditures_client_uuid_unique ON public.expenditures USING
 
 
 --
+-- Name: goods_receipt_items_expiry_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX goods_receipt_items_expiry_date ON public.goods_receipt_items USING btree (expiry_date) WHERE (expiry_date IS NOT NULL);
+
+
+--
+-- Name: goods_receipt_items_grn_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX goods_receipt_items_grn_idx ON public.goods_receipt_items USING btree (grn_id);
+
+
+--
 -- Name: gps_points_location_point_id_key; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2374,13 +3078,6 @@ CREATE INDEX idx_collections_customer ON public.collections USING btree (custome
 --
 
 CREATE INDEX idx_collections_user ON public.collections USING btree (collected_by_user_id, collection_date);
-
-
---
--- Name: idx_customers_territory; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_customers_territory ON public.customers USING btree (territory_id);
 
 
 --
@@ -2545,6 +3242,13 @@ CREATE INDEX idx_visits_executive_date ON public.visits USING btree (executive_i
 
 
 --
+-- Name: invoice_items_invoice_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX invoice_items_invoice_idx ON public.invoice_items USING btree (invoice_id);
+
+
+--
 -- Name: invoice_line_allocations_invoice_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2563,6 +3267,20 @@ CREATE INDEX invoice_line_allocations_order_item_id_idx ON public.invoice_line_a
 --
 
 CREATE INDEX margin_simulations_created_idx ON public.margin_simulations USING btree (created_at DESC);
+
+
+--
+-- Name: opening_stock_items_expiry_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX opening_stock_items_expiry_date ON public.opening_stock_items USING btree (expiry_date) WHERE (expiry_date IS NOT NULL);
+
+
+--
+-- Name: opening_stock_items_location; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX opening_stock_items_location ON public.opening_stock_items USING btree (location_id);
 
 
 --
@@ -2619,6 +3337,76 @@ CREATE INDEX products_product_name ON public.products USING btree (product_name)
 --
 
 CREATE INDEX se_incentives_month_idx ON public.se_incentives USING btree (period_month);
+
+
+--
+-- Name: stock_adjustment_items_adj_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stock_adjustment_items_adj_idx ON public.stock_adjustment_items USING btree (adjustment_id);
+
+
+--
+-- Name: stock_locations_one_default_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX stock_locations_one_default_idx ON public.stock_locations USING btree (is_default) WHERE is_default;
+
+
+--
+-- Name: stock_lots_expiry_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stock_lots_expiry_idx ON public.stock_lots USING btree (expiry_date) WHERE (qty_units > (0)::numeric);
+
+
+--
+-- Name: stock_lots_identity_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX stock_lots_identity_idx ON public.stock_lots USING btree (location_id, product_id, pack_size_litres, COALESCE(brand, ''::text), COALESCE(batch_number, ''::text), COALESCE(expiry_date, 'infinity'::date), COALESCE(rate, ('-1'::integer)::numeric));
+
+
+--
+-- Name: stock_lots_sku_loc_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stock_lots_sku_loc_idx ON public.stock_lots USING btree (location_id, product_id, pack_size_litres);
+
+
+--
+-- Name: stock_movements_batch_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stock_movements_batch_idx ON public.stock_movements USING btree (batch_id);
+
+
+--
+-- Name: stock_movements_moved_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stock_movements_moved_at_idx ON public.stock_movements USING btree (moved_at DESC);
+
+
+--
+-- Name: stock_movements_ref_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stock_movements_ref_idx ON public.stock_movements USING btree (ref_type, ref_id);
+
+
+--
+-- Name: stock_movements_sku_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stock_movements_sku_idx ON public.stock_movements USING btree (location_id, product_id, pack_size_litres);
+
+
+--
+-- Name: stock_transfer_items_transfer_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stock_transfer_items_transfer_idx ON public.stock_transfer_items USING btree (transfer_id);
 
 
 --
@@ -2703,6 +3491,54 @@ CREATE UNIQUE INDEX visits_client_uuid_unique ON public.visits USING btree (clie
 --
 
 CREATE INDEX web_push_subscriptions_user ON public.web_push_subscriptions USING btree (user_id);
+
+
+--
+-- Name: account account_userId_fkey; Type: FK CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.account
+    ADD CONSTRAINT "account_userId_fkey" FOREIGN KEY ("userId") REFERENCES neon_auth."user"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: invitation invitation_inviterId_fkey; Type: FK CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.invitation
+    ADD CONSTRAINT "invitation_inviterId_fkey" FOREIGN KEY ("inviterId") REFERENCES neon_auth."user"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: invitation invitation_organizationId_fkey; Type: FK CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.invitation
+    ADD CONSTRAINT "invitation_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES neon_auth.organization(id) ON DELETE CASCADE;
+
+
+--
+-- Name: member member_organizationId_fkey; Type: FK CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.member
+    ADD CONSTRAINT "member_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES neon_auth.organization(id) ON DELETE CASCADE;
+
+
+--
+-- Name: member member_userId_fkey; Type: FK CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.member
+    ADD CONSTRAINT "member_userId_fkey" FOREIGN KEY ("userId") REFERENCES neon_auth."user"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: session session_userId_fkey; Type: FK CONSTRAINT; Schema: neon_auth; Owner: -
+--
+
+ALTER TABLE ONLY neon_auth.session
+    ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES neon_auth."user"(id) ON DELETE CASCADE;
 
 
 --
@@ -2826,14 +3662,6 @@ ALTER TABLE ONLY public.beat_plans
 
 
 --
--- Name: beat_plans beat_plans_territory_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.beat_plans
-    ADD CONSTRAINT beat_plans_territory_id_fkey FOREIGN KEY (territory_id) REFERENCES public.territories(id);
-
-
---
 -- Name: collection_allocations collection_allocations_allocated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2895,14 +3723,6 @@ ALTER TABLE ONLY public.collections
 
 ALTER TABLE ONLY public.collections
     ADD CONSTRAINT collections_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id);
-
-
---
--- Name: collections collections_territory_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.collections
-    ADD CONSTRAINT collections_territory_id_fkey FOREIGN KEY (territory_id) REFERENCES public.territories(id);
 
 
 --
@@ -3066,14 +3886,6 @@ ALTER TABLE ONLY public.customers
 
 
 --
--- Name: customers customers_territory_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.customers
-    ADD CONSTRAINT customers_territory_id_fkey FOREIGN KEY (territory_id) REFERENCES public.territories(id);
-
-
---
 -- Name: delivery_photos delivery_photos_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3226,6 +4038,38 @@ ALTER TABLE ONLY public.expenditures
 
 
 --
+-- Name: goods_receipt_items goods_receipt_items_grn_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipt_items
+    ADD CONSTRAINT goods_receipt_items_grn_id_fkey FOREIGN KEY (grn_id) REFERENCES public.goods_receipts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: goods_receipt_items goods_receipt_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipt_items
+    ADD CONSTRAINT goods_receipt_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: goods_receipts goods_receipts_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipts
+    ADD CONSTRAINT goods_receipts_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+
+
+--
+-- Name: goods_receipts goods_receipts_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.goods_receipts
+    ADD CONSTRAINT goods_receipts_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.stock_locations(id);
+
+
+--
 -- Name: gps_points gps_points_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3247,6 +4091,30 @@ ALTER TABLE ONLY public.gps_points
 
 ALTER TABLE ONLY public.gps_tracking_sessions
     ADD CONSTRAINT gps_tracking_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: invoice_items invoice_items_invoice_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_items
+    ADD CONSTRAINT invoice_items_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.invoices(id) ON DELETE CASCADE;
+
+
+--
+-- Name: invoice_items invoice_items_order_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_items
+    ADD CONSTRAINT invoice_items_order_item_id_fkey FOREIGN KEY (order_item_id) REFERENCES public.order_items(id);
+
+
+--
+-- Name: invoice_items invoice_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_items
+    ADD CONSTRAINT invoice_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
 
 
 --
@@ -3274,6 +4142,14 @@ ALTER TABLE ONLY public.invoices
 
 
 --
+-- Name: invoices invoices_cancelled_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoices
+    ADD CONSTRAINT invoices_cancelled_by_fkey FOREIGN KEY (cancelled_by) REFERENCES public.users(id);
+
+
+--
 -- Name: invoices invoices_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3287,6 +4163,14 @@ ALTER TABLE ONLY public.invoices
 
 ALTER TABLE ONLY public.invoices
     ADD CONSTRAINT invoices_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id);
+
+
+--
+-- Name: invoices invoices_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoices
+    ADD CONSTRAINT invoices_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.stock_locations(id);
 
 
 --
@@ -3306,11 +4190,11 @@ ALTER TABLE ONLY public.invoices
 
 
 --
--- Name: invoices invoices_territory_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: invoices invoices_series_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.invoices
-    ADD CONSTRAINT invoices_territory_id_fkey FOREIGN KEY (territory_id) REFERENCES public.territories(id);
+    ADD CONSTRAINT invoices_series_id_fkey FOREIGN KEY (series_id) REFERENCES public.invoice_series(id);
 
 
 --
@@ -3362,6 +4246,30 @@ ALTER TABLE ONLY public.market_notes
 
 
 --
+-- Name: opening_stock_items opening_stock_items_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opening_stock_items
+    ADD CONSTRAINT opening_stock_items_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+
+
+--
+-- Name: opening_stock_items opening_stock_items_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opening_stock_items
+    ADD CONSTRAINT opening_stock_items_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.stock_locations(id);
+
+
+--
+-- Name: opening_stock_items opening_stock_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opening_stock_items
+    ADD CONSTRAINT opening_stock_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
 -- Name: order_items order_items_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3407,14 +4315,6 @@ ALTER TABLE ONLY public.orders
 
 ALTER TABLE ONLY public.orders
     ADD CONSTRAINT orders_sales_executive_id_fkey FOREIGN KEY (sales_executive_id) REFERENCES public.users(id);
-
-
---
--- Name: orders orders_territory_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.orders
-    ADD CONSTRAINT orders_territory_id_fkey FOREIGN KEY (territory_id) REFERENCES public.territories(id);
 
 
 --
@@ -3586,6 +4486,182 @@ ALTER TABLE ONLY public.section_seen
 
 
 --
+-- Name: stock_adjustment_items stock_adjustment_items_adjustment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_adjustment_items
+    ADD CONSTRAINT stock_adjustment_items_adjustment_id_fkey FOREIGN KEY (adjustment_id) REFERENCES public.stock_adjustments(id) ON DELETE CASCADE;
+
+
+--
+-- Name: stock_adjustment_items stock_adjustment_items_batch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_adjustment_items
+    ADD CONSTRAINT stock_adjustment_items_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.stock_lots(id);
+
+
+--
+-- Name: stock_adjustment_items stock_adjustment_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_adjustment_items
+    ADD CONSTRAINT stock_adjustment_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: stock_adjustments stock_adjustments_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_adjustments
+    ADD CONSTRAINT stock_adjustments_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+
+
+--
+-- Name: stock_adjustments stock_adjustments_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_adjustments
+    ADD CONSTRAINT stock_adjustments_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.stock_locations(id);
+
+
+--
+-- Name: stock_balances stock_balances_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_balances
+    ADD CONSTRAINT stock_balances_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.stock_locations(id);
+
+
+--
+-- Name: stock_balances stock_balances_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_balances
+    ADD CONSTRAINT stock_balances_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: stock_locations stock_locations_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_locations
+    ADD CONSTRAINT stock_locations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+
+
+--
+-- Name: stock_lots stock_lots_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_lots
+    ADD CONSTRAINT stock_lots_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+
+
+--
+-- Name: stock_lots stock_lots_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_lots
+    ADD CONSTRAINT stock_lots_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.stock_locations(id);
+
+
+--
+-- Name: stock_lots stock_lots_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_lots
+    ADD CONSTRAINT stock_lots_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: stock_movements stock_movements_batch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_movements
+    ADD CONSTRAINT stock_movements_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.stock_lots(id);
+
+
+--
+-- Name: stock_movements stock_movements_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_movements
+    ADD CONSTRAINT stock_movements_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+
+
+--
+-- Name: stock_movements stock_movements_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_movements
+    ADD CONSTRAINT stock_movements_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.stock_locations(id);
+
+
+--
+-- Name: stock_movements stock_movements_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_movements
+    ADD CONSTRAINT stock_movements_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: stock_transfer_items stock_transfer_items_from_batch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_transfer_items
+    ADD CONSTRAINT stock_transfer_items_from_batch_id_fkey FOREIGN KEY (from_batch_id) REFERENCES public.stock_lots(id);
+
+
+--
+-- Name: stock_transfer_items stock_transfer_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_transfer_items
+    ADD CONSTRAINT stock_transfer_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: stock_transfer_items stock_transfer_items_to_batch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_transfer_items
+    ADD CONSTRAINT stock_transfer_items_to_batch_id_fkey FOREIGN KEY (to_batch_id) REFERENCES public.stock_lots(id);
+
+
+--
+-- Name: stock_transfer_items stock_transfer_items_transfer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_transfer_items
+    ADD CONSTRAINT stock_transfer_items_transfer_id_fkey FOREIGN KEY (transfer_id) REFERENCES public.stock_transfers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: stock_transfers stock_transfers_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_transfers
+    ADD CONSTRAINT stock_transfers_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+
+
+--
+-- Name: stock_transfers stock_transfers_from_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_transfers
+    ADD CONSTRAINT stock_transfers_from_location_id_fkey FOREIGN KEY (from_location_id) REFERENCES public.stock_locations(id);
+
+
+--
+-- Name: stock_transfers stock_transfers_to_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_transfers
+    ADD CONSTRAINT stock_transfers_to_location_id_fkey FOREIGN KEY (to_location_id) REFERENCES public.stock_locations(id);
+
+
+--
 -- Name: task_attachments task_attachments_task_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3639,30 +4715,6 @@ ALTER TABLE ONLY public.tasks
 
 ALTER TABLE ONLY public.tasks
     ADD CONSTRAINT tasks_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id);
-
-
---
--- Name: team_members team_members_team_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.team_members
-    ADD CONSTRAINT team_members_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id);
-
-
---
--- Name: team_members team_members_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.team_members
-    ADD CONSTRAINT team_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
-
-
---
--- Name: teams teams_manager_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.teams
-    ADD CONSTRAINT teams_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.users(id);
 
 
 --
@@ -3754,14 +4806,6 @@ ALTER TABLE ONLY public.visits
 
 
 --
--- Name: visits visits_territory_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.visits
-    ADD CONSTRAINT visits_territory_id_fkey FOREIGN KEY (territory_id) REFERENCES public.territories(id);
-
-
---
 -- Name: web_push_subscriptions web_push_subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3773,4 +4817,5 @@ ALTER TABLE ONLY public.web_push_subscriptions
 -- PostgreSQL database dump complete
 --
 
+\unrestrict 7BUJdBnm25GwnbZYKT7z9utoZXLBhfKvuFdgO8Xnr5dTBQ6msGYgXKAuE8cyfB8
 

@@ -8,7 +8,7 @@
     "scheme": "mobile",
     "userInterfaceStyle": "light",
     "runtimeVersion": {
-      "policy": "fingerprint"
+      "policy": "appVersion"
     },
     "updates": {
       "url": "https://u.expo.dev/558ffdd7-f55c-46e5-80f3-c2cba5a9c201",

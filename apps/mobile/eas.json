@@ -4,37 +4,9 @@
     "appVersionSource": "remote"
   },
   "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "channel": "development",
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://distribution-os-api.vardhansystems.workers.dev/api/v1",
-        "EXPO_PUBLIC_NEON_AUTH_BASE_URL": "https://ep-proud-forest-b3snqhvr.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth",
-        "EXPO_PUBLIC_NEON_AUTH_ORIGIN": "http://localhost:3000"
-      }
-    },
-    "preview": {
-      "distribution": "internal",
-      "autoIncrement": true,
-      "channel": "preview",
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://distribution-os-api.vardhansystems.workers.dev/api/v1",
-        "EXPO_PUBLIC_NEON_AUTH_BASE_URL": "https://ep-proud-forest-b3snqhvr.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth",
-        "EXPO_PUBLIC_NEON_AUTH_ORIGIN": "http://localhost:3000"
-      }
-    },
     "production": {
       "autoIncrement": true,
       "channel": "production",
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://distribution-os-api.vardhansystems.workers.dev/api/v1",
-        "EXPO_PUBLIC_NEON_AUTH_BASE_URL": "https://ep-proud-forest-b3snqhvr.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth",
-        "EXPO_PUBLIC_NEON_AUTH_ORIGIN": "http://localhost:3000"
-      }
-    },
-    "indus": {
-      "extends": "production",
       "android": {
         "buildType": "apk"
       },
@@ -42,12 +14,6 @@
         "EXPO_PUBLIC_API_URL": "https://distribution-os-api.vardhansystems.workers.dev/api/v1",
         "EXPO_PUBLIC_NEON_AUTH_BASE_URL": "https://ep-proud-forest-b3snqhvr.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth",
         "EXPO_PUBLIC_NEON_AUTH_ORIGIN": "http://localhost:3000"
-      }
-    },
-    "ios-simulator": {
-      "extends": "preview",
-      "ios": {
-        "simulator": true
       }
     }
   },

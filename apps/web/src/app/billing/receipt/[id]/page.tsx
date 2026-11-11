@@ -29,9 +29,15 @@ export default async function ReceiptPage({ params }: Readonly<{ params: Promise
   const data = await loadReceipt(id);
   if (!data) notFound();
 
-  const { charge, gst, company } = data;
+  const { charge, gst, company, config } = data;
   const client = company.legalName;
   const clientAddress = companyAddressLines(company).join("\n");
+  // Per-enterprise price description + GST half-rate (default 18% → 9% + 9%).
+  const halfPct = ((config?.gstRateBp ?? 1800) / 2 / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  const lineDesc =
+    config?.model === "flat"
+      ? "Flat monthly (incl. GST)"
+      : `${charge.seats} active user${charge.seats === 1 ? "" : "s"} × ₹${((config?.unitAmountPaisa ?? 0) / 100).toLocaleString("en-IN")} (incl. GST)`;
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-10 text-foreground print:py-0">
@@ -103,7 +109,7 @@ export default async function ReceiptPage({ params }: Readonly<{ params: Promise
               <td className="py-2.5">
                 Monthly access — {monthLabel(charge.periodStart)}
                 <span className="block text-xs text-muted-foreground">
-                  {charge.seats} active user{charge.seats === 1 ? "" : "s"} × ₹708 (incl. GST) · SAC {RECEIPT_VENDOR.sac}
+                  {lineDesc} · SAC {RECEIPT_VENDOR.sac}
                 </span>
               </td>
               <td className="py-2.5 text-right tabular-nums">{rs(gst.taxablePaisa)}</td>
@@ -115,11 +121,11 @@ export default async function ReceiptPage({ params }: Readonly<{ params: Promise
               <td className="py-1.5 text-right">{rs(gst.taxablePaisa)}</td>
             </tr>
             <tr>
-              <td className="py-1.5 text-right text-muted-foreground">CGST (9%)</td>
+              <td className="py-1.5 text-right text-muted-foreground">CGST ({halfPct}%)</td>
               <td className="py-1.5 text-right">{rs(gst.cgstPaisa)}</td>
             </tr>
             <tr>
-              <td className="py-1.5 text-right text-muted-foreground">SGST (9%)</td>
+              <td className="py-1.5 text-right text-muted-foreground">SGST ({halfPct}%)</td>
               <td className="py-1.5 text-right">{rs(gst.sgstPaisa)}</td>
             </tr>
             <tr className="border-t border-border">

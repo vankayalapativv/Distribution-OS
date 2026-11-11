@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { apiRequest, type ActionConfig } from "@/lib/api-client";
 import { formatDate, rupeesExact } from "@/lib/format";
 import type { BillingAccessV2, BillingChargeV2 } from "./billing-v2-api";
+import { chargeSubtitle } from "./billing-format";
 import { usePayCheckout } from "./use-pay-checkout";
 import { payLabelFor } from "./pay-label";
 
@@ -71,12 +72,16 @@ function nextPaymentIso(periodStartIso: string): string {
 }
 
 /** Subtitle under the current-period amount — depends on seats vs free cycle. */
-function periodSubtitle(current: BillingAccessV2["current"], isFree: boolean): string {
+function periodSubtitle(
+  current: BillingAccessV2["current"],
+  isFree: boolean,
+  config: BillingAccessV2["config"],
+): string {
   if (current && current.amountPaisa > 0) {
-    return `₹708 × ${current.seats} active user${current.seats === 1 ? "" : "s"} · incl. 18% GST`;
+    return chargeSubtitle(config, current.seats);
   }
   if (isFree) return "Free month · billing starts next cycle";
-  return "Billed at ₹708 per active user, incl. GST";
+  return config ? chargeSubtitle(config, current?.seats ?? 0) : "Billing not set up";
 }
 
 /** The current-period meta row: which dated facts to show for this state. Pure. */
@@ -217,7 +222,7 @@ export function BillingCardV2({
               {current ? amount : "—"}
             </div>
             <div className="mt-0.5 text-xs text-muted-foreground">
-              {periodSubtitle(current, isFree)}
+              {periodSubtitle(current, isFree, access.config)}
             </div>
           </div>
           {due && canPay ? (

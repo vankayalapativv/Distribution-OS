@@ -6,6 +6,7 @@ import { type ActionConfig } from "@/lib/api-client";
 import { rupeesExact } from "@/lib/format";
 import { buildNavSections, type DashboardRole } from "@/features/shell/dashboard-nav";
 import type { BillingAccessV2 } from "./billing-v2-api";
+import { rateLabel } from "./billing-format";
 import { usePayCheckout } from "./use-pay-checkout";
 import { payLabelFor } from "./pay-label";
 
@@ -152,8 +153,10 @@ export function BillingBlockedScreen({
                 <dd className="font-semibold text-card-foreground">{month}</dd>
               </div>
               <div className="flex justify-between border-t border-amber-100 px-4 py-3 dark:border-amber-900/30">
-                <dt className="text-muted-foreground">Active users</dt>
-                <dd className="font-semibold tabular-nums text-card-foreground">{seats} × ₹708</dd>
+                <dt className="text-muted-foreground">{access.config?.model === "flat" ? "Plan" : "Active users"}</dt>
+                <dd className="font-semibold tabular-nums text-card-foreground">
+                  {access.config?.model === "flat" ? "Flat monthly" : `${seats} × ${rateLabel(access.config).replace(" per active user", "")}`}
+                </dd>
               </div>
               <div className="flex items-center justify-between border-t border-amber-100 bg-amber-50/60 px-4 py-3 dark:border-amber-900/30 dark:bg-amber-950/20">
                 <dt className="font-semibold text-card-foreground">Amount due</dt>

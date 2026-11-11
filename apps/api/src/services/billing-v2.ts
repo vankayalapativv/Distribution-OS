@@ -18,8 +18,53 @@ import { getSystemSettings, type CompanyProfile } from "./system-settings";
  * is done in SQL (IST) to match the rest of the codebase (dues/targets).
  */
 
-/** Per-seat monthly amount in paisa: ₹600 + 18% GST = ₹708 (GST-inclusive). */
+/**
+ * Default per-seat monthly amount in paisa (₹600 + 18% GST = ₹708). This is only
+ * a fallback/seed default now — every enterprise's real price lives in
+ * `enterprise_billing_config` (model + unit/flat amount + GST), set by the
+ * platform owner at approval. Charges are computed from that config, not this.
+ */
 export const UNIT_AMOUNT_PAISA = 70800;
+
+/** One enterprise's billing price (the scoped `enterprise_billing_config` row). */
+export interface BillingConfig {
+  model: "per_seat" | "flat";
+  /** Per-seat GST-inclusive amount (per_seat model), else null. */
+  unitAmountPaisa: number | null;
+  /** Flat monthly GST-inclusive amount (flat model), else null. */
+  flatAmountPaisa: number | null;
+  /** GST rate in basis points (1800 = 18%). */
+  gstRateBp: number;
+}
+
+/**
+ * Read the CURRENT enterprise's billing config. Runs on the scoped client, so RLS
+ * returns exactly this enterprise's single row — or null when the enterprise has
+ * no price set yet (unpriced; the gate treats that as not-blocked, never bricks).
+ */
+export async function getEnterpriseBillingConfig(sql: SqlClient): Promise<BillingConfig | null> {
+  const [row] = (await sql`
+    /* billing_v2_config */
+    select model, unit_amount_paisa as "unitAmountPaisa",
+           flat_amount_paisa as "flatAmountPaisa", gst_rate_bp as "gstRateBp"
+    from enterprise_billing_config
+    limit 1
+  `) as Array<Record<string, unknown>>;
+  if (!row) return null;
+  return {
+    model: row.model === "flat" ? "flat" : "per_seat",
+    unitAmountPaisa: row.unitAmountPaisa == null ? null : Number(row.unitAmountPaisa),
+    flatAmountPaisa: row.flatAmountPaisa == null ? null : Number(row.flatAmountPaisa),
+    gstRateBp: Number(row.gstRateBp ?? 1800),
+  };
+}
+
+/** GST-inclusive charge in paisa for a config + active-seat count. */
+export function chargeAmountForConfig(config: BillingConfig, seats: number): number {
+  if (config.model === "flat") return Math.max(0, Math.trunc(config.flatAmountPaisa ?? 0));
+  const unit = Math.max(0, Math.trunc(config.unitAmountPaisa ?? 0));
+  return unit * Math.max(0, Math.trunc(seats));
+}
 
 /**
  * Whether server-side billing enforcement (the 402 gate + the hard block screen)
@@ -160,10 +205,12 @@ export async function listCharges(sql: SqlClient): Promise<ChargeRow[]> {
 
 export interface ReceiptData {
   charge: ChargeRow;
-  /** Intra-state GST split of the paid amount (9% CGST + 9% SGST), in paisa. */
+  /** Intra-state GST split of the paid amount (half CGST + half SGST), in paisa. */
   gst: { taxablePaisa: number; cgstPaisa: number; sgstPaisa: number };
   /** Supplier identity for the receipt header (from the company profile). */
   company: CompanyProfile;
+  /** This enterprise's price (model + rate), for the receipt's line description. */
+  config: BillingConfig | null;
 }
 
 /**
@@ -184,8 +231,11 @@ export async function getReceipt(sql: SqlClient, chargeId: string): Promise<Rece
   if (!row) return null;
 
   const charge = mapCharge(row);
+  const config = await getEnterpriseBillingConfig(sql);
   const total = charge.amountPaisa;
-  const taxablePaisa = Math.round(total / 1.18);
+  // Back out the GST-inclusive total at this enterprise's rate (default 18%).
+  const divisor = 1 + (config?.gstRateBp ?? 1800) / 10000;
+  const taxablePaisa = Math.round(total / divisor);
   const gstTotal = total - taxablePaisa;
   const sgstPaisa = Math.floor(gstTotal / 2);
   const cgstPaisa = gstTotal - sgstPaisa;
@@ -195,6 +245,7 @@ export async function getReceipt(sql: SqlClient, chargeId: string): Promise<Rece
     charge,
     gst: { taxablePaisa, cgstPaisa, sgstPaisa },
     company: settings.company,
+    config,
   };
 }
 
@@ -218,7 +269,7 @@ export async function ensureGoLive(sql: SqlClient): Promise<void> {
     /* billing_v2_go_live_set */
     insert into system_settings (key, value)
     values (${GO_LIVE_KEY}, to_char((now() at time zone 'Asia/Kolkata')::date, 'YYYY-MM-DD'))
-    on conflict (key) do nothing
+    on conflict (enterprise_id, key) do nothing
   `;
 }
 
@@ -231,22 +282,25 @@ export async function ensureGoLive(sql: SqlClient): Promise<void> {
  * cleared so the next Pay creates a fresh order for the new amount. No-op (no
  * write) when the seat count already matches.
  */
-export async function syncPendingCharge(sql: SqlClient): Promise<void> {
+export async function syncPendingCharge(sql: SqlClient, config?: BillingConfig | null): Promise<void> {
+  const cfg = config ?? (await getEnterpriseBillingConfig(sql));
+  if (!cfg) return; // unpriced enterprise — nothing to reconcile
+  const seats = await getActiveSeatCount(sql);
+  const target = chargeAmountForConfig(cfg, seats); // flat: seat-independent; per_seat: unit × seats
   await sql`
     /* billing_v2_sync_pending */
     with cur as (
       select date_trunc('month', (now() at time zone 'Asia/Kolkata')::date)::date as mstart
-    ),
-    seats as (select count(*)::int as n from users where status = 'active')
+    )
     update billing_charges c
-       set seats = s.n,
-           amount_paisa = s.n * ${UNIT_AMOUNT_PAISA},
-           razorpay_order_id = case when c.amount_paisa <> s.n * ${UNIT_AMOUNT_PAISA}
+       set seats = ${seats},
+           amount_paisa = ${target},
+           razorpay_order_id = case when c.amount_paisa <> ${target}
                                     then null else c.razorpay_order_id end
-      from cur, seats s
+      from cur
      where c.period_start = cur.mstart
        and c.status = 'pending'
-       and c.seats <> s.n
+       and (c.seats <> ${seats} or c.amount_paisa <> ${target})
   `;
 }
 
@@ -262,6 +316,8 @@ export interface BillingAccess extends AccessResult {
   current: ChargeRow | null;
   /** ISO end-of-access for display, or null. */
   accessUntilIso: string | null;
+  /** This enterprise's price (model + amount + GST), or null if unpriced. */
+  config: BillingConfig | null;
 }
 
 /**
@@ -270,13 +326,29 @@ export interface BillingAccess extends AccessResult {
  * SQL (IST); the grace/state decision is the pure `computeAccess`.
  */
 export async function getBillingAccess(sql: SqlClient): Promise<BillingAccess> {
+  // An enterprise with no price set yet (e.g. just before the owner approves)
+  // is never blocked — fail-open so an unpriced org can't be bricked. An ACTIVE
+  // enterprise always has a config (approval writes it atomically).
+  const config = await getEnterpriseBillingConfig(sql);
+  if (!config) {
+    return {
+      blocked: false,
+      state: "none",
+      accessUntilMs: null,
+      reason: "no-config",
+      accessUntilIso: null,
+      current: null,
+      config: null,
+    };
+  }
+
   // Ensure the CURRENT month has a charge to pay (idempotent). Done here, not
   // only in the cron, so the amount + Pay button appear immediately — locally
   // (wrangler dev never fires scheduled crons) and on prod regardless of when
   // the cron last ran. A month pre-seeded as 'free' in the DB is left untouched.
-  await ensureCurrentCharge(sql);
-  // Keep an unpaid current month in step with the live active-seat count.
-  await syncPendingCharge(sql);
+  await ensureCurrentCharge(sql, undefined, config);
+  // Keep an unpaid current month in step with the live active-seat count + price.
+  await syncPendingCharge(sql, config);
 
   const [row] = (await sql`
     /* billing_v2_access */
@@ -318,6 +390,7 @@ export async function getBillingAccess(sql: SqlClient): Promise<BillingAccess> {
     ...access,
     accessUntilIso: access.accessUntilMs ? new Date(access.accessUntilMs).toISOString() : null,
     current: current.length > 0 ? mapCharge(current[0]) : null,
+    config,
   };
 }
 
@@ -332,6 +405,7 @@ export async function getBillingAccess(sql: SqlClient): Promise<BillingAccess> {
 export async function ensureCurrentCharge(
   sql: SqlClient,
   _env?: ApiEnv["Bindings"],
+  config?: BillingConfig | null,
 ): Promise<{ created: boolean; chargeId?: string }> {
   await ensureGoLive(sql);
 
@@ -343,8 +417,11 @@ export async function ensureCurrentCharge(
   `) as Record<string, unknown>[];
   if (existing) return { created: false };
 
+  const cfg = config ?? (await getEnterpriseBillingConfig(sql));
+  if (!cfg) return { created: false }; // unpriced enterprise — nothing to bill yet
+
   const seats = await getActiveSeatCount(sql);
-  const amountPaisa = chargeAmountPaisa(seats);
+  const amountPaisa = chargeAmountForConfig(cfg, seats);
 
   const [row] = (await sql`
     /* billing_v2_insert_pending */
@@ -352,7 +429,7 @@ export async function ensureCurrentCharge(
     select date_trunc('month', (now() at time zone 'Asia/Kolkata')::date)::date,
            (date_trunc('month', (now() at time zone 'Asia/Kolkata')::date) + interval '1 month' - interval '1 day')::date,
            ${seats}, ${amountPaisa}, 'pending'
-    on conflict (period_start) do nothing
+    on conflict (enterprise_id, period_start) do nothing
     returning id, period_start as "periodStart"
   `) as Record<string, unknown>[];
   if (!row) return { created: false }; // raced with another run

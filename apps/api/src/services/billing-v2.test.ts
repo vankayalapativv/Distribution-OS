@@ -5,12 +5,35 @@ const { createOrder, orderIsUsable } = vi.hoisted(() => ({ createOrder: vi.fn(),
 vi.mock("./system-settings", () => ({ getSystemSettings }));
 vi.mock("../lib/razorpay", () => ({ createOrder, orderIsUsable }));
 
-import { chargeAmountPaisa, computeAccess, ensureCurrentCharge, ensureOrderForCharge, getBillingAccess, getReceipt, listCharges } from "./billing-v2";
+import { chargeAmountForConfig, chargeAmountPaisa, computeAccess, ensureCurrentCharge, ensureOrderForCharge, getBillingAccess, getEnterpriseBillingConfig, getReceipt, listCharges } from "./billing-v2";
 import { makeSql } from "../test/sql-mock";
 
 afterEach(() => vi.clearAllMocks());
 
 const CHARGE = { id: "ch1", periodStart: "2026-06-01", periodEnd: "2026-06-30", seats: "3", amountPaisa: "212400", status: "paid", razorpayOrderId: "o1", razorpayPaymentId: "p1", paidAt: "2026-06-05" };
+/** A per-seat ₹708 config row, as the scoped enterprise_billing_config read returns it. */
+const CONFIG = [{ model: "per_seat", unitAmountPaisa: "70800", flatAmountPaisa: null, gstRateBp: "1800" }];
+
+describe("getEnterpriseBillingConfig / chargeAmountForConfig", () => {
+  it("returns null when the enterprise has no price row", async () => {
+    expect(await getEnterpriseBillingConfig(makeSql({ billing_v2_config: [] }))).toBeNull();
+  });
+  it("reads a per-seat config", async () => {
+    const c = await getEnterpriseBillingConfig(makeSql({ billing_v2_config: CONFIG }));
+    expect(c).toEqual({ model: "per_seat", unitAmountPaisa: 70800, flatAmountPaisa: null, gstRateBp: 1800 });
+  });
+  it("per-seat amount = unit × seats; flat amount is seat-independent", () => {
+    expect(chargeAmountForConfig({ model: "per_seat", unitAmountPaisa: 70800, flatAmountPaisa: null, gstRateBp: 1800 }, 3)).toBe(212400);
+    expect(chargeAmountForConfig({ model: "flat", unitAmountPaisa: null, flatAmountPaisa: 500000, gstRateBp: 1800 }, 99)).toBe(500000);
+  });
+});
+
+describe("getBillingAccess unpriced", () => {
+  it("fail-open: no config → not blocked, state none", async () => {
+    const out = await getBillingAccess(makeSql({ billing_v2_config: [] }));
+    expect(out).toMatchObject({ blocked: false, state: "none", current: null, config: null });
+  });
+});
 
 describe("chargeAmountPaisa / computeAccess", () => {
   it("chargeAmountPaisa clamps negatives/fractions", () => {
@@ -43,14 +66,17 @@ describe("listCharges / getReceipt", () => {
 describe("ensureCurrentCharge", () => {
   it("no-op existing / create / race", async () => {
     expect(await ensureCurrentCharge(makeSql({ billing_v2_go_live_set: [], billing_v2_current_exists: [{ id: "ch1" }] }))).toEqual({ created: false });
-    expect(await ensureCurrentCharge(makeSql({ billing_v2_go_live_set: [], billing_v2_current_exists: [], billing_v2_seat_count: [{ n: 3 }], billing_v2_insert_pending: [{ id: "ch9" }] }))).toEqual({ created: true, chargeId: "ch9" });
-    expect(await ensureCurrentCharge(makeSql({ billing_v2_go_live_set: [], billing_v2_current_exists: [], billing_v2_seat_count: [{ n: 3 }], billing_v2_insert_pending: [] }))).toEqual({ created: false });
+    expect(await ensureCurrentCharge(makeSql({ billing_v2_go_live_set: [], billing_v2_current_exists: [], billing_v2_config: CONFIG, billing_v2_seat_count: [{ n: 3 }], billing_v2_insert_pending: [{ id: "ch9" }] }))).toEqual({ created: true, chargeId: "ch9" });
+    expect(await ensureCurrentCharge(makeSql({ billing_v2_go_live_set: [], billing_v2_current_exists: [], billing_v2_config: CONFIG, billing_v2_seat_count: [{ n: 3 }], billing_v2_insert_pending: [] }))).toEqual({ created: false });
+    // Unpriced enterprise: no config → no charge created.
+    expect(await ensureCurrentCharge(makeSql({ billing_v2_go_live_set: [], billing_v2_current_exists: [], billing_v2_config: [] }))).toEqual({ created: false });
   });
 });
 
 describe("getBillingAccess", () => {
   it("assembles access from the paid-through month (hits istEndOfDayMs)", async () => {
     const sql = makeSql({
+      billing_v2_config: CONFIG, billing_v2_seat_count: [{ n: 3 }],
       billing_v2_go_live_set: [], billing_v2_current_exists: [{ id: "ch1" }], billing_v2_sync_pending: [],
       billing_v2_access: [{ paidThrough: "2026-06-30", currentStatus: "paid", currentStart: "2026-06-01", currentEnd: "2026-06-30" }],
       billing_v2_current_charge: [CHARGE],
@@ -58,6 +84,7 @@ describe("getBillingAccess", () => {
     const out = await getBillingAccess(sql);
     expect(out.current).toMatchObject({ id: "ch1" });
     expect(out.accessUntilIso).not.toBeNull();
+    expect(out.config).toMatchObject({ model: "per_seat", unitAmountPaisa: 70800 });
   });
 });
 

@@ -3,6 +3,7 @@ import "server-only";
 import { getApiAuthHeaders, requireAuthToken } from "@/features/auth/server-session";
 import { serverApiFetch } from "@/lib/server-api";
 import type { ActionConfig } from "@/lib/api-client";
+import type { BillingConfigV2 } from "./billing-format";
 
 /** One monthly charge (mirror of the API's billing_charges row). */
 export interface BillingChargeV2 {
@@ -36,6 +37,8 @@ export interface BillingAccessV2 {
   enforced: boolean;
   /** Public Razorpay key id for opening Checkout. */
   keyId: string | null;
+  /** This enterprise's price (model + amount + GST), or null if unpriced. */
+  config: BillingConfigV2 | null;
 }
 
 /** Payment-receipt data for a paid month (from GET /billing/receipt/:id). */
@@ -51,6 +54,8 @@ export interface BillingReceiptV2 {
     state: string;
     pincode: string;
   };
+  /** This enterprise's price (model + rate), for the receipt line description. */
+  config: BillingConfigV2 | null;
 }
 
 function getApiBaseUrl(): string {

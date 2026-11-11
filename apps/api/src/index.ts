@@ -9,8 +9,7 @@ import { errorHandler, notFoundHandler } from "./lib/errors";
 import { attachAuthContext } from "./middleware/auth";
 import { attachRequestContext } from "./middleware/request-context";
 import { billingGate } from "./middleware/billing-gate";
-import { ensureCurrentCharge } from "./services/billing-v2";
-import { runBillingReminders } from "./services/billing-reminders";
+import { runBillingMaintenance } from "./services/billing-maintenance";
 import { billingV2Routes } from "./routes/billing-v2";
 import { onboardingRoutes } from "./routes/onboarding";
 import { platformAdminRoutes } from "./routes/platform-admin";
@@ -312,20 +311,14 @@ function inMaintenanceWindow(nowMs = Date.now()): boolean {
   // Error-monitor retention: prune error events/groups older than 90 days
   // (self-gates to once per IST day).
   ctx.waitUntil(cleanupOldErrors(sql).then(() => undefined));
-  // Billing v2: ensure the current calendar month has its seat-based charge +
-  // Razorpay order (idempotent — creates it once near month start at the live
-  // seat count; early-returns thereafter). Replaces the subscription reconcile.
+  // Billing v2 (multi-enterprise): for EACH active enterprise, under a scoped
+  // client, ensure the current month's charge at its own price + seats, and send
+  // the due/grace email reminders to its own admins. Idempotent; one enterprise
+  // failing never stops the rest. Replaces the single-org charge+reminder calls.
   ctx.waitUntil(
-    ensureCurrentCharge(sql, env)
-      .then((r) => console.log("[billing] ensureCurrentCharge:", JSON.stringify(r)))
-      .catch((e) => console.error("[billing] ensureCurrentCharge crashed:", e instanceof Error ? e.stack : e)),
-  );
-  // Billing v2 email reminders: due (1st) + final grace (day 7). Sent once each
-  // per month via a system_settings marker; no-op without RESEND_API_KEY.
-  ctx.waitUntil(
-    runBillingReminders(sql, env)
-      .then((r) => r.sent.length && console.log("[billing] reminders sent:", JSON.stringify(r)))
-      .catch((e) => console.error("[billing] reminders crashed:", e instanceof Error ? e.stack : e)),
+    runBillingMaintenance(sql, env)
+      .then((r) => console.log("[billing] maintenance:", JSON.stringify(r)))
+      .catch((e) => console.error("[billing] maintenance crashed:", e instanceof Error ? e.stack : e)),
   );
 };
 

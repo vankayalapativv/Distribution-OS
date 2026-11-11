@@ -38,7 +38,7 @@ async function markOnce(sql: SqlClient, key: string): Promise<boolean> {
     /* billing_reminder_mark */
     insert into system_settings (key, value)
     values (${key}, ${new Date().toISOString()})
-    on conflict (key) do nothing
+    on conflict (enterprise_id, key) do nothing
     returning key
   `;
   return rows.length > 0;

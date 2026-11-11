@@ -93,6 +93,19 @@ export async function approveEnterprise(
             updated_by = excluded.updated_by, updated_at = now()
     `,
     sql`update enterprises set status = 'active', approved_by = ${ownerId}, approved_at = now(), rejected_reason = null, updated_at = now() where id = ${id}`,
+    // Seed the approval month as FREE (free until the next 1st — no proration).
+    // Without this the enterprise would have no paid/free period and be blocked
+    // immediately; the first real pending charge is generated on the 1st. Runs on
+    // the owner client, so enterprise_id + the seat count are set explicitly.
+    sql`
+      insert into billing_charges (enterprise_id, period_start, period_end, seats, amount_paisa, status)
+      select ${id},
+             date_trunc('month', (now() at time zone 'Asia/Kolkata')::date)::date,
+             (date_trunc('month', (now() at time zone 'Asia/Kolkata')::date) + interval '1 month' - interval '1 day')::date,
+             (select count(*)::int from users where status = 'active' and enterprise_id = ${id}),
+             0, 'free'
+      on conflict (enterprise_id, period_start) do nothing
+    `,
   ]);
   return { status: "active" };
 }

@@ -49,7 +49,7 @@ vi.mock("@neondatabase/serverless", () => ({
         "neon-se": SE_ID,
       };
       const subject = values[0] as string;
-      return [{ role: roleBySubject[subject], userId: userIdBySubject[subject] ?? SE_ID }];
+      return [{ role: roleBySubject[subject], userId: userIdBySubject[subject] ?? SE_ID , enterpriseId: "00000000-0000-4000-8000-0000000000e1"}];
     }
 
     // IST weekday + date driving which template applies.

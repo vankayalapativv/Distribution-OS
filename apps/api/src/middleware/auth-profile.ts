@@ -5,6 +5,7 @@ import type { Role } from "../types";
 export interface Profile {
   userId: string | null;
   role: Role | null;
+  enterpriseId: string | null;
 }
 
 // Auth does a DB lookup on EVERY authenticated request, so the DB is a hard

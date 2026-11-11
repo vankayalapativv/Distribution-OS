@@ -8,7 +8,7 @@ vi.mock("@neondatabase/serverless", () => ({
   neon: () => async (strings: TemplateStringsArray) => {
     const query = strings.join(" ");
     if (query.includes("auth_app_profile")) {
-      return [{ role: "SALES_EXECUTIVE", userId: SE_ID }];
+      return [{ role: "SALES_EXECUTIVE", userId: SE_ID , enterpriseId: "00000000-0000-4000-8000-0000000000e1"}];
     }
     return [];
   },

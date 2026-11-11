@@ -37,11 +37,11 @@ vi.mock("@neondatabase/serverless", () => ({
     if (tag) queryLog.push(tag[1]);
 
     if (query.includes("auth_app_profile")) {
-      const map: Record<string, { role: string; userId: string }> = {
-        "neon-super-admin": { role: "SUPER_ADMIN", userId: SUPER_ADMIN_ID },
-        "neon-manager": { role: "MANAGER", userId: MANAGER_ID },
-        "neon-accountant": { role: "ACCOUNTANT", userId: ACCOUNTANT_ID },
-        "neon-se": { role: "SALES_EXECUTIVE", userId: SE_ID },
+      const map: Record<string, { role: string; userId: string , enterpriseId: "00000000-0000-4000-8000-0000000000e1"}> = {
+        "neon-super-admin": { role: "SUPER_ADMIN", userId: SUPER_ADMIN_ID , enterpriseId: "00000000-0000-4000-8000-0000000000e1"},
+        "neon-manager": { role: "MANAGER", userId: MANAGER_ID , enterpriseId: "00000000-0000-4000-8000-0000000000e1"},
+        "neon-accountant": { role: "ACCOUNTANT", userId: ACCOUNTANT_ID , enterpriseId: "00000000-0000-4000-8000-0000000000e1"},
+        "neon-se": { role: "SALES_EXECUTIVE", userId: SE_ID , enterpriseId: "00000000-0000-4000-8000-0000000000e1"},
       };
       return [map[values[0] as string] ?? map["neon-super-admin"]];
     }

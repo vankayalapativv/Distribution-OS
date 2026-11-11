@@ -11,6 +11,8 @@ export interface AuthContext {
   isAuthenticated: boolean;
   isProviderAdmin: boolean;
   userId: string | null;
+  /** The enterprise this user belongs to (multi-enterprise isolation key). */
+  enterpriseId: string | null;
   role: Role | null;
   source: "jwt" | "missing";
 }

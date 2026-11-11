@@ -57,8 +57,16 @@ export function createScopedSqlClient(
     b`select set_config('app.enterprise_id', ${enterpriseId}, true)`,
     b`select set_config('app.user_id', ${userId ?? null}, true)`,
   ];
+  // Real neon always exposes `.transaction` (one HTTP round-trip, one backend
+  // connection) — required so the SET LOCALs and the query share a session.
+  // Some unit-test mocks implement only the tagged template; there scoping is
+  // moot (no real RLS), so fall back to resolving the query directly.
+  const hasTxn = typeof b.transaction === "function";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const run = (desc: any) => b.transaction([...scope(), desc]).then((r: any[]) => r[r.length - 1]);
+  const run = (desc: any) =>
+    hasTxn
+      ? b.transaction([...scope(), desc]).then((r: any[]) => r[r.length - 1])
+      : Promise.resolve(desc);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const wrap = (d: any) =>
     new Proxy(d, {
@@ -80,6 +88,7 @@ export function createScopedSqlClient(
   fn.unsafe = (text: string) => wrap(b.unsafe(text));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fn.transaction = (queries: any[], opts?: any) => {
+    if (!hasTxn) return Promise.all(queries);
     const sc = scope();
     return b.transaction([...sc, ...queries], opts).then((r: any[]) => r.slice(sc.length));
   };
@@ -89,11 +98,26 @@ export function createScopedSqlClient(
 /**
  * The request's database client.
  *
- * TODO(phase-2 cutover): once the auth middleware sets `enterpriseId` on the
- * request context, switch this to always return a scoped client and THROW when
- * the context is missing (fail closed). Until then it returns the unscoped
- * client so existing routes keep working during the migration.
+ * - **Authenticated enterprise request** → an enterprise-SCOPED client (RLS
+ *   isolates every query to the caller's enterprise). Fails closed: an
+ *   authenticated user without an enterprise is a 403 (never an unscoped read).
+ * - **Unauthenticated request** (webhook / public statement / health / login
+ *   before a session) → the unscoped owner client, since these legitimately run
+ *   with no enterprise context. (A future platform-owner cockpit will use
+ *   getOwnerSqlClient explicitly.)
  */
 export function getSqlClient(c: Context<ApiEnv>): SqlClient {
-  return neon(resolveDatabaseUrl(c));
+  const base = neon(resolveDatabaseUrl(c));
+  const auth = c.get("auth");
+  if (auth?.isAuthenticated) {
+    if (!auth.enterpriseId) {
+      throw new ApiError(
+        "NO_ENTERPRISE_CONTEXT",
+        "Authenticated user is not associated with an enterprise.",
+        403,
+      );
+    }
+    return createScopedSqlClient(base, auth.enterpriseId, auth.userId);
+  }
+  return base;
 }

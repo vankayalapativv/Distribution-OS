@@ -68,7 +68,7 @@ vi.mock("@neondatabase/serverless", () => ({
       return [
         {
           role: roleBySubject[subject as keyof typeof roleBySubject],
-          userId: "00000000-0000-4000-8000-000000000001",
+          userId: "00000000-0000-4000-8000-000000000001", enterpriseId: "00000000-0000-4000-8000-0000000000e1",
         },
       ];
     }

@@ -78,7 +78,7 @@ vi.mock("@neondatabase/serverless", () => ({
       const subject = values[0] as string;
       const role = ROLE_BY_SUBJECT[subject];
       if (!role) return [];
-      return [{ role, userId: USERID_BY_SUBJECT[subject] }];
+      return [{ role, userId: USERID_BY_SUBJECT[subject] , enterpriseId: "00000000-0000-4000-8000-0000000000e1"}];
     }
 
     // ── start-run idempotency + resume ────────────────────────────────────────

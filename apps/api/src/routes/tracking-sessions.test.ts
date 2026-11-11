@@ -31,7 +31,7 @@ vi.mock("@neondatabase/serverless", () => {
       return [
         {
           role: subject === "neon-manager" ? "MANAGER" : "SALES_EXECUTIVE",
-          userId: subject === "neon-manager" ? MANAGER_ID : SE_ID,
+          userId: subject === "neon-manager" ? MANAGER_ID : SE_ID, enterpriseId: "00000000-0000-4000-8000-0000000000e1",
         },
       ];
     }

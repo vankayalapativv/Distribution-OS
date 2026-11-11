@@ -19,9 +19,9 @@ vi.mock("@neondatabase/serverless", () => ({
     if (query.includes("auth_app_profile")) {
       const subject = values[0] as string;
       if (subject === "neon-manager") {
-        return [{ role: "MANAGER", userId: "00000000-0000-4000-8000-000000000002" }];
+        return [{ role: "MANAGER", userId: "00000000-0000-4000-8000-000000000002" , enterpriseId: "00000000-0000-4000-8000-0000000000e1"}];
       }
-      return [{ role: "SALES_EXECUTIVE", userId: SE_ID }];
+      return [{ role: "SALES_EXECUTIVE", userId: SE_ID , enterpriseId: "00000000-0000-4000-8000-0000000000e1"}];
     }
     if (query.includes("assert_customer_visible")) {
       return values.includes(CUSTOMER_ID) ? [{ id: CUSTOMER_ID }] : [];

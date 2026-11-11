@@ -15,6 +15,8 @@
 import { vi } from "vitest";
 import { authHeaders, authTestEnv, installAuthFetchMock } from "./auth";
 
+export const TEST_ENTERPRISE_ID = "00000000-0000-4000-8000-0000000000e1";
+
 export const IDS = {
   superAdmin: "00000000-0000-4000-8000-000000000001",
   manager: "00000000-0000-4000-8000-000000000002",
@@ -55,7 +57,7 @@ export function makeNeon(getResponses: () => Record<string, Responder>) {
   const resolve = (query: string, values: unknown[]): unknown[] => {
     if (query.includes("auth_app_profile")) {
       const e = SUBJECT_TO_ROLE[String(values[0])];
-      return e ? [{ userId: e.id, role: e.role }] : [];
+      return e ? [{ userId: e.id, role: e.role, enterpriseId: TEST_ENTERPRISE_ID }] : [];
     }
     const responses = getResponses();
     for (const key of Object.keys(responses)) {

@@ -22,6 +22,7 @@ function missingAuth(): AuthContext {
     role: null,
     source: "missing",
     userId: null,
+    enterpriseId: null,
   };
 }
 
@@ -44,6 +45,7 @@ function normalizeProfile(row: Record<string, unknown> | undefined): Profile | n
   return {
     userId: stringValue(row.userId),
     role: role && roles.has(role as Role) ? (role as Role) : null,
+    enterpriseId: stringValue(row.enterpriseId),
   };
 }
 
@@ -78,6 +80,7 @@ function profileByAppLoginId(sql: SqlClient, subject: string) {
       /* auth_app_profile */
       select
         u.id as "userId",
+        u.enterprise_id as "enterpriseId",
         r.code as role
       from users u
       left join user_roles ur on ur.user_id = u.id
@@ -130,7 +133,13 @@ export const attachAuthContext = createMiddleware<ApiEnv>(async (c, next) => {
         profileByAppLoginId(sql, neonAuth.subject),
       );
       if (profile) {
-        auth = { ...auth, isAuthenticated: true, role: profile.role, userId: profile.userId };
+        auth = {
+          ...auth,
+          isAuthenticated: true,
+          role: profile.role,
+          userId: profile.userId,
+          enterpriseId: profile.enterpriseId,
+        };
       }
     }
   }

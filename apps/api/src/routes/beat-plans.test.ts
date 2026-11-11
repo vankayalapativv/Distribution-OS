@@ -16,7 +16,7 @@ vi.mock("@neondatabase/serverless", () => ({
         "neon-manager": "MANAGER",
         "neon-se": "SALES_EXECUTIVE",
       };
-      return [{ role: role[values[0] as string], userId: SE_ID }];
+      return [{ role: role[values[0] as string], userId: SE_ID , enterpriseId: "00000000-0000-4000-8000-0000000000e1"}];
     }
     if (query.includes("beat_executives")) return [{ id: SE_ID, name: "Murali" }];
     if (query.includes("beat_template")) {

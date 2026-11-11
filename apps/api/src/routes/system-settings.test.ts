@@ -16,7 +16,7 @@ vi.mock("@neondatabase/serverless", () => ({
         "neon-super-admin": "SUPER_ADMIN",
         "neon-manager": "MANAGER",
       };
-      return [{ role: roleBySubject[values[0] as string], userId: SUPER_ADMIN_ID }];
+      return [{ role: roleBySubject[values[0] as string], userId: SUPER_ADMIN_ID , enterpriseId: "00000000-0000-4000-8000-0000000000e1"}];
     }
 
     if (query.includes("system_settings_list")) {

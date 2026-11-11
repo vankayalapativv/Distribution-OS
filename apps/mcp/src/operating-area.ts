@@ -12,10 +12,14 @@ export interface OperatingDistrict {
  *   [{ "state": "Telangana", "name": "Nalgonda" }, …]
  * Returns null when unset / unparyseable, so maps then render exactly as given.
  */
-export async function getOperatingArea(replicaUrl: string): Promise<OperatingDistrict[] | null> {
+export async function getOperatingArea(
+  replicaUrl: string,
+  enterpriseId: string,
+): Promise<OperatingDistrict[] | null> {
   try {
     const { rows } = await runReadOnlySql(
       replicaUrl,
+      enterpriseId,
       "select value from system_settings where key = 'operating_area' limit 1",
     );
     const raw = rows[0]?.value;

@@ -1,5 +1,5 @@
 import { AuthorizationError, type AuthRequest } from "@cloudflare/workers-oauth-provider";
-import { timingSafeStringEqual } from "./passphrase";
+import { resolveEnterpriseByPassphrase } from "./db";
 
 /** A short page shown when the server is disabled, so the form can't be used. */
 function disabledPage(): Response {
@@ -12,13 +12,18 @@ function disabledPage(): Response {
   return new Response(html, { status: 403, headers: { "content-type": "text/html; charset=utf-8" } });
 }
 
-/** Resolve the effective passphrase check from the config DO, falling back to
- *  the legacy env secret until an admin sets one from the web. */
-async function passphraseAccepted(env: Env, candidate: string): Promise<boolean> {
+/**
+ * Resolve a submitted passphrase to the enterprise it belongs to, or null.
+ * Multi-enterprise: each enterprise has its own passphrase (SHA-256 stored in the
+ * DB). The global CONFIG_DO `enabled` flag is a platform kill-switch across ALL
+ * enterprises; per-enterprise disable lives on the enterprise_mcp_config row and
+ * is enforced inside the resolver.
+ */
+async function resolveEnterprise(env: Env, candidate: string): Promise<string | null> {
   const config = await env.CONFIG_DO.get(env.CONFIG_DO.idFromName("config")).get();
-  if (!config.enabled) return false;
-  if (config.passphrase) return timingSafeStringEqual(candidate, config.passphrase);
-  return Boolean(env.MCP_PASSPHRASE) && timingSafeStringEqual(candidate, env.MCP_PASSPHRASE);
+  if (!config.enabled) return null; // platform-wide kill switch
+  if (!candidate.trim()) return null;
+  return resolveEnterpriseByPassphrase(env.REPLICA_DATABASE_URL, candidate);
 }
 
 /**
@@ -116,17 +121,21 @@ export const authHandler: ExportedHandler<Env> = {
 
     const form = await request.formData();
     const passphrase = String(form.get("passphrase") ?? "");
-    if (!(await passphraseAccepted(env, passphrase))) {
+    const enterpriseId = await resolveEnterprise(env, passphrase);
+    if (!enterpriseId) {
       return loginPage(actionUrl, client.clientName, "Incorrect passphrase. Try again.");
     }
 
     const scope = oauthRequest.scope.filter((s) => s === "mcp:read");
     const { redirectTo } = await env.OAUTH_PROVIDER.completeAuthorization({
       request: oauthRequest,
-      userId: "sri-aparajita-owner",
+      userId: `enterprise:${enterpriseId}`,
       metadata: { clientName: client.clientName },
       scope: scope.length ? scope : ["mcp:read"],
-      props: { userId: "sri-aparajita-owner" },
+      // The grant's props travel to the tool handler (via getMcpAuthContext) and
+      // are the ONLY source of the enterprise scope — every run_sql is bound to
+      // this enterprise_id, so one connector can never read another's data.
+      props: { enterpriseId },
     });
     return Response.redirect(redirectTo, 302);
   },

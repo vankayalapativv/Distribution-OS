@@ -7,9 +7,16 @@ import { readJsonObject } from "../lib/request-body";
 import { validate } from "../lib/validate";
 import { actorOf, logAudit } from "../services/audit";
 import { getInboundAudit, getInboundStatus, patchInboundConfig } from "../services/mcp-inbound";
+import {
+  generateMcpPassphrase,
+  getMcpPassphraseStatus,
+  setMcpEnabled,
+} from "../services/mcp-passphrase";
 import type { ApiEnv } from "../types";
 
 const OFFICE_ADMIN = ["SUPER_ADMIN", "MANAGER"] as const;
+
+const EnabledSchema = z.object({ enabled: z.boolean() });
 
 const ServerConfigSchema = z
   .object({
@@ -50,4 +57,37 @@ export const mcpRoutes = new Hono<ApiEnv>()
     requireRole(c, [...OFFICE_ADMIN]);
     const limit = Math.max(1, Math.min(Number(c.req.query("limit") ?? 50) || 50, 500));
     return c.json(success(c, await getInboundAudit(c.env, limit)));
+  })
+
+  // ── Per-enterprise MCP passphrase (Phase 4) — SUPER_ADMIN only ──────────────
+  // This enterprise's own connector passphrase, stored hashed in the DB (scoped
+  // by RLS). The global /server routes above are the platform-wide config; these
+  // govern THIS enterprise's access.
+  .get("/passphrase", async (c) => {
+    requireRole(c, ["SUPER_ADMIN"]);
+    return c.json(success(c, await getMcpPassphraseStatus(getSqlClient(c))));
+  })
+  .post("/passphrase", async (c) => {
+    const auth = requireRole(c, ["SUPER_ADMIN"]);
+    const sql = getSqlClient(c);
+    const { passphrase } = await generateMcpPassphrase(sql, auth.userId ?? null);
+    await logAudit(sql, actorOf(auth), {
+      action: "mcp.passphrase.generate",
+      entityType: "mcp_passphrase",
+      summary: "Generated a new MCP passphrase",
+    });
+    // The plaintext is returned ONCE and never stored — the UI shows it once.
+    return c.json(success(c, { passphrase }), 201);
+  })
+  .patch("/passphrase", async (c) => {
+    const auth = requireRole(c, ["SUPER_ADMIN"]);
+    const { enabled } = validate(EnabledSchema, await readJsonObject(c));
+    const sql = getSqlClient(c);
+    const status = await setMcpEnabled(sql, enabled, auth.userId ?? null);
+    await logAudit(sql, actorOf(auth), {
+      action: "mcp.passphrase.toggle",
+      entityType: "mcp_passphrase",
+      summary: enabled ? "Enabled MCP access" : "Disabled MCP access",
+    });
+    return c.json(success(c, status));
   });

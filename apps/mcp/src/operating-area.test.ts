@@ -17,7 +17,7 @@ describe("getOperatingArea", () => {
         { state: "Telangana", name: "Khammam" },
       ])),
     );
-    expect(await getOperatingArea("x")).toEqual([
+    expect(await getOperatingArea("x", "ent-1")).toEqual([
       { state: "Telangana", name: "Nalgonda" },
       { state: "Telangana", name: "Khammam" },
     ]);
@@ -25,24 +25,24 @@ describe("getOperatingArea", () => {
 
   it("drops malformed entries and returns null when nothing valid remains", async () => {
     runReadOnlySql.mockResolvedValue(rows(JSON.stringify([{ state: "", name: "X" }, { name: "Y" }])));
-    expect(await getOperatingArea("x")).toBeNull();
+    expect(await getOperatingArea("x", "ent-1")).toBeNull();
   });
 
   it("returns null when the JSON isn't an array", async () => {
     runReadOnlySql.mockResolvedValue(rows(JSON.stringify({ not: "an array" })));
-    expect(await getOperatingArea("x")).toBeNull();
+    expect(await getOperatingArea("x", "ent-1")).toBeNull();
   });
 
   it("returns null when the setting is missing", async () => {
     runReadOnlySql.mockResolvedValue(rows(undefined));
-    expect(await getOperatingArea("x")).toBeNull();
+    expect(await getOperatingArea("x", "ent-1")).toBeNull();
   });
 
   it("returns null on bad JSON or a query error (never throws)", async () => {
     runReadOnlySql.mockResolvedValue(rows("not json"));
-    expect(await getOperatingArea("x")).toBeNull();
+    expect(await getOperatingArea("x", "ent-1")).toBeNull();
     runReadOnlySql.mockRejectedValue(new Error("db down"));
-    expect(await getOperatingArea("x")).toBeNull();
+    expect(await getOperatingArea("x", "ent-1")).toBeNull();
   });
 });
 

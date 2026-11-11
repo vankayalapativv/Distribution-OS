@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/server";
+import { getMcpAuthContext } from "agents/mcp/server";
 import { z } from "zod";
 import { runReadOnlySql } from "./db";
 import { SERVER_INSTRUCTIONS } from "./instructions";
@@ -46,14 +47,28 @@ const AUDIT_DESCRIPTION =
   "Return the most recent SQL queries run through this MCP server (the audit log): each " +
   "entry has timestamp, ok/error, rowCount, elapsedMs and the SQL text. Read-only.";
 
-/** Best-effort audit write — never let a logging failure break the query. */
+/**
+ * The authenticated enterprise for the current MCP request, from the OAuth grant
+ * props (set in auth.ts). Request-scoped via AsyncLocalStorage, so it never
+ * crosses between concurrent connectors. Null only if something authorized a
+ * grant without an enterprise (shouldn't happen) — tools then refuse.
+ */
+function currentEnterpriseId(): string | null {
+  const ctx = getMcpAuthContext() as { props?: { enterpriseId?: unknown } } | undefined;
+  const id = ctx?.props?.enterpriseId;
+  return typeof id === "string" && id ? id : null;
+}
+
+/** Best-effort audit write — never let a logging failure break the query. Audit
+ *  is per-enterprise so one enterprise never sees another's query history. */
 async function audit(
   getEnv: () => Env,
+  enterpriseId: string,
   entry: import("./audit-do").AuditEntry,
 ): Promise<void> {
   try {
     const ns = getEnv().AUDIT_DO;
-    await ns.get(ns.idFromName("audit")).log(entry);
+    await ns.get(ns.idFromName(`audit:${enterpriseId}`)).log(entry);
   } catch {
     /* ignore audit failures */
   }
@@ -78,9 +93,13 @@ export function buildServer(getEnv: () => Env): McpServer {
     },
     async ({ query }) => {
       const started = Date.now();
+      const enterpriseId = currentEnterpriseId();
+      if (!enterpriseId) {
+        return { content: [{ type: "text", text: "Not authorized to an enterprise." }], isError: true };
+      }
       try {
-        const result = await runReadOnlySql(getEnv().REPLICA_DATABASE_URL, query);
-        await audit(getEnv, {
+        const result = await runReadOnlySql(getEnv().REPLICA_DATABASE_URL, enterpriseId, query);
+        await audit(getEnv, enterpriseId, {
           ts: new Date().toISOString(),
           ok: true,
           rowCount: result.rowCount,
@@ -91,7 +110,7 @@ export function buildServer(getEnv: () => Env): McpServer {
         return { content: [{ type: "text", text: JSON.stringify(result) }] };
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
-        await audit(getEnv, {
+        await audit(getEnv, enterpriseId, {
           ts: new Date().toISOString(),
           ok: false,
           rowCount: null,
@@ -121,8 +140,12 @@ export function buildServer(getEnv: () => Env): McpServer {
       },
     },
     async ({ limit }) => {
+      const enterpriseId = currentEnterpriseId();
+      if (!enterpriseId) {
+        return { content: [{ type: "text", text: "Not authorized to an enterprise." }], isError: true };
+      }
       const ns = getEnv().AUDIT_DO;
-      const entries = await ns.get(ns.idFromName("audit")).recent(limit ?? 20);
+      const entries = await ns.get(ns.idFromName(`audit:${enterpriseId}`)).recent(limit ?? 20);
       return { content: [{ type: "text", text: JSON.stringify(entries) }] };
     },
   );
@@ -147,11 +170,15 @@ export function buildServer(getEnv: () => Env): McpServer {
           isError: true,
         };
       }
-      // Scope to the deployment's operating districts by default — this client works
-      // in a few districts, not all of India — unless the spec names its own area.
+      const enterpriseId = currentEnterpriseId();
+      if (!enterpriseId) {
+        return { content: [{ type: "text", text: "Not authorized to an enterprise." }], isError: true };
+      }
+      // Scope to the enterprise's operating districts by default — a distributor
+      // works in a few districts, not all of India — unless the spec names its own.
       let finalSpec = spec as VardhanMapSpec;
       if (!hasExplicitScope(finalSpec.map)) {
-        const operating = await getOperatingArea(env.REPLICA_DATABASE_URL);
+        const operating = await getOperatingArea(env.REPLICA_DATABASE_URL, enterpriseId);
         if (operating) {
           finalSpec = { ...finalSpec, map: { ...finalSpec.map, region: "district", districts: operating } };
         }

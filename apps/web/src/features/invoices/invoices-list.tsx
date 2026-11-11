@@ -48,6 +48,7 @@ function InvoicesInner({ role, actionConfig }: { readonly role: InvoicesRole; re
         pageCount={s.pageCount}
         empty="No invoices yet."
         onRowClick={(row) => s.openPdf(row)}
+        rowClassName={(r) => (r.docStatus === "cancelled" ? "opacity-60" : undefined)}
       />
     </DashboardShell>
       <InvoiceCancelDialog

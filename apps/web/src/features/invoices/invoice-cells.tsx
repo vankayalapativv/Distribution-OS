@@ -31,13 +31,24 @@ const PAYMENT_TONES = {
   unpaid: "bg-red-100 text-red-700",
 };
 
-/** Outstanding amount with a payment-status badge beneath it. */
+const CANCELLED_TONE = { cancelled: "bg-slate-200 text-slate-600" };
+
+/** Outstanding amount with a status badge beneath it. A cancelled invoice shows
+ *  a grey "Cancelled" badge (not the misleading payment status) and strikes the
+ *  amount, since its stock was reversed and nothing is owed. */
 export function InvoiceOutstandingCell({ row, rupeesExact }: { readonly row: InvoiceRow; readonly rupeesExact: (n: number) => string }) {
+  const cancelled = row.docStatus === "cancelled";
   return (
     <div className="text-right">
-      <span className="tabular-nums">{rupeesExact(row.outstandingAmount)}</span>
+      <span className={`tabular-nums ${cancelled ? "text-muted-foreground line-through" : ""}`}>
+        {rupeesExact(row.outstandingAmount)}
+      </span>
       <div className="mt-0.5 flex justify-end">
-        <StatusBadge status={row.paymentStatus} tones={PAYMENT_TONES} />
+        {cancelled ? (
+          <StatusBadge status="cancelled" tones={CANCELLED_TONE} />
+        ) : (
+          <StatusBadge status={row.paymentStatus} tones={PAYMENT_TONES} />
+        )}
       </div>
     </div>
   );

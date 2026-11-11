@@ -21,6 +21,9 @@ export interface Shipment {
   outstanding: number;
   oilLitres: number;
   invoicedAt: string;
+  /** The invoice was cancelled — its stock was reversed and the order re-opened.
+   *  Shown on the trail but never counted toward the fulfillment stage. */
+  cancelled: boolean;
   delivered: boolean;
   deliveredAt: string | null;
 }

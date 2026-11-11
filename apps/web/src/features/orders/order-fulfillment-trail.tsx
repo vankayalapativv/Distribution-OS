@@ -28,7 +28,9 @@ export function FulfillmentTrail({ order }: { readonly order: OrderDetail }) {
   // Defensive defaults — older API responses / other code paths may omit these.
   const shipments = order.shipments ?? [];
   const skuProgress = order.skuProgress ?? [];
-  const style = STAGE_STYLES[deriveStage(shipments, skuProgress)];
+  // Cancelled invoices appear in the trail but don't move the stage forward.
+  const activeShipments = shipments.filter((s) => !s.cancelled);
+  const style = STAGE_STYLES[deriveStage(activeShipments, skuProgress)];
   const remaining = skuProgress.filter((p) => p.remainingUnits > 0);
   const cancelled = skuProgress.filter((p) => (p.cancelledUnits ?? 0) > 0);
 
@@ -51,7 +53,7 @@ export function FulfillmentTrail({ order }: { readonly order: OrderDetail }) {
           shipments.map((s, i) => (
             <TimelineRow
               key={s.id}
-              done
+              done={!s.cancelled}
               last={i === shipments.length - 1 && remaining.length === 0 && cancelled.length === 0}
             >
               <ShipmentCard s={s} />

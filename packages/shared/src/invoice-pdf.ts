@@ -106,7 +106,9 @@ function drawHeader(doc: Doc, co: PdfData["company"], inv: PdfData["invoice"], g
   doc.text(`GSTIN : ${co.gstin || "—"}`, L, M + 2);
   doc.text("Original Copy", R, M + 2, { align: "right" });
   doc.setFont("helvetica", "bold").setFontSize(FS_TITLE).text("TAX INVOICE", W / 2, M + 22, { align: "center" });
-  if (inv.docStatus === "cancelled") { doc.setTextColor(200, 0, 0).setFontSize(FS_SMALL).text("( CANCELLED )", W / 2, M + 34, { align: "center" }); doc.setTextColor(0); }
+  // The "CANCELLED" state is shown by a prominent diagonal watermark across the
+  // whole page (drawCancelledWatermark), not a header marker that would collide
+  // with the company name.
 
   // Company name may be long enough to wrap. Shrink a step if needed to keep it
   // to two lines, stack the lines, and let the address follow below them (so a
@@ -398,5 +400,42 @@ export async function buildInvoiceDoc(data: PdfData) {
   y = drawBank(doc, co, g, y);
   await drawFooter(doc, co, inv, tot, g, y);
 
+  if (inv.docStatus === "cancelled") drawCancelledWatermark(doc, g);
+
   return doc;
+}
+
+/** Overlay a large faded diagonal "CANCELLED" across every page of a cancelled
+ *  invoice, so a printed/shared copy is unmistakable (its stock was reversed and
+ *  nothing is owed). Uses a GState opacity when the build supports it. */
+function drawCancelledWatermark(doc: Doc, g: Geom): void {
+  const gstate = doc as unknown as {
+    GState?: new (o: { opacity: number }) => unknown;
+    setGState?: (s: unknown) => void;
+  };
+  const ANGLE = 30;
+  const a = (ANGLE * Math.PI) / 180;
+  const cos = Math.cos(a);
+  const sin = Math.sin(a);
+  const maxW = g.W * 0.84; // keep a clear margin on both sides
+  const pages = doc.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i);
+    doc.setFont("helvetica", "bold");
+    // Shrink until the word's ROTATED footprint (width·cos + capHeight·sin) sits
+    // inside the margin, so "CANCELLED" never bleeds off either edge. The cap
+    // height of helvetica is ~0.72·fontSize.
+    let size = 100;
+    doc.setFontSize(size);
+    while (size > 40 && doc.getTextWidth("CANCELLED") * cos + size * 0.72 * sin > maxW) {
+      size -= 3;
+      doc.setFontSize(size);
+    }
+    if (gstate.GState && gstate.setGState) gstate.setGState(new gstate.GState({ opacity: 0.22 }));
+    doc.setTextColor(214, 40, 40);
+    doc.text("CANCELLED", g.W / 2, g.PH / 2, { align: "center", baseline: "middle", angle: ANGLE });
+    doc.setTextColor(0);
+    if (gstate.GState && gstate.setGState) gstate.setGState(new gstate.GState({ opacity: 1 }));
+  }
+  doc.setFontSize(FS_BODY);
 }

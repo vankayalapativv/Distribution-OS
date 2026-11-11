@@ -516,14 +516,18 @@ export async function getOrderById(
       i.outstanding_amount as "invoiceOutstanding",
       i.total_litres as "oilLitres",
       i.created_at as "invoicedAt",
+      i.doc_status as "docStatus",
       drs.id as "deliveryStopId",
       drs.created_at as "deliveredAt"
     from invoices i
     left join delivery_run_stops drs on drs.invoice_id = i.id
-    where i.order_id = ${id}::uuid and i.approval_status <> 'rejected' and i.doc_status <> 'cancelled'
+    where i.order_id = ${id}::uuid and i.approval_status <> 'rejected'
     order by i.invoice_date, i.created_at
   `) as Row[];
 
+  // Cancelled invoices are included so the order trail still shows "this invoice
+  // was cancelled" (its stock was reversed and the order re-opened). They never
+  // count toward the fulfillment stage — the trail passes only the active ones.
   const shipments = shipmentRows.map((s) => ({
     id: str(s.invoiceId),
     code: str(s.invoiceCode),
@@ -532,6 +536,7 @@ export async function getOrderById(
     outstanding: num(s.invoiceOutstanding),
     oilLitres: num(s.oilLitres),
     invoicedAt: str(s.invoicedAt),
+    cancelled: str(s.docStatus) === "cancelled",
     delivered: s.deliveryStopId != null,
     deliveredAt: s.deliveredAt != null ? str(s.deliveredAt) : null,
   }));
@@ -584,8 +589,9 @@ export async function getOrderById(
     };
   });
 
-  // Backward-compat single-invoice trail (first shipment + its delivery).
-  const first = shipments[0] ?? null;
+  // Backward-compat single-invoice trail (first ACTIVE shipment + its delivery) —
+  // a cancelled invoice must not stand in as "the" invoice here.
+  const first = shipments.find((s) => !s.cancelled) ?? null;
   const fulfillment = {
     invoice: first
       ? {

@@ -6,7 +6,7 @@ import { ShipmentCard } from "./order-shipment-card";
 function ship(over: Partial<Shipment> = {}): Shipment {
   return {
     id: "s1", code: "INV-1", date: "2026-08-01", total: 0, outstanding: 0,
-    oilLitres: 0, invoicedAt: "2026-08-01T00:00:00Z", delivered: false, deliveredAt: null,
+    oilLitres: 0, invoicedAt: "2026-08-01T00:00:00Z", cancelled: false, delivered: false, deliveredAt: null,
     ...over,
   };
 }
@@ -27,5 +27,13 @@ describe("ShipmentCard", () => {
   it("shows a Not delivered badge otherwise", () => {
     render(<ShipmentCard s={ship()} />);
     expect(screen.getByText("Not delivered")).toBeInTheDocument();
+  });
+
+  it("renders a cancelled invoice as cancelled (no delivery badge)", () => {
+    render(<ShipmentCard s={ship({ cancelled: true, code: "SA/2026-27/00003" })} />);
+    expect(screen.getByText("Cancelled")).toBeInTheDocument();
+    expect(screen.getByText("Invoice cancelled")).toBeInTheDocument();
+    expect(screen.getByText(/stock returned/)).toBeInTheDocument();
+    expect(screen.queryByText("Not delivered")).not.toBeInTheDocument();
   });
 });

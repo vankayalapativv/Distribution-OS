@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sri-aparajita-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-08",
+  "compatibility_flags": ["nodejs_compat"],
+  // Secrets (wrangler secret put / local .dev.vars): REPLICA_DATABASE_URL,
+  //   MCP_PASSPHRASE, MAP_SIGNING_SECRET (HMAC for /m/<id> links),
+  //   MCP_ADMIN_SECRET (bearer for the /admin/* server-to-server API).
+  // OAuth state (codes/grants/tokens) lives in a single strongly-consistent Durable
+  // Object (fixes the cross-region KV race). No KV namespace needed anymore.
+  "vars": {
+    // Public origin used to build interactive map links; override per environment.
+    "PUBLIC_ORIGIN": "https://sri-aparajita-mcp.vardhansystems.workers.dev"
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "OAUTH_DO", "class_name": "OAuthKvDO" },
+      { "name": "AUDIT_DO", "class_name": "AuditLogDO" },
+      { "name": "MAPS_DO", "class_name": "MapsStoreDO" },
+      { "name": "CONFIG_DO", "class_name": "ConfigDO" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["OAuthKvDO"] },
+    { "tag": "v2", "new_sqlite_classes": ["AuditLogDO"] },
+    { "tag": "v3", "new_sqlite_classes": ["MapsStoreDO"] },
+    { "tag": "v4", "new_sqlite_classes": ["ConfigDO"] }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

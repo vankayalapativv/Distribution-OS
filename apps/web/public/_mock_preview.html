@@ -1,0 +1,141 @@
+<title>Sri Aparajita SE — Customer detail</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#ffffff; --ground:#f3f4f6; --fg:#333333; --muted:#6b7280; --faint:#9ca3af; --slate:#334155; --sec-fg:#4b5563;
+    --primary:#3b82f6; --secondary:#f3f4f6; --accent:#e0f2fe; --accent-fg:#1e3a8a; --border:#e5e7eb;
+    --green:#16a34a; --green-100:#dcfce7; --green-700:#15803d; --red:#ef4444;
+    --amber-100:#fef3c7; --amber-800:#92400e;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --pg:#e7ebf1; --pg2:#dbe2ec; --pg-ink:#28303c; --pg-muted:#5b6675; --pg-line:#d3dae4; --panel:#fff;
+  }
+  @media (prefers-color-scheme:dark){:root{--pg:#0c1016;--pg2:#090d12;--pg-ink:#e7ecf3;--pg-muted:#97a2b1;--pg-line:#222a35;--panel:#141a22}}
+  :root[data-theme="light"]{--pg:#e7ebf1;--pg2:#dbe2ec;--pg-ink:#28303c;--pg-muted:#5b6675;--pg-line:#d3dae4;--panel:#fff}
+  :root[data-theme="dark"]{--pg:#0c1016;--pg2:#090d12;--pg-ink:#e7ecf3;--pg-muted:#97a2b1;--pg-line:#222a35;--panel:#141a22}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font);color:var(--pg-ink);
+    background:radial-gradient(1100px 620px at 50% -14%,var(--pg),var(--pg2));-webkit-font-smoothing:antialiased}
+  .wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:44px 20px 66px}
+  .head{width:100%;max-width:720px;text-align:center;margin-bottom:30px}
+  .kicker{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--primary)}
+  h1{font-size:clamp(24px,3.6vw,34px);margin:10px 0 9px;font-weight:800;letter-spacing:-.02em}
+  .head p{margin:0 auto;max-width:60ch;color:var(--pg-muted);font-size:15px;line-height:1.6}
+  .head p b{color:var(--pg-ink)}
+
+  .phone{width:392px;border-radius:48px;background:#0c1219;padding:10px;
+    box-shadow:0 3px 8px rgba(16,26,45,.16),0 42px 74px -28px rgba(16,26,50,.52),0 0 0 1px rgba(255,255,255,.05) inset}
+  /* ground = Home bg-secondary (#f3f4f6); white surfaces lift off it */
+  .screen{border-radius:39px;overflow:hidden;background:var(--ground);color:var(--fg);display:flex;flex-direction:column;min-height:720px}
+  .sb{display:flex;align-items:center;justify-content:space-between;padding:15px 26px 0;font-size:14px;font-weight:600;color:var(--fg)}
+  .sb .r{display:flex;align-items:center;gap:6px}.sb svg{width:17px;height:17px}
+  .bat{width:24px;height:12px;border:1.5px solid var(--fg);border-radius:3px;position:relative;opacity:.9}
+  .bat::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:6px;background:var(--fg);border-radius:0 2px 2px 0}
+  .bat i{position:absolute;inset:1.6px;width:78%;background:var(--fg);border-radius:1px}
+
+  .hdr{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);padding:14px 20px;background:var(--ground)}
+  .back{font-size:26px;line-height:1;color:var(--fg)}
+  .hdr .nm{font-size:20px;font-weight:700;color:var(--fg)}
+  .hdr .cd{font-size:12px;color:var(--muted);margin-top:1px}
+  .editpill{background:var(--bg);border:1px solid var(--border);color:var(--sec-fg);border-radius:999px;padding:7px 13px;font-size:14px;font-weight:500;white-space:nowrap}
+
+  .body{padding:16px 20px 24px;display:flex;flex-direction:column;gap:20px}
+  .card{background:var(--bg);border:1px solid var(--border);border-radius:12px}
+  .hero .pad{padding:16px}
+  .hero .addr{font-size:14px;color:var(--muted)}
+  .hero .rowb{display:flex;align-items:flex-end;justify-content:space-between;margin-top:8px}
+  .phonepill{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:var(--accent-fg);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:500}
+  .phonepill svg{width:14px;height:14px}
+  .balk{font-size:12px;color:var(--muted);text-align:right}
+  .balv{font-size:20px;font-weight:700;text-align:right;margin-top:1px}
+
+  .checkin{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--green);border-radius:12px;padding:13px;color:#fff;font-size:15px;font-weight:600}
+  .checkin svg{width:18px;height:18px}
+
+  .actions{display:flex;gap:10px}
+  .act{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;border-radius:12px;padding:14px 6px}
+  .act svg{width:20px;height:20px}.act .t{font-size:13px;font-weight:600}
+  .act.blue{background:var(--primary);color:#fff}
+  .act.acc{background:var(--accent);color:var(--accent-fg)}
+  .act.surface{background:var(--bg);border:1px solid var(--border);color:var(--sec-fg)}
+  .act .rupee{font-size:19px;font-weight:700;line-height:20px}
+
+  .sect{display:flex;flex-direction:column;gap:8px}
+  .stitle{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+  .orow{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px}
+  .orow .r1{display:flex;align-items:center;justify-content:space-between}
+  .orow .code{font-size:15px;font-weight:600;color:var(--fg)}
+  .chip{border-radius:999px;padding:4px 10px;font-size:12px;font-weight:500}
+  .chip.green{background:var(--green-100);color:var(--green-700)}
+  .chip.amber{background:var(--amber-100);color:var(--amber-800)}
+  .orow .meta{margin-top:4px;font-size:12px;color:var(--muted)}
+  .empty{text-align:center;font-size:14px;color:var(--muted);padding:22px 0}
+  .dashed{display:flex;flex-direction:column;align-items:center;border:1px dashed var(--border);border-radius:12px;background:var(--bg);padding:30px 16px;text-align:center}
+  .dashed svg{width:30px;height:30px;color:var(--faint)}
+  .dashed .t{margin-top:8px;font-size:14px;color:var(--muted);max-width:230px}
+
+  .foot{margin-top:28px;color:var(--pg-muted);font-size:13px;text-align:center;max-width:58ch;line-height:1.55}
+  .foot b{color:var(--pg-ink)}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="io-call" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5 4.2 3.8A1.8 1.8 0 0 0 2.6 6a17 17 0 0 0 15.4 15.4 1.8 1.8 0 0 0 2.2-1.6l.3-2.3a1.6 1.6 0 0 0-1-1.7l-2.7-1.1a1.6 1.6 0 0 0-1.8.4l-1 1.1A13 13 0 0 1 8.3 9l1.1-1a1.6 1.6 0 0 0 .4-1.8L8.7 3.5a1.6 1.6 0 0 0-2.2-.9z"/></g>
+  <g id="io-loc" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.6"/></g>
+  <g id="io-cart" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M3 4h2l2 12h11l2-9H6.5"/></g>
+  <g id="io-cam" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></g>
+  <g id="io-wifi" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a10 10 0 0 1 14 0M8 15.5a6 6 0 0 1 8 0"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/></g>
+  <g id="io-sig" fill="currentColor"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="7" y="6" width="3" height="9" rx="1"/><rect x="12" y="3" width="3" height="12" rx="1"/></g>
+</defs></svg>
+
+<div class="wrap">
+  <div class="head">
+    <span class="kicker">Sri Aparajita SE · Screen 2 · Customer detail</span>
+    <h1>Customer detail</h1>
+    <p>Concept mock, <b>no app code changed</b> — reproduced from the screen’s source, on the Home grey ground. Contact + balance, a green Check-in, the three action tiles, then recent history.</p>
+  </div>
+
+  <div class="phone"><div class="screen">
+    <div class="sb"><span>4:20</span><span class="r"><svg><use href="#io-sig"/></svg><svg><use href="#io-wifi"/></svg><span class="bat"><i></i></span></span></div>
+
+    <div class="hdr">
+      <span class="back">‹</span>
+      <div style="flex:1;min-width:0"><div class="nm">Saleem</div><div class="cd">CUST-0004</div></div>
+      <span class="editpill">✎ Edit</span>
+    </div>
+
+    <div class="body">
+      <div class="card hero"><div class="pad">
+        <div class="addr">Near bus stand, Yellandu</div>
+        <div class="rowb">
+          <span class="phonepill"><svg><use href="#io-call"/></svg>+91 99494 47628</span>
+          <div><div class="balk">Balance</div><div class="balv" style="color:var(--red)">₹4,720</div></div>
+        </div>
+      </div></div>
+
+      <div class="checkin"><svg><use href="#io-loc"/></svg>Check in</div>
+
+      <div class="actions">
+        <div class="act blue"><svg><use href="#io-cart"/></svg><span class="t">Add order</span></div>
+        <div class="act acc"><span class="rupee">₹</span><span class="t">Collect</span></div>
+        <div class="act surface"><svg><use href="#io-cam"/></svg><span class="t">Market</span></div>
+      </div>
+
+      <div class="sect">
+        <div class="stitle">Last 5 orders</div>
+        <div class="orow"><div class="r1"><span class="code">ORD-0007</span><span class="chip green">Approved</span></div><div class="meta">26 Jul · 4.5 L</div></div>
+        <div class="orow"><div class="r1"><span class="code">ORD-0005</span><span class="chip amber">Pending</span></div><div class="meta">21 Jul · 12 L</div></div>
+      </div>
+
+      <div class="sect">
+        <div class="stitle">Last 5 collections</div>
+        <div class="empty">No collections recorded yet.</div>
+      </div>
+
+      <div class="sect">
+        <div class="stitle">Market intelligence</div>
+        <div class="dashed"><svg><use href="#io-cam"/></svg><div class="t">No photos yet. Capture shelves, competitor stock or the storefront.</div></div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="foot"><b>Screen 2 · Customer detail</b> — pushed screen (back arrow, no bottom nav). On the Home grey ground. Approve and I’ll do New order next.</div>
+</div>

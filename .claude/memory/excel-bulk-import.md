@@ -1,0 +1,22 @@
+---
+name: excel-bulk-import
+description: "Excel download-template + upload-review bulk import for Products (new products) and Stock-in/Opening (quantities); shared xlsx-io + import-ui; plan docs/EXCEL-BULK-IMPORT-PLAN.md. 2026-11-06 import-UI relocation: stock 'Add items' bar + Download-template button REMOVED; Import moved to a ⋮ page-header kebab (stock-in+opening only); Products review shows amber pack SIZES not count. UNCOMMITTED"
+metadata:
+  node_type: memory
+  type: project
+  originSessionId: dca6a78c-d107-4ed8-971e-085a2787a64d
+  modified: 2026-11-05T21:20:00.385Z
+---
+
+**Excel bulk import** — clients download a predefined `.xlsx`, fill it, upload it back. Two places (plan: `docs/EXCEL-BULK-IMPORT-PLAN.md`):
+
+- **Products** (new products): one-row-per-pack template (rows sharing Name+Brand merge into one product) + a Reference sheet (valid brands/segments) + example rows (one litres, one quantity). Upload → parse → **review dialog** (per-row validate: name, 8-digit HSN, segments, packs) → **Confirm** → new **`POST /products/bulk`** (set-based atomic insert; per-row errors for invalid / dup-in-file / already-in-catalogue). API 100% line coverage.
+- **Stock-in & Opening**: template is **pre-filled from the catalogue** (`listSkus`) with a **hidden `SKU ID` column** (`productId|packSize`) for exact mapping; stock-in is **brand-filtered** (download after picking the supplier brand), Opening lists all SKUs. Upload → parse (blank-qty rows skipped, resolved by SKU ID) → review → **Confirm loads valid rows into the existing entry grid** → client Posts as usual. **No new stock API** — reuses `POST /grn` and `/opening`.
+
+**Shared code:** `apps/web/src/lib/xlsx-io.ts` (SheetJS **dynamically imported** so it stays out of the main bundle; `downloadSheets` with hidden-column support, `readSheetRows`); `features/stock/stock-import.ts` (mode-aware `stock_in`|`opening` builder+parser); `features/products/products-import.ts`; `components/import-ui.tsx` (shared dropzone + summary chips + status badges + 1·2·3 helper → all three dialogs look identical).
+
+**UI/UX polish (approved via an Artifact mockup first):** drag-and-drop dropzone, summary chips, status badges + tinted error rows, "Parsing…" state, in-dialog "Download template" link; Products ⋮ menu split into **Bulk import / Export** groups; stock panels got a framed **"Add items"** bar with a scope-aware **Download template · <brand>** pill.
+
+**Import-UI relocation (2026-11-06, user-driven, verified live):** the stock entry screens' framed **"Add items" bar was removed entirely** (product search now sits directly under the Items heading); the page-level **"Download template" button was dropped**; **"Import from Excel" moved into a ⋮ kebab in the PAGE HEADER** (top-right) — on **stock-in + opening only** (not transfer/adjust). Wiring: a header-action slot in `stock-entry.tsx` (`onHeaderAction` → `PageHeader action`), and the old `AddItemsBar` became a self-contained `ImportMenu` (Popover kebab) that each panel registers via `useEffect` (`useCallback`'d onLoad for stable deps). On **stock-in the Import item is disabled** ("Pick a supplier brand first.") **until a supplier brand is chosen** (import is brand-scoped); the item re-enables when the brand changes (React reconciles the re-registered `ImportMenu` by type at the same slot). The **template download now lives ONLY inside the import dialog** (the ImportSteps link). **Products review dialog:** the Packs column shows pack **SIZES** (`1L, 4L` — comma-separated, no space before L, **amber**) instead of a count; **MRP/MOP/DLP not shown** (user pref). `features/stock/stock-entry.tsx`, `stock-entry-panels.tsx`, `features/products/products-import-dialog.tsx`.
+
+**Gotchas:** SheetJS community edition can't write Excel data-validation dropdowns (Reference sheet lists values instead). The review dialog must mount only when open (it calls `useQueryClient()`) or it breaks tests that render the table without a provider. The desktop browser pane **blocks setting `input.files` programmatically** (and synthetic `drop`) — to verify an upload live, copy the `.xlsx` into `apps/web/public/` and `fetch()` it in-page to build a `File` (worked; remember to delete the temp public file after). Verified end-to-end live (no prod inserts — used existing-name/dup rows). **UNCOMMITTED, web-only, not deployed.** Builds on [[stock-entry-pages-redesign]], [[searchable-dropdown-rollout]]; see [[stock-quantity-products]], [[stock-per-batch-rate-costing]], [[local-dev-uses-live-prod]].

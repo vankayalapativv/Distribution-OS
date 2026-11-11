@@ -1,0 +1,53 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sri-aparajita-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-03",
+  // global_fetch_strictly_public: make fetch() to our MCP Worker (and any other
+  // same-account workers.dev host) go out to the public edge instead of being
+  // routed internally, which otherwise fails Worker-to-Worker. Needed by the
+  // Settings → MCP page's server-to-server call to the MCP admin API.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // PostHog error tracking (exceptions only). The project token is the PUBLIC
+  // ingestion key — safe to commit, not a secret.
+  "vars": {
+    "POSTHOG_PROJECT_TOKEN": "phc_pYEtGskjBGvMwCHivmsrMtKFkAxuWFyHbeUjicf2udUE",
+    "POSTHOG_HOST": "https://eu.i.posthog.com",
+    "MCP_SERVER_ORIGIN": "https://sri-aparajita-mcp.vardhansystems.workers.dev"
+  },
+  // "vars": {
+  //   "MY_VAR": "my-variable"
+  // },
+  // "kv_namespaces": [
+  //   {
+  //     "binding": "MY_KV_NAMESPACE",
+  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  //   }
+  // ],
+  // Customer/market-intelligence photos. Local dev simulates R2 automatically;
+  // for production run: wrangler r2 bucket create sri-aparajita-photos
+  "r2_buckets": [
+    {
+      "binding": "PHOTOS",
+      "bucket_name": "sri-aparajita-photos"
+    }
+  ],
+  "triggers": {
+    // */3 → tracking/dues/notification maintenance. 30 15 → 9 PM IST client reports.
+    "crons": ["*/3 * * * *"]
+  },
+  // "d1_databases": [
+  //   {
+  //     "binding": "MY_DB",
+  //     "database_name": "my-database",
+  //     "database_id": ""
+  //   }
+  // ],
+  // "ai": {
+  //   "binding": "AI"
+  // },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}

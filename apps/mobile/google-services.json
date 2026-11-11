@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "19436249294",
+    "project_id": "sri-aparajitha-enterprise",
+    "storage_bucket": "sri-aparajitha-enterprise.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:19436249294:android:510a3981b75c3648d1b09f",
+        "android_client_info": {
+          "package_name": "com.vardhansystems.sriaparajita"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi63uLZjhJdsLL0BV6OQADC9IpnjfcAKo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

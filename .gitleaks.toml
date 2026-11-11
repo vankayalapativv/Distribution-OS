@@ -1,0 +1,17 @@
+# gitleaks config for the CI secret-scan gate (.github/workflows/ci.yml).
+# Extends the default ruleset and allowlists known NON-secrets so the gate only
+# fires on real leaks. Add new entries here (not by weakening the scan) when a
+# genuine false positive appears.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known non-secrets: Firebase client config + unit-test fixtures"
+paths = [
+  # Firebase/Google services CLIENT config. The "api key" it carries is a public
+  # client identifier shipped in the app bundle, not a secret.
+  '''apps/mobile/google-services\.json''',
+  # Fake keys used only as unit-test fixtures.
+  '''apps/api/src/lib/web-push\.test\.ts''',
+  '''apps/mcp/src/map-links\.test\.ts''',
+]

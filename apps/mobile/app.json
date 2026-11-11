@@ -1,0 +1,118 @@
+{
+  "expo": {
+    "name": "Sri Aparajitha Enterprise",
+    "slug": "sri-aparajita-automobiles-and-lubricants",
+    "version": "1.1.2",
+    "orientation": "default",
+    "icon": "./assets/images/icon.png",
+    "scheme": "mobile",
+    "userInterfaceStyle": "light",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/558ffdd7-f55c-46e5-80f3-c2cba5a9c201",
+      "fallbackToCacheTimeout": 0
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.WAKE_LOCK",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.vardhansystems.sriaparajita",
+      "googleServicesFile": "./google-services.json"
+    },
+    "ios": {
+      "bundleIdentifier": "com.vardhansystems.sriaparajita",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "./plugins/withAndroidAbiFilter",
+      "./plugins/withNativeTracking",
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 240
+        }
+      ],
+      "expo-secure-store",
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "isAndroidBackgroundLocationEnabled": true,
+          "locationAlwaysAndWhenInUsePermission": "Sri Aparajita records your route during your work day, from Start Day to End Day.",
+          "locationAlwaysPermission": "Sri Aparajita records your route during your work day, from Start Day to End Day.",
+          "locationWhenInUsePermission": "Sri Aparajita uses your location for visit check-ins."
+        }
+      ],
+      "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Sri Aparajita uses the camera to photograph customer shops and shelves.",
+          "photosPermission": "Sri Aparajita uploads photos you choose for customer records."
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "@maplibre/maplibre-react-native",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#1a3a6b",
+          "defaultChannel": "reminders"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keep class com.vardhansystems.sriaparajita.tracking.** { *; }\n-keep class * extends androidx.work.ListenableWorker { *; }\n-keep class * extends com.facebook.react.ReactPackage { *; }\n-keep class expo.modules.adapters.react.apploader.** { *; }\n-keep class expo.modules.apploader.** { *; }\n-keep class expo.modules.taskManager.** { *; }"
+          }
+        }
+      ],
+      "expo-localization"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "558ffdd7-f55c-46e5-80f3-c2cba5a9c201"
+      }
+    },
+    "owner": "vardhansystems_support"
+  }
+}

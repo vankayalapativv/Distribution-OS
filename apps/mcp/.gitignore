@@ -1,0 +1,3 @@
+.wrangler
+# Test coverage output (fed to SonarCloud, not committed)
+coverage/

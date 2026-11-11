@@ -1,0 +1,43 @@
+{
+  "name": "sri-aparajita-distribution-os",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "dev": "turbo run dev --filter=!@sri-aparajita/mcp",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "dev:web": "turbo run dev --filter=@sri-aparajita/web",
+    "dev:api": "turbo run dev --filter=@sri-aparajita/api",
+    "dev:mcp": "turbo run dev --filter=@sri-aparajita/mcp",
+    "dev:mobile": "pnpm --filter @sri-aparajita/mobile web",
+    "setup": "pnpm --filter @sri-aparajita/db run setup",
+    "check:cycles": "node scripts/check-cycles.mjs apps/api/src",
+    "sonar": "sonar-scanner -Dsonar.scanner.skipJreProvisioning=false",
+    "prepare": "husky",
+    "test:coverage": "turbo run test:coverage"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "turbo": "latest",
+    "typescript": "latest"
+  },
+  "pnpm": {
+    "overrides": {
+      "ws@>=8.0.0 <9": ">=8.21.0",
+      "undici@>=7.0.0 <8": ">=7.29.0",
+      "nanoid@>=3.0.0 <4": ">=3.3.18",
+      "postcss": ">=8.5.18",
+      "browserslist": ">=4.28.7",
+      "fast-uri": ">=3.1.6",
+      "js-yaml@>=4.0.0 <5": ">=4.3.1",
+      "ip-address": ">=10.3.1",
+      "sharp": ">=0.35.4",
+      "@xmldom/xmldom@>=0.8.0 <0.9": ">=0.8.15",
+      "@xmldom/xmldom@>=0.9.0-beta.1 <0.10": ">=0.9.12",
+      "maplibre-gl": "^6.4.1"
+    }
+  }
+}

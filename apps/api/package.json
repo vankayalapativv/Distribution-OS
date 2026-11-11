@@ -1,0 +1,31 @@
+{
+  "name": "@sri-aparajita/api",
+  "type": "module",
+  "scripts": {
+    "dev": "WRANGLER_LOG_PATH=../../.wrangler-logs wrangler dev --env-file ../../.env",
+    "build": "WRANGLER_LOG_PATH=../../.wrangler-logs wrangler deploy --dry-run --outdir dist",
+    "deploy": "wrangler deploy --minify",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@sri-aparajita/shared": "workspace:*",
+    "hono": "^4.13.8",
+    "jspdf": "4.2.1",
+    "jspdf-autotable": "5.0.8",
+    "qrcode": "1.5.4",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260710.1",
+    "@types/qrcode": "1.5.6",
+    "@vitest/coverage-v8": "4.1.10",
+    "oxlint": "^1.83.0",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.136.0"
+  }
+}

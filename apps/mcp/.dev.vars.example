@@ -1,0 +1,6 @@
+REPLICA_DATABASE_URL='postgresql://<user>:<pw>@<neon-read-replica-pooled-host>/<db>?sslmode=require'
+MCP_PASSPHRASE='choose-a-strong-passphrase'
+MAP_SIGNING_SECRET='random-32-byte-hex-for-map-link-hmac'
+# Shared bearer secret for the /admin/* API (apps/api calls it on behalf of
+# Settings → MCP). Must match MCP_ADMIN_SECRET set on apps/api.
+MCP_ADMIN_SECRET='random-long-shared-admin-secret'

@@ -1,0 +1,19 @@
+node_modules
+.agents
+.env
+.env.*
+!.env.example
+# Turborepo
+.turbo
+.wrangler-logs
+# Ignore local .claude config, but keep the committed memory (Claude Code memory
+# lives in .claude/memory/, symlinked from ~/.claude so it travels with the repo).
+.claude/*
+!.claude/memory/
+
+# Wrangler local secrets
+.dev.vars
+**/.dev.vars
+
+.idea
+.scannerwork

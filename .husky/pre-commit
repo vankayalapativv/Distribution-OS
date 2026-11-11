@@ -1,0 +1,3 @@
+# Guard the import-cycle invariant before every commit (audit G-0204/G-0202).
+# Fast + green; the full lint/test suite runs in CI (G-0201).
+pnpm check:cycles

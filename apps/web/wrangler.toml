@@ -1,0 +1,38 @@
+# Web dashboard deployed as a Cloudflare Worker (NOT Pages) via OpenNext.
+# Why Worker: OpenNext sets run_worker_first=false, which requires the
+# Workers + [assets] binding model to serve static assets before the worker.
+name = "sri-aparajita-web"
+main = ".open-next/worker.js"
+compatibility_date = "2026-07-03"
+compatibility_flags = ["nodejs_compat"]
+
+# Custom domain for the Sri Aparajitha web dashboard. Cloudflare provisions the
+# DNS record + TLS cert automatically (the vardhansystems.in zone is on this
+# account). Separate from Beyond's bdms.vardhansystems.in.
+routes = [
+  { pattern = "sriaparajita.vardhansystems.in", custom_domain = true },
+]
+
+[vars]
+# Public URL of the deployed API. Kept as a plaintext var (not a secret) so
+# OpenNext reliably injects it into process.env at runtime — the login route
+# and server-side API calls read process.env.SRI_APARAJITA_API_BASE_URL.
+SRI_APARAJITA_API_BASE_URL = "https://sri-aparajita-api.vardhansystems.workers.dev/api/v1"
+# Neon Managed Auth REST base (public endpoint, not a secret).
+NEON_AUTH_BASE_URL = "https://ep-proud-forest-b3snqhvr.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth"
+# Origin sent to Neon for SUPER_ADMIN sign-in; must be in Neon's trusted-domains
+# list (this domain was added to Neon Auth trusted domains 2026-09-20).
+NEON_AUTH_WEB_ORIGIN = "https://sriaparajita.vardhansystems.in"
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+run_worker_first = false
+
+# Private Worker-to-Worker channel to the API worker. A public fetch to the
+# API's *.workers.dev URL fails with Cloudflare error 1042 (a Worker may not
+# fetch another Worker on the same account over workers.dev), so all
+# server-side API calls go through this binding instead.
+[[services]]
+binding = "API"
+service = "sri-aparajita-api"

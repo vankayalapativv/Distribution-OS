@@ -1,0 +1,11 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Allow these dependencies to run their install/build scripts (pnpm 10 blocks
+# postinstall by default). esbuild + workerd are needed for the wrangler dev
+# server; unrs-resolver is a native oxc resolver used by tooling.
+onlyBuiltDependencies:
+  - esbuild
+  - workerd
+  - unrs-resolver

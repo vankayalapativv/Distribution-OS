@@ -73,9 +73,6 @@ export const INFO_TABS: {
             label="Credit Days"
             value={customer.creditDays > 0 ? `${customer.creditDays} days` : null}
           />
-          <Field label="Payment Status" value={customer.paymentStatus} />
-          <Field label="KYC Status" value={customer.kycStatus} />
-          <Field label="Approval Status" value={customer.approvalStatus} />
         </InfoCard>
       </div>
     ),

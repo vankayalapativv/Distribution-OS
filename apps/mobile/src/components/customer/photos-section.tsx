@@ -1,8 +1,10 @@
 import { Image } from "expo-image";
+import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useDialog } from "../dialog";
 import { Icon } from "../icon";
 import { PhotoShimmer } from "../photo-shimmer";
+import { PhotoZoomViewer } from "../photo-zoom-viewer";
 import { Skeleton } from "../skeleton";
 import { API_BASE_URL } from "../../lib/api";
 import type { PhotosState } from "../../lib/customer/use-photos";
@@ -20,6 +22,8 @@ export function PhotosSection({
   const dialog = useDialog();
   const { query, uploading, uploadError, onDelete } = state;
   const photos = query.data ?? [];
+  const [viewerUri, setViewerUri] = useState<string | null>(null);
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : undefined;
   return (
     <View className="gap-2">
       <View className="flex-row items-center gap-2">
@@ -49,15 +53,17 @@ export function PhotosSection({
           {uploading ? <PhotoShimmer width={104} height={104} radius={12} /> : null}
           {photos.map((photo) => (
             <View key={photo.id} className="relative">
-              <Image
-                source={{
-                  uri: `${API_BASE_URL}/photos/${photo.id}`,
-                  headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-                }}
-                contentFit="cover"
-                transition={150}
-                style={{ width: 104, height: 104, borderRadius: 12, backgroundColor: "#f3f4f6" }}
-              />
+              <Pressable
+                onPress={() => setViewerUri(`${API_BASE_URL}/photos/${photo.id}`)}
+                accessibilityLabel="View photo"
+              >
+                <Image
+                  source={{ uri: `${API_BASE_URL}/photos/${photo.id}`, headers: authHeaders }}
+                  contentFit="cover"
+                  transition={150}
+                  style={{ width: 104, height: 104, borderRadius: 12, backgroundColor: "#f3f4f6" }}
+                />
+              </Pressable>
               <Pressable
                 className="absolute -right-1.5 -top-1.5 h-6 w-6 items-center justify-center rounded-full bg-destructive"
                 hitSlop={6}
@@ -81,6 +87,7 @@ export function PhotosSection({
           ))}
         </View>
       ); })()}
+      {viewerUri ? <PhotoZoomViewer uri={viewerUri} headers={authHeaders} onClose={() => setViewerUri(null)} /> : null}
     </View>
   );
 }

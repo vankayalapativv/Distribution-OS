@@ -1,8 +1,10 @@
 import { Image } from "expo-image";
+import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useDialog } from "../../dialog";
 import { Icon } from "../../icon";
 import { PhotoShimmer } from "../../photo-shimmer";
+import { PhotoZoomViewer } from "../../photo-zoom-viewer";
 import { Skeleton } from "../../skeleton";
 import { API_BASE_URL } from "../../../lib/api";
 import type { EditPhotos } from "../../../lib/customer/use-edit-photos";
@@ -17,6 +19,8 @@ export function CustomerPhotosEditor({
 }) {
   const dialog = useDialog();
   const { query, photoBusy, onAddPhotos, onDeletePhoto } = photos;
+  const [viewerUri, setViewerUri] = useState<string | null>(null);
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : undefined;
   return (
     <View className="gap-1">
       <Text className="text-sm font-medium text-foreground">Customer photos</Text>
@@ -44,15 +48,17 @@ export function CustomerPhotosEditor({
           {photoBusy ? <PhotoShimmer width={88} height={88} radius={10} /> : null}
           {(query.data ?? []).map((photo) => (
             <View key={photo.id} className="relative">
-              <Image
-                source={{
-                  uri: `${API_BASE_URL}/photos/${photo.id}`,
-                  headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-                }}
-                contentFit="cover"
-                transition={150}
-                style={{ width: 88, height: 88, borderRadius: 10, backgroundColor: "#f3f4f6" }}
-              />
+              <Pressable
+                onPress={() => setViewerUri(`${API_BASE_URL}/photos/${photo.id}`)}
+                accessibilityLabel="View photo"
+              >
+                <Image
+                  source={{ uri: `${API_BASE_URL}/photos/${photo.id}`, headers: authHeaders }}
+                  contentFit="cover"
+                  transition={150}
+                  style={{ width: 88, height: 88, borderRadius: 10, backgroundColor: "#f3f4f6" }}
+                />
+              </Pressable>
               <Pressable
                 className="absolute -right-1.5 -top-1.5 h-6 w-6 items-center justify-center rounded-full bg-destructive"
                 hitSlop={6}
@@ -84,6 +90,7 @@ export function CustomerPhotosEditor({
       ); return (
         <Text className="text-xs text-muted-foreground">No customer photos yet.</Text>
       ); })()}
+      {viewerUri ? <PhotoZoomViewer uri={viewerUri} headers={authHeaders} onClose={() => setViewerUri(null)} /> : null}
     </View>
   );
 }

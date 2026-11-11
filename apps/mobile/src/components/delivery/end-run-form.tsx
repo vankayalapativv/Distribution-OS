@@ -55,7 +55,8 @@ export function EndRunForm(p: Readonly<EndRunFormProps>) {
           <Pressable className="flex-1 items-center rounded-full border border-border bg-card py-3.5" disabled={p.busy} onPress={p.onBack}>
             <Text className="text-base font-semibold text-secondary-foreground">Back</Text>
           </Pressable>
-          <Pressable className={`flex-[2] items-center rounded-full border border-destructive bg-red-50 py-3.5 ${p.busy ? "opacity-50" : ""}`} disabled={p.busy} onPress={p.onSubmit}>
+          {/* Blocked while the closing meter photo is still being prepared (stamping). */}
+          <Pressable className={`flex-[2] items-center rounded-full border border-destructive bg-red-50 py-3.5 ${p.busy || p.stamping ? "opacity-50" : ""}`} disabled={p.busy || p.stamping} onPress={p.onSubmit}>
             {p.busy ? <ActivityIndicator color="#dc2626" /> : <Text className="text-base font-bold text-destructive">End Deliveries</Text>}
           </Pressable>
         </View>

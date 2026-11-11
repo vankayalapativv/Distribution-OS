@@ -1,10 +1,13 @@
 import { Image } from "expo-image";
+import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { addressLine, type DeliverableInvoice } from "../../lib/deliverable-invoice";
 import { type PickedPhoto } from "../../lib/photos";
 import { useBottomInset } from "../../lib/use-bottom-inset";
 import { ErrorBanner } from "../error-banner";
+import { PhotoShimmer } from "../photo-shimmer";
+import { PhotoZoomViewer } from "../photo-zoom-viewer";
 
 export interface DeliveryConfirmProps {
   invoice: DeliverableInvoice;
@@ -21,6 +24,7 @@ export interface DeliveryConfirmProps {
 export function DeliveryConfirm(p: Readonly<DeliveryConfirmProps>) {
   const addr = addressLine(p.invoice);
   const bottomPad = useBottomInset();
+  const [viewerUri, setViewerUri] = useState<string | null>(null);
   return (
     <SafeAreaView className="flex-1 bg-secondary" edges={["top"]}>
       <View className="flex-row items-center gap-3 border-b border-border px-5 py-4">
@@ -44,28 +48,31 @@ export function DeliveryConfirm(p: Readonly<DeliveryConfirmProps>) {
           <View className="flex-row flex-wrap gap-2">
             {p.photos.map((ph, i) => (
               <View key={ph.uri} className="relative">
-                <Image source={{ uri: ph.uri }} style={{ width: 84, height: 84, borderRadius: 11 }} contentFit="cover" />
+                <Pressable onPress={() => setViewerUri(ph.uri)} accessibilityLabel="View photo">
+                  <Image source={{ uri: ph.uri }} style={{ width: 84, height: 84, borderRadius: 11 }} contentFit="cover" />
+                </Pressable>
                 <Pressable className="absolute -right-1.5 -top-1.5 h-6 w-6 items-center justify-center rounded-full bg-destructive" hitSlop={6} onPress={() => p.onRemovePhoto(i)}>
                   <Text className="text-xs font-bold text-white">✕</Text>
                 </Pressable>
               </View>
             ))}
+            {/* Shimmer tile for the photo being prepared now — same slot/size as a real tile. */}
+            {p.stamping ? <PhotoShimmer width={84} height={84} radius={11} /> : null}
           </View>
           <Pressable className={`mt-2 flex-row items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3 ${p.stamping ? "opacity-50" : ""}`} disabled={p.stamping} onPress={p.onAddPhoto}>
-            {p.stamping ? (
-              <><ActivityIndicator size="small" /><Text className="text-sm font-semibold text-secondary-foreground">Adding photo…</Text></>
-            ) : (
-              <Text className="text-sm font-semibold text-secondary-foreground">Take photo</Text>
-            )}
+            <Text className="text-sm font-semibold text-secondary-foreground">Take photo</Text>
           </Pressable>
         </View>
       </ScrollView>
       <View className="border-t border-border bg-card px-5 pt-3" style={{ paddingBottom: bottomPad }}>
         {p.error ? <ErrorBanner message={p.error} className="mb-2" /> : null}
-        <Pressable className={`items-center rounded-full bg-primary py-3.5 ${p.busy ? "opacity-50" : ""}`} disabled={p.busy} onPress={p.onSave}>
+        {/* Blocked while a photo is still being prepared (stamping) so it can't be
+            saved before the proof photo is ready. */}
+        <Pressable className={`items-center rounded-full bg-primary py-3.5 ${p.busy || p.stamping ? "opacity-50" : ""}`} disabled={p.busy || p.stamping} onPress={p.onSave}>
           {p.busy ? <ActivityIndicator color="#fff" /> : <Text className="text-base font-semibold text-primary-foreground">Save delivery</Text>}
         </Pressable>
       </View>
+      {viewerUri ? <PhotoZoomViewer uri={viewerUri} onClose={() => setViewerUri(null)} /> : null}
     </SafeAreaView>
   );
 }

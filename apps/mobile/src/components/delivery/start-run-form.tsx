@@ -56,7 +56,8 @@ export function StartRunForm(p: Readonly<StartRunFormProps>) {
       </KeyboardAwareScrollView>
       <View className="border-t border-border bg-card px-5 pt-3" style={{ paddingBottom: bottomPad }}>
         {p.error ? <ErrorBanner message={p.error} className="mb-2" /> : null}
-        <Pressable className={`items-center rounded-full bg-primary py-3.5 ${p.busy ? "opacity-50" : ""}`} disabled={p.busy} onPress={p.onSubmit}>
+        {/* Blocked while the meter photo is still being prepared (stamping). */}
+        <Pressable className={`items-center rounded-full bg-primary py-3.5 ${p.busy || p.stamping ? "opacity-50" : ""}`} disabled={p.busy || p.stamping} onPress={p.onSubmit}>
           {p.busy ? <ActivityIndicator color="#fff" /> : <Text className="text-base font-semibold text-primary-foreground">Start Deliveries</Text>}
         </Pressable>
       </View>

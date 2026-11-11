@@ -13,7 +13,16 @@ const MAX_SCALE = 5;
  * `Modal` renders in a separate native view tree that the app-root provider
  * does not cover.
  */
-export function PhotoZoomViewer({ uri, onClose }: { readonly uri: string; readonly onClose: () => void }) {
+export function PhotoZoomViewer({
+  uri,
+  headers,
+  onClose,
+}: {
+  readonly uri: string;
+  /** Optional auth headers for a server-hosted image (e.g. an authed photo URL). */
+  readonly headers?: Record<string, string>;
+  readonly onClose: () => void;
+}) {
   const { width, height } = useWindowDimensions();
 
   const scale = useSharedValue(1);
@@ -78,7 +87,7 @@ export function PhotoZoomViewer({ uri, onClose }: { readonly uri: string; readon
             <Animated.View style={{ flex: 1 }}>
               <Animated.View style={[{ flex: 1 }, imageStyle]}>
                 <Image
-                  source={{ uri }}
+                  source={{ uri, headers }}
                   style={{ width, height }}
                   contentFit="contain"
                   transition={100}

@@ -9,6 +9,7 @@ import {
   listEnterprises,
   rejectEnterprise,
   resolvePlatformOwner,
+  updateEnterprisePricing,
 } from "../services/platform-admin";
 import type { ApiEnv } from "../types";
 
@@ -37,6 +38,18 @@ export const platformAdminRoutes = new Hono<ApiEnv>()
     const ownerId = await resolvePlatformOwner(sql, externalUserId);
     const body = await readJsonObject(c);
     const result = await approveEnterprise(sql, ownerId, c.req.param("id"), {
+      model: requiredString(body, "model") as "per_seat" | "flat",
+      amountPaisa: requiredNumber(body, "amountPaisa"),
+      gstRateBp: optionalNumber(body, "gstRateBp") ?? undefined,
+    });
+    return c.json(success(c, result));
+  })
+  .post("/enterprises/:id/pricing", async (c) => {
+    const { externalUserId } = requireNeonIdentity(c);
+    const sql = getOwnerSqlClient(c);
+    const ownerId = await resolvePlatformOwner(sql, externalUserId);
+    const body = await readJsonObject(c);
+    const result = await updateEnterprisePricing(sql, ownerId, c.req.param("id"), {
       model: requiredString(body, "model") as "per_seat" | "flat",
       amountPaisa: requiredNumber(body, "amountPaisa"),
       gstRateBp: optionalNumber(body, "gstRateBp") ?? undefined,

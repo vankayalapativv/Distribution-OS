@@ -21,6 +21,7 @@ interface Detail extends Ent {
   godowns?: Array<{ name: string; city?: string; state?: string; stateCode?: string }>;
   duesBands?: Array<{ ordinal: number; fromDays: number; toDays: number | null; label: string }>;
   invoiceSeries?: { prefix: string; finYear: string; nextSeq: number } | null;
+  billing?: { model: string | null; unitAmountPaisa: number | null; flatAmountPaisa: number | null; gstRateBp?: number } | null;
 }
 
 const TABS = [
@@ -65,19 +66,25 @@ export function OwnerCockpit({ initial }: { initial: Ent[] }) {
   useEffect(() => { void load(tab); }, [tab, load]);
 
   async function openDetail(id: string) {
-    setErr(null); setReason(""); setAmount("708"); setModel("per_seat");
+    setErr(null); setReason("");
     const res = await fetch(`/api/platform/${id}`, { cache: "no-store" });
     const b = (await res.json()) as { data?: Detail };
-    setDetail(b.data ?? null);
+    const d = b.data ?? null;
+    setDetail(d);
+    // Prefill the price editor from the enterprise's current config (pending → defaults).
+    const m = d?.billing?.model === "flat" ? "flat" : "per_seat";
+    setModel(m);
+    const paisa = m === "flat" ? d?.billing?.flatAmountPaisa : d?.billing?.unitAmountPaisa;
+    setAmount(paisa != null ? String(paisa / 100) : "708");
     setOpen(true);
   }
 
-  async function act(action: "approve" | "reject") {
+  async function act(action: "approve" | "reject" | "pricing") {
     if (!detail) return;
     setBusy(true); setErr(null);
-    const payload = action === "approve"
-      ? { action, model, amountPaisa: Math.round(Number(amount) * 100) }
-      : { action, reason };
+    const payload = action === "reject"
+      ? { action, reason }
+      : { action, model, amountPaisa: Math.round(Number(amount) * 100) };
     try {
       const res = await fetch(`/api/platform/${detail.id}`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
@@ -234,11 +241,30 @@ export function OwnerCockpit({ initial }: { initial: Ent[] }) {
                     </Button>
                   </div>
                 </div>
+              ) : detail.status === "active" ? (
+                <div className="mt-4 border-t border-border pt-4">
+                  <div className="rounded-[8px] border border-border p-3.5 sm:max-w-sm">
+                    <div className="mb-2.5 text-[13px] font-bold">Edit price</div>
+                    <div className="mb-2.5 flex gap-1 rounded-md border border-border bg-secondary p-0.5 text-[12.5px]">
+                      {(["per_seat", "flat"] as const).map((m) => (
+                        <button key={m} onClick={() => setModel(m)} className={`flex-1 rounded px-2 py-1 font-medium ${model === m ? "bg-card shadow-sm" : "text-muted-foreground"}`}>
+                          {m === "per_seat" ? "Per user" : "Flat"}
+                        </button>
+                      ))}
+                    </div>
+                    <Label className="text-[12px]">Amount (₹ {model === "per_seat" ? "/ user / month" : "/ month"})</Label>
+                    <Input className="mt-1 font-mono" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" />
+                    <Button className="mt-3 w-full" onClick={() => act("pricing")} disabled={busy || !amount}>
+                      {busy ? "Saving…" : "Save price"}
+                    </Button>
+                    <p className="mt-2 text-[11.5px] leading-snug text-muted-foreground">
+                      Takes effect next cycle. A paid month never changes; an unpaid current month re-prices automatically.
+                    </p>
+                  </div>
+                </div>
               ) : (
                 <div className="mt-4 border-t border-border pt-4 text-[13px] text-muted-foreground">
-                  {detail.status === "active"
-                    ? `Approved · ${detail.billingModel === "per_seat" ? `${rupees(detail.unitAmountPaisa)} per user` : `${rupees(detail.flatAmountPaisa)} flat`} / month.`
-                    : "This enterprise was rejected."}
+                  This enterprise was rejected.
                 </div>
               )}
               </DialogBody>

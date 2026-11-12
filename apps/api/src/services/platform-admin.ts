@@ -110,6 +110,60 @@ export async function approveEnterprise(
   return { status: "active" };
 }
 
+interface PricingInput {
+  model: "per_seat" | "flat";
+  amountPaisa: number;
+  gstRateBp?: number;
+}
+
+/**
+ * Change an ALREADY-ACTIVE enterprise's price (model + amount). Pending enterprises
+ * are priced via approve, not here. Writes only `enterprise_billing_config` — it does
+ * NOT touch charges: a paid month never changes, and an unpaid current month re-prices
+ * itself to the new config on the next billing read (`syncPendingCharge`). So in
+ * practice the new price takes effect next cycle whenever the current month is paid.
+ * `gstRateBp` is optional — omitted, the enterprise's existing GST rate is kept.
+ */
+export async function updateEnterprisePricing(
+  sql: SqlClient,
+  ownerId: string,
+  id: string,
+  input: PricingInput,
+): Promise<{ model: "per_seat" | "flat"; unitAmountPaisa: number | null; flatAmountPaisa: number | null }> {
+  if (input.model !== "per_seat" && input.model !== "flat")
+    throw new ApiError("VALIDATION", "model must be per_seat or flat.", 422);
+  if (!Number.isFinite(input.amountPaisa) || input.amountPaisa <= 0)
+    throw new ApiError("VALIDATION", "A positive price (amountPaisa) is required.", 422);
+
+  const [ent] = (await sql`select status from enterprises where id = ${id} limit 1`) as Array<{ status: string }>;
+  if (!ent) throw new ApiError("NOT_FOUND", "Enterprise not found.", 404);
+  if (ent.status !== "active")
+    throw new ApiError("CONFLICT", "Only an active enterprise's price can be edited here.", 409);
+
+  const unit = input.model === "per_seat" ? Math.trunc(input.amountPaisa) : null;
+  const flat = input.model === "flat" ? Math.trunc(input.amountPaisa) : null;
+  const gst = Number.isFinite(input.gstRateBp) ? Math.trunc(input.gstRateBp as number) : null;
+
+  const [row] = (await sql`
+    /* platform_update_pricing */
+    insert into enterprise_billing_config
+      (enterprise_id, model, unit_amount_paisa, flat_amount_paisa, gst_rate_bp, currency, updated_by, updated_at)
+    values (${id}, ${input.model}, ${unit}, ${flat}, coalesce(${gst}, 1800), 'INR', ${ownerId}, now())
+    on conflict (enterprise_id) do update
+      set model = excluded.model,
+          unit_amount_paisa = excluded.unit_amount_paisa,
+          flat_amount_paisa = excluded.flat_amount_paisa,
+          gst_rate_bp = coalesce(${gst}, enterprise_billing_config.gst_rate_bp),
+          updated_by = excluded.updated_by, updated_at = now()
+    returning model, unit_amount_paisa as "unitAmountPaisa", flat_amount_paisa as "flatAmountPaisa"
+  `) as Array<Record<string, unknown>>;
+  return {
+    model: row.model === "flat" ? "flat" : "per_seat",
+    unitAmountPaisa: row.unitAmountPaisa == null ? null : Number(row.unitAmountPaisa),
+    flatAmountPaisa: row.flatAmountPaisa == null ? null : Number(row.flatAmountPaisa),
+  };
+}
+
 /** Reject a pending enterprise with a reason; the applicant can edit + resubmit. */
 export async function rejectEnterprise(
   sql: SqlClient,

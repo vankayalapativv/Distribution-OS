@@ -172,13 +172,15 @@ function req(value: unknown, field: string): string {
   return value.trim();
 }
 
-/** Validate every mandatory field (onboarding collects ALL, nothing optional). */
+/** Validate every mandatory field. GSTIN is the one optional field. */
 export function validateOnboarding(p: OnboardingPayload): OnboardingPayload {
   if (!p || typeof p !== "object") throw new ApiError("VALIDATION", "Onboarding data is required.", 422);
   req(p.admin?.name, "admin.name");
   req(p.admin?.designation, "admin.designation");
   req(p.company?.legalName, "company.legalName");
-  req(p.company?.gstin, "company.gstin");
+  // GSTIN is optional — normalize to a trimmed string (empty when omitted). The
+  // enterprises.gstin column is NOT NULL, so a blank value is stored as "".
+  if (p.company) p.company.gstin = typeof p.company.gstin === "string" ? p.company.gstin.trim() : "";
   req(p.company?.tradeName, "company.tradeName");
   req(p.company?.contactPhone, "company.contactPhone");
   req(p.company?.contactEmail, "company.contactEmail");

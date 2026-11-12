@@ -133,9 +133,12 @@ export function SignupForm() {
   const [showPw, setShowPw] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [verified, setVerified] = useState(false);
+  // Resend has its own in-flight + just-sent flags so it never disables the code
+  // boxes (busy is for the create/verify calls) and can confirm inline.
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
   // Bumping this remounts CodeBoxes → it clears and refocuses the first box.
   const [otpKey, setOtpKey] = useState(0);
   const [cooldown, setCooldown] = useState(0);
@@ -160,8 +163,9 @@ export function SignupForm() {
 
   async function sendCode(resend = false) {
     setError(null);
-    setNotice(null);
-    setBusy(true);
+    if (resend) setResending(true);
+    else setBusy(true);
+    const done = () => (resend ? setResending(false) : setBusy(false));
     try {
       const res = await fetch("/api/signup/send-otp", {
         method: "POST",
@@ -177,17 +181,25 @@ export function SignupForm() {
         } else {
           setError(body.error ?? "Could not send the verification code.");
         }
-        setBusy(false);
+        done();
         return false;
       }
       setPhase("otp");
       setCooldown(RESEND_COOLDOWN);
-      if (resend) setNotice("A new code is on its way.");
-      setBusy(false);
+      if (resend) {
+        // Fresh code → clear the stale digits, refocus, and confirm inline briefly.
+        setCode("");
+        submittedRef.current = "";
+        setOtpKey((k) => k + 1);
+        setFieldErrors((fe) => ({ ...fe, code: undefined }));
+        setResent(true);
+        window.setTimeout(() => setResent(false), 4000);
+      }
+      done();
       return true;
     } catch {
       setError("Network error. Please try again.");
-      setBusy(false);
+      done();
       return false;
     }
   }
@@ -207,7 +219,6 @@ export function SignupForm() {
 
   const doVerify = useCallback(async () => {
     setError(null);
-    setNotice(null);
     setFieldErrors((fe) => ({ ...fe, code: undefined }));
     if (code.trim().length !== 6) {
       setFieldErrors((fe) => ({ ...fe, code: "Enter the 6-digit code from your email." }));
@@ -330,11 +341,6 @@ export function SignupForm() {
         <div className="flex flex-1 items-center justify-center p-10 max-lg:p-7">
           <div className="w-full max-w-[360px]">
             {error ? <ErrorBanner>{error}</ErrorBanner> : null}
-            {notice ? (
-              <div className="mb-4 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-[13px] text-primary">
-                {notice}
-              </div>
-            ) : null}
 
             {phase === "form" ? (
               <>
@@ -456,7 +462,30 @@ export function SignupForm() {
                   </Button>
                 </form>
 
-                <div className="mt-4 flex items-center justify-between text-[13px]">
+                <div className="mt-5 flex flex-col gap-3 border-t border-border pt-4 text-[13px]">
+                  <div className="flex min-h-[20px] flex-wrap items-center gap-x-1.5 gap-y-1 text-muted-foreground">
+                    <span>Didn&apos;t get the code?</span>
+                    {cooldown > 0 ? (
+                      <span className="tabular-nums">Resend in {cooldown}s</span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={resending || busy || verified}
+                        onClick={() => void sendCode(true)}
+                        className="font-semibold text-primary underline-offset-2 transition-colors hover:underline disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
+                      >
+                        {resending ? "Sending…" : "Resend code"}
+                      </button>
+                    )}
+                    {resent ? (
+                      <span className="inline-flex items-center gap-1 font-medium text-[oklch(0.55_0.14_150)]">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        New code sent
+                      </span>
+                    ) : null}
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
@@ -464,27 +493,15 @@ export function SignupForm() {
                       setCode("");
                       submittedRef.current = "";
                       setError(null);
-                      setNotice(null);
+                      setResent(false);
                       setFieldErrors((fe) => ({ ...fe, code: undefined }));
                     }}
                     disabled={busy || verified}
-                    className="font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                    className="self-start font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
                   >
                     Change email
                   </button>
-                  <button
-                    type="button"
-                    disabled={cooldown > 0 || busy || verified}
-                    onClick={() => void sendCode(true)}
-                    className="font-semibold text-primary transition-colors disabled:cursor-not-allowed disabled:text-muted-foreground"
-                  >
-                    {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
-                  </button>
                 </div>
-
-                <p className="mt-5 text-[12px] leading-[1.5] text-muted-foreground">
-                  Didn&apos;t get it? Check your spam folder, or resend once the timer ends.
-                </p>
               </>
             )}
           </div>

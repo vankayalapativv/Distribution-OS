@@ -36,10 +36,22 @@ describe("billingGate", () => {
     expect(svc.getBillingAccess).not.toHaveBeenCalled();
   });
 
-  it("is enforced by default (flag unset) — 402 when blocked", async () => {
-    svc.getBillingAccess.mockResolvedValue({ blocked: true, reason: "grace-expired", accessUntilMs: 0 });
+  it("global flag unset (master on) + enterprise opted in — 402 when blocked", async () => {
+    svc.getBillingAccess.mockResolvedValue({ blocked: true, reason: "grace-expired", accessUntilMs: 0, config: { enforced: true } });
     const res = await makeApp().request("/customers", {}, {} as ApiEnv["Bindings"]);
     expect(res.status).toBe(402);
+  });
+
+  it("blocked but the enterprise is NOT opted in (enforced:false) — allowed (200)", async () => {
+    svc.getBillingAccess.mockResolvedValue({ blocked: true, reason: "grace-expired", accessUntilMs: 0, config: { enforced: false } });
+    const res = await makeApp().request("/customers", {}, { BILLING_ENFORCED: "true" } as ApiEnv["Bindings"]);
+    expect(res.status).toBe(200);
+  });
+
+  it("blocked but the enterprise is unpriced (config:null) — allowed (200)", async () => {
+    svc.getBillingAccess.mockResolvedValue({ blocked: true, reason: "no-config", accessUntilMs: 0, config: null });
+    const res = await makeApp().request("/customers", {}, { BILLING_ENFORCED: "true" } as ApiEnv["Bindings"]);
+    expect(res.status).toBe(200);
   });
 
   // Note: the gate also FAILS OPEN if getBillingAccess throws (wrapped in try/catch
@@ -47,7 +59,7 @@ describe("billingGate", () => {
   // here because a throwing mock trips vitest's unhandled-rejection detector.
 
   it("returns 402 for app routes when the org is blocked", async () => {
-    svc.getBillingAccess.mockResolvedValue({ blocked: true, reason: "grace-expired", accessUntilMs: 0 });
+    svc.getBillingAccess.mockResolvedValue({ blocked: true, reason: "grace-expired", accessUntilMs: 0, config: { enforced: true } });
     const res = await makeApp().request("/customers", {}, { BILLING_ENFORCED: "true" } as ApiEnv["Bindings"]);
     expect(res.status).toBe(402);
     const body = (await res.json()) as { error?: { code?: string } };
@@ -55,7 +67,7 @@ describe("billingGate", () => {
   });
 
   it("never blocks billing routes even when blocked", async () => {
-    svc.getBillingAccess.mockResolvedValue({ blocked: true, reason: "grace-expired", accessUntilMs: 0 });
+    svc.getBillingAccess.mockResolvedValue({ blocked: true, reason: "grace-expired", accessUntilMs: 0, config: { enforced: true } });
     const res = await makeApp().request("/billing/status", {}, { BILLING_ENFORCED: "true" } as ApiEnv["Bindings"]);
     expect(res.status).toBe(200);
   });
@@ -67,14 +79,14 @@ describe("billingGate", () => {
   });
 
   it("keeps the /me identity read reachable while blocked (UI must bootstrap)", async () => {
-    svc.getBillingAccess.mockResolvedValue({ blocked: true, reason: "grace-expired", accessUntilMs: 0 });
+    svc.getBillingAccess.mockResolvedValue({ blocked: true, reason: "grace-expired", accessUntilMs: 0, config: { enforced: true } });
     const res = await makeApp().request("/me", {}, { BILLING_ENFORCED: "true" } as ApiEnv["Bindings"]);
     expect(res.status).toBe(200);
     expect(svc.getBillingAccess).not.toHaveBeenCalled(); // exact-exempt, gate not consulted
   });
 
   it("blocks /me DATA routes when blocked (no data leak through the /me namespace)", async () => {
-    svc.getBillingAccess.mockResolvedValue({ blocked: true, reason: "grace-expired", accessUntilMs: 0 });
+    svc.getBillingAccess.mockResolvedValue({ blocked: true, reason: "grace-expired", accessUntilMs: 0, config: { enforced: true } });
     const app = makeApp();
     for (const path of ["/me/tasks", "/me/notifications"]) {
       const res = await app.request(path, {}, { BILLING_ENFORCED: "true" } as ApiEnv["Bindings"]);

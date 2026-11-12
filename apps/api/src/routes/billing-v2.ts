@@ -36,8 +36,9 @@ export const billingV2Routes = new Hono<ApiEnv>()
         ...access,
         canPay,
         isAdmin: auth.role === "SUPER_ADMIN",
-        // Whether enforcement is on — the UI hard-blocks only when this is true.
-        enforced: isBillingEnforced(c.env),
+        // Effective enforcement for THIS enterprise — the global master switch AND
+        // the enterprise's own opt-in. The UI hard-blocks only when this is true.
+        enforced: isBillingEnforced(c.env) && (access.config?.enforced ?? false),
         // Public Razorpay key id — safe for the browser to open Checkout with.
         keyId: c.env.RAZORPAY_KEY_ID ?? null,
       }),

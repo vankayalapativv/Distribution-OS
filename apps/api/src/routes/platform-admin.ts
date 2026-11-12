@@ -9,6 +9,7 @@ import {
   listEnterprises,
   rejectEnterprise,
   resolvePlatformOwner,
+  setEnterpriseEnforcement,
   updateEnterprisePricing,
 } from "../services/platform-admin";
 import type { ApiEnv } from "../types";
@@ -54,6 +55,14 @@ export const platformAdminRoutes = new Hono<ApiEnv>()
       amountPaisa: requiredNumber(body, "amountPaisa"),
       gstRateBp: optionalNumber(body, "gstRateBp") ?? undefined,
     });
+    return c.json(success(c, result));
+  })
+  .post("/enterprises/:id/enforcement", async (c) => {
+    const { externalUserId } = requireNeonIdentity(c);
+    const sql = getOwnerSqlClient(c);
+    const ownerId = await resolvePlatformOwner(sql, externalUserId);
+    const body = await readJsonObject(c);
+    const result = await setEnterpriseEnforcement(sql, ownerId, c.req.param("id"), body.enforced === true);
     return c.json(success(c, result));
   })
   .post("/enterprises/:id/reject", async (c) => {

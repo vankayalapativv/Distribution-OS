@@ -20,11 +20,11 @@ describe("getEnterpriseBillingConfig / chargeAmountForConfig", () => {
   });
   it("reads a per-seat config", async () => {
     const c = await getEnterpriseBillingConfig(makeSql({ billing_v2_config: CONFIG }));
-    expect(c).toEqual({ model: "per_seat", unitAmountPaisa: 70800, flatAmountPaisa: null, gstRateBp: 1800 });
+    expect(c).toEqual({ model: "per_seat", unitAmountPaisa: 70800, flatAmountPaisa: null, gstRateBp: 1800, enforced: false });
   });
   it("per-seat amount = unit × seats; flat amount is seat-independent", () => {
-    expect(chargeAmountForConfig({ model: "per_seat", unitAmountPaisa: 70800, flatAmountPaisa: null, gstRateBp: 1800 }, 3)).toBe(212400);
-    expect(chargeAmountForConfig({ model: "flat", unitAmountPaisa: null, flatAmountPaisa: 500000, gstRateBp: 1800 }, 99)).toBe(500000);
+    expect(chargeAmountForConfig({ model: "per_seat", unitAmountPaisa: 70800, flatAmountPaisa: null, gstRateBp: 1800, enforced: false }, 3)).toBe(212400);
+    expect(chargeAmountForConfig({ model: "flat", unitAmountPaisa: null, flatAmountPaisa: 500000, gstRateBp: 1800, enforced: false }, 99)).toBe(500000);
   });
 });
 

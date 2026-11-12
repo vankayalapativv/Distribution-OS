@@ -21,7 +21,7 @@ interface Detail extends Ent {
   godowns?: Array<{ name: string; city?: string; state?: string; stateCode?: string }>;
   duesBands?: Array<{ ordinal: number; fromDays: number; toDays: number | null; label: string }>;
   invoiceSeries?: { prefix: string; finYear: string; nextSeq: number } | null;
-  billing?: { model: string | null; unitAmountPaisa: number | null; flatAmountPaisa: number | null; gstRateBp?: number } | null;
+  billing?: { model: string | null; unitAmountPaisa: number | null; flatAmountPaisa: number | null; gstRateBp?: number; enforced?: boolean } | null;
 }
 
 const TABS = [
@@ -92,6 +92,22 @@ export function OwnerCockpit({ initial }: { initial: Ent[] }) {
       const b = (await res.json().catch(() => ({}))) as { error?: { message?: string } | string };
       if (!res.ok) { setErr((typeof b.error === "string" ? b.error : b.error?.message) ?? "Action failed."); setBusy(false); return; }
       setOpen(false); setBusy(false);
+      void load(tab);
+    } catch { setErr("Network error."); setBusy(false); }
+  }
+
+  // Toggle per-enterprise billing enforcement in place (keeps the dialog open).
+  async function setEnforcement(next: boolean) {
+    if (!detail) return;
+    setBusy(true); setErr(null);
+    try {
+      const res = await fetch(`/api/platform/${detail.id}`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "enforcement", enforced: next }),
+      });
+      const b = (await res.json().catch(() => ({}))) as { error?: { message?: string } | string };
+      if (!res.ok) { setErr((typeof b.error === "string" ? b.error : b.error?.message) ?? "Action failed."); setBusy(false); return; }
+      setDetail((d) => (d ? { ...d, billing: { model: null, unitAmountPaisa: null, flatAmountPaisa: null, ...(d.billing ?? {}), enforced: next } } : d));
+      setBusy(false);
       void load(tab);
     } catch { setErr("Network error."); setBusy(false); }
   }
@@ -242,8 +258,8 @@ export function OwnerCockpit({ initial }: { initial: Ent[] }) {
                   </div>
                 </div>
               ) : detail.status === "active" ? (
-                <div className="mt-4 border-t border-border pt-4">
-                  <div className="rounded-[8px] border border-border p-3.5 sm:max-w-sm">
+                <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:max-w-sm">
+                  <div className="rounded-[8px] border border-border p-3.5">
                     <div className="mb-2.5 text-[13px] font-bold">Edit price</div>
                     <div className="mb-2.5 flex gap-1 rounded-md border border-border bg-secondary p-0.5 text-[12.5px]">
                       {(["per_seat", "flat"] as const).map((m) => (
@@ -259,6 +275,33 @@ export function OwnerCockpit({ initial }: { initial: Ent[] }) {
                     </Button>
                     <p className="mt-2 text-[11.5px] leading-snug text-muted-foreground">
                       Takes effect next cycle. A paid month never changes; an unpaid current month re-prices automatically.
+                    </p>
+                  </div>
+
+                  <div className="rounded-[8px] border border-border p-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-[13px] font-bold">Billing enforcement</div>
+                        <p className="mt-0.5 text-[11.5px] leading-snug text-muted-foreground">
+                          {detail.billing?.enforced
+                            ? "On — app is blocked (402) if unpaid past the 7-day grace."
+                            : "Off — never blocked for non-payment."}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={Boolean(detail.billing?.enforced)}
+                        aria-label="Billing enforcement"
+                        disabled={busy}
+                        onClick={() => void setEnforcement(!detail.billing?.enforced)}
+                        className={`relative h-6 w-11 flex-none rounded-full transition-colors disabled:opacity-50 ${detail.billing?.enforced ? "bg-primary" : "bg-input"}`}
+                      >
+                        <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${detail.billing?.enforced ? "translate-x-5" : "translate-x-0"}`} />
+                      </button>
+                    </div>
+                    <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                      Also needs the global master switch on. Leave off for demos and new signups.
                     </p>
                   </div>
                 </div>

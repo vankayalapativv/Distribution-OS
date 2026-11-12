@@ -28,7 +28,8 @@ export async function listEnterprises(
       e.id, e.name, e.legal_name as "legalName", e.gstin, e.status,
       e.contact_name as "contactName", e.contact_email as "contactEmail",
       e.created_at as "createdAt", e.approved_at as "approvedAt", e.rejected_reason as "rejectedReason",
-      bc.model as "billingModel", bc.unit_amount_paisa as "unitAmountPaisa", bc.flat_amount_paisa as "flatAmountPaisa"
+      bc.model as "billingModel", bc.unit_amount_paisa as "unitAmountPaisa", bc.flat_amount_paisa as "flatAmountPaisa",
+      coalesce(bc.billing_enforced, false) as "billingEnforced"
     from enterprises e
     left join enterprise_billing_config bc on bc.enterprise_id = e.id
     where (${status}::text is null or e.status = ${status})
@@ -52,7 +53,7 @@ export async function getEnterpriseDetail(sql: SqlClient, id: string): Promise<u
   const godowns = await sql`select name, city, state, state_code as "stateCode" from stock_locations where enterprise_id = ${id} order by is_default desc, name`;
   const duesBands = await sql`select ordinal, from_days as "fromDays", to_days as "toDays", label from dues_bands where enterprise_id = ${id} order by ordinal`;
   const [series] = (await sql`select prefix, fin_year as "finYear", next_seq as "nextSeq" from invoice_series where enterprise_id = ${id} limit 1`) as Array<unknown>;
-  const billing = (await sql`select model, unit_amount_paisa as "unitAmountPaisa", flat_amount_paisa as "flatAmountPaisa", gst_rate_bp as "gstRateBp" from enterprise_billing_config where enterprise_id = ${id} limit 1`)[0] ?? null;
+  const billing = (await sql`select model, unit_amount_paisa as "unitAmountPaisa", flat_amount_paisa as "flatAmountPaisa", gst_rate_bp as "gstRateBp", coalesce(billing_enforced, false) as "enforced" from enterprise_billing_config where enterprise_id = ${id} limit 1`)[0] ?? null;
   return { ...ent, settings, godowns, duesBands, invoiceSeries: series ?? null, billing };
 }
 
@@ -162,6 +163,34 @@ export async function updateEnterprisePricing(
     unitAmountPaisa: row.unitAmountPaisa == null ? null : Number(row.unitAmountPaisa),
     flatAmountPaisa: row.flatAmountPaisa == null ? null : Number(row.flatAmountPaisa),
   };
+}
+
+/**
+ * Turn billing enforcement on/off for ONE active enterprise (the per-enterprise
+ * opt-in). The global BILLING_ENFORCED is the master switch; this flag decides
+ * whether this enterprise is actually gated. Writes `enterprise_billing_config`,
+ * which an active enterprise always has.
+ */
+export async function setEnterpriseEnforcement(
+  sql: SqlClient,
+  _ownerId: string,
+  id: string,
+  enforced: boolean,
+): Promise<{ enforced: boolean }> {
+  const [ent] = (await sql`select status from enterprises where id = ${id} limit 1`) as Array<{ status: string }>;
+  if (!ent) throw new ApiError("NOT_FOUND", "Enterprise not found.", 404);
+  if (ent.status !== "active")
+    throw new ApiError("CONFLICT", "Only an active enterprise's billing can be enforced.", 409);
+
+  const [row] = (await sql`
+    /* platform_set_enforcement */
+    update enterprise_billing_config
+       set billing_enforced = ${enforced}, updated_at = now()
+     where enterprise_id = ${id}
+    returning billing_enforced as "enforced"
+  `) as Array<{ enforced: boolean }>;
+  if (!row) throw new ApiError("NOT_FOUND", "This enterprise has no billing configuration.", 404);
+  return { enforced: Boolean(row.enforced) };
 }
 
 /** Reject a pending enterprise with a reason; the applicant can edit + resubmit. */

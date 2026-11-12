@@ -8,9 +8,12 @@ import type { ApiEnv } from "../types";
  * the current month is unpaid past its 7-day grace, app API calls are rejected
  * with HTTP 402 — the web block screen is UX, this is the real gate.
  *
- * Enforcement is ON by default (disable only with BILLING_ENFORCED="false", for
- * onboarding/testing). FAIL-OPEN: if billing can't be read (e.g. a transient DB
- * error), the request is allowed through so a hiccup never 402-bricks the app.
+ * Two-level enforcement: the global BILLING_ENFORCED env flag is the master switch
+ * (and a fast short-circuit — off = zero gate work), and each enterprise opts in
+ * individually via `enterprise_billing_config.billing_enforced`. An enterprise is
+ * gated only when BOTH are on and its month is unpaid past grace, so demos and new
+ * signups are never blocked. FAIL-OPEN: if billing can't be read (e.g. a transient
+ * DB error), the request is allowed through so a hiccup never 402-bricks the app.
  * Access derives from the latest paid/free month + grace (see getBillingAccess).
  * Billing + webhook + health/status stay reachable so a blocked user can pay.
  *
@@ -43,7 +46,10 @@ export const billingGate: MiddlewareHandler<ApiEnv> = async (c, next) => {
   let reason = "ok";
   try {
     const access = await getBillingAccess(getSqlClient(c));
-    blocked = access.blocked;
+    // Per-enterprise opt-in: the global flag (checked above) is the master switch,
+    // but an enterprise is gated only if IT has enforcement turned on. Unpriced /
+    // unenforced enterprises (demos, new signups) are never blocked.
+    blocked = access.blocked && (access.config?.enforced ?? false);
     reason = access.reason;
   } catch {
     // Fail-open: never brick the app because billing couldn't be read.

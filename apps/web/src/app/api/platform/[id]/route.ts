@@ -20,7 +20,14 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
   if (!token) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   const { id } = await ctx.params;
   const body = (await request.json().catch(() => ({}))) as { action?: string } & Record<string, unknown>;
-  const action = body.action === "reject" ? "reject" : body.action === "pricing" ? "pricing" : "approve";
+  const action =
+    body.action === "reject"
+      ? "reject"
+      : body.action === "pricing"
+        ? "pricing"
+        : body.action === "enforcement"
+          ? "enforcement"
+          : "approve";
   const { action: _omit, ...rest } = body;
   void _omit;
   const res = await serverApiFetch(`/platform/enterprises/${id}/${action}`, {

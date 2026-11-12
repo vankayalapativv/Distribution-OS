@@ -35,6 +35,9 @@ export interface BillingConfig {
   flatAmountPaisa: number | null;
   /** GST rate in basis points (1800 = 18%). */
   gstRateBp: number;
+  /** Per-enterprise enforcement opt-in. The global BILLING_ENFORCED is the master
+   *  switch; this decides whether THIS enterprise is actually gated/blocked. */
+  enforced: boolean;
 }
 
 /**
@@ -46,7 +49,8 @@ export async function getEnterpriseBillingConfig(sql: SqlClient): Promise<Billin
   const [row] = (await sql`
     /* billing_v2_config */
     select model, unit_amount_paisa as "unitAmountPaisa",
-           flat_amount_paisa as "flatAmountPaisa", gst_rate_bp as "gstRateBp"
+           flat_amount_paisa as "flatAmountPaisa", gst_rate_bp as "gstRateBp",
+           billing_enforced as "enforced"
     from enterprise_billing_config
     limit 1
   `) as Array<Record<string, unknown>>;
@@ -56,6 +60,7 @@ export async function getEnterpriseBillingConfig(sql: SqlClient): Promise<Billin
     unitAmountPaisa: row.unitAmountPaisa == null ? null : Number(row.unitAmountPaisa),
     flatAmountPaisa: row.flatAmountPaisa == null ? null : Number(row.flatAmountPaisa),
     gstRateBp: Number(row.gstRateBp ?? 1800),
+    enforced: Boolean(row.enforced),
   };
 }
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { SqlClient } from "../lib/db";
-import { updateEnterprisePricing } from "./platform-admin";
+import { setEnterpriseEnforcement, updateEnterprisePricing } from "./platform-admin";
 
 /**
  * Minimal tagged-template SqlClient stub: returns the next canned result set per
@@ -58,5 +58,27 @@ describe("updateEnterprisePricing", () => {
       unitAmountPaisa: null,
       flatAmountPaisa: 500000,
     });
+  });
+});
+
+describe("setEnterpriseEnforcement", () => {
+  it("404 when the enterprise does not exist", async () => {
+    await expect(setEnterpriseEnforcement(stubSql([[]]), "owner-1", "ent-1", true)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("409 when the enterprise is not active", async () => {
+    await expect(
+      setEnterpriseEnforcement(stubSql([[{ status: "pending" }]]), "owner-1", "ent-1", true),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("turns enforcement on for an active enterprise", async () => {
+    const sql = stubSql([[{ status: "active" }], [{ enforced: true }]]);
+    await expect(setEnterpriseEnforcement(sql, "owner-1", "ent-1", true)).resolves.toEqual({ enforced: true });
+  });
+
+  it("turns enforcement off", async () => {
+    const sql = stubSql([[{ status: "active" }], [{ enforced: false }]]);
+    await expect(setEnterpriseEnforcement(sql, "owner-1", "ent-1", false)).resolves.toEqual({ enforced: false });
   });
 });

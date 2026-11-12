@@ -77,20 +77,43 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
   }
 
-  if (!role) {
-    return NextResponse.json(
-      { error: "This account isn't set up for the dashboard yet." },
-      { status: 403 },
-    );
-  }
-
-  // Sales Executives / Logistics have no web app. Reject them here so they never
-  // get a session cookie (which would otherwise loop /login ↔ /auth/redirect).
-  if (!isWebRole(role as Role)) {
+  // A non-web role (Sales Executive / Logistics) has no web app — reject before a
+  // session cookie is set (it would otherwise loop /login ↔ /auth/redirect). A
+  // role-LESS account is mid-onboarding (signed up, no enterprise yet): it keeps a
+  // session and /auth/redirect sends it to /onboarding to RESUME the saved draft.
+  // A web role whose enterprise is still pending/rejected is likewise routed to
+  // /onboarding (its status) by /auth/redirect, not the dashboard.
+  if (role && !isWebRole(role as Role)) {
     return NextResponse.json(
       { error: "Your role does not have web access. Please contact your administrator." },
       { status: 403 },
     );
+  }
+
+  // A role-LESS account is either a real signup still onboarding (it HAS a users
+  // row but no enterprise yet → state "draft") or an identity with no enterprise
+  // app presence at all (a platform owner using the wrong login, or an orphan →
+  // state "no_account"). Only the former gets a session + the onboarding flow; the
+  // latter is rejected here so it never lands on "Set up your company".
+  if (!role && jwt) {
+    let onboardingState = "no_account";
+    try {
+      const r = await serverApiFetch("/onboarding/me", {
+        cache: "no-store",
+        headers: { Authorization: `Bearer ${jwt}` },
+      });
+      if (r.ok) {
+        onboardingState = ((await r.json()) as { data?: { state?: string } }).data?.state ?? "no_account";
+      }
+    } catch {
+      /* treat as no_account → rejected below */
+    }
+    if (onboardingState === "no_account") {
+      return NextResponse.json(
+        { error: "This account isn't set up for the dashboard yet." },
+        { status: 403 },
+      );
+    }
   }
 
   // 3. Persist the Neon session; the JWT is minted per request from it.

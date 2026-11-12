@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 import { isWebRole, requireSessionRole } from "@/features/auth/auth-role";
 import { BillingBlockedScreen } from "@/features/billing/billing-blocked-screen";
 import { BillingGuardV2 } from "@/features/billing/billing-guard-v2";
@@ -27,6 +28,16 @@ export default async function DashboardLayout({
   readonly modal: ReactNode;
 }) {
   const auth = await requireSessionRole(); // keep the login redirect at the layout level
+
+  // A signed-in but role-LESS account has no dashboard. A platform owner (no
+  // enterprise role, but isProviderAdmin) belongs in the owner cockpit; every other
+  // role-less account is a signup still mid-onboarding (login now issues it a
+  // session so it can RESUME the saved draft). Guard here so neither renders a
+  // role-less dashboard.
+  if (auth.role === null) {
+    redirect(auth.isProviderAdmin ? "/admin" : "/onboarding");
+  }
+
   const { access, actionConfig } = await loadBillingAccess();
 
   // Hard block: render only the payment screen (no app, no data fetch, no 402).

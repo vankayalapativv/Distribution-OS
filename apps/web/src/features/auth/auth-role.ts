@@ -84,6 +84,53 @@ export function isWebRole(role: AppRole | null): role is "SUPER_ADMIN" | "MANAGE
   return role !== null && WEB_ROLES.includes(role);
 }
 
+export type OnboardingState = "no_account" | "draft" | "pending" | "active" | "rejected";
+
+/**
+ * The signed-in account's onboarding state (from /onboarding/me). Used to route a
+ * returning user: a half-finished signup resumes the wizard, a submitted one sees
+ * "awaiting approval", a rejected one sees the reason — instead of being rejected
+ * at /login. Fails safe to "no_account" (which still routes to /onboarding, where
+ * the wizard bootstraps a fresh draft).
+ */
+export async function getOnboardingState(): Promise<OnboardingState> {
+  const token = await getAuthToken();
+  if (!token) return "no_account";
+  try {
+    const res = await serverApiFetch("/onboarding/me", {
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return "no_account";
+    const body = (await res.json()) as { data?: { state?: OnboardingState } };
+    return body.data?.state ?? "no_account";
+  } catch {
+    return "no_account";
+  }
+}
+
+/**
+ * Where an authenticated session should land. The dashboard is reached ONLY by a
+ * web role whose enterprise is active; every onboarding-stage account (draft /
+ * no_account / pending / rejected) goes to /onboarding, which renders the right
+ * surface (resume wizard, pending, or rejected). A non-web role on an active
+ * enterprise (SE / Logistics) has no web app, so its session is cleared.
+ */
+export function landingPathFor(role: AppRole | null, state: OnboardingState): string {
+  if (state === "active") {
+    return isWebRole(role) ? "/" : "/api/auth/logout?error=no_web_access";
+  }
+  // A signup account with a users row but no enterprise yet — resume the wizard or
+  // show its submitted/rejected status.
+  if (state === "draft" || state === "pending" || state === "rejected") {
+    return "/onboarding";
+  }
+  // "no_account": authenticated but NOT an enterprise app user — a platform owner
+  // who came through the wrong door, or an orphan Neon identity. Not a dashboard
+  // user and not an onboarding one; clear the cookie and return to /login.
+  return "/api/auth/logout?error=not_registered";
+}
+
 /**
  * Whether the session may access a nav section (migration 0073 permissions).
  * SUPER_ADMIN always may; MANAGER / ACCOUNTANT are governed by their effective

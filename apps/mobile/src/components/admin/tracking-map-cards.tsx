@@ -6,7 +6,7 @@
  */
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { Icon } from "../icon";
-import type { CheckinMarker, MapCustomer } from "../../lib/admin-tracking";
+import type { CheckinMarker, DuesBand, MapCustomer } from "../../lib/admin-tracking";
 import {
   bucketColor,
   bucketLabel,
@@ -52,10 +52,12 @@ function CardShell({
  *  last-order / last-collection chips. Mirrors the web customer popup. */
 export function CustomerCard({
   customer,
+  bands,
   onClose,
   onOpen,
 }: {
   readonly customer: MapCustomer;
+  readonly bands: DuesBand[];
   readonly onClose: () => void;
   readonly onOpen: (c: MapCustomer) => void;
 }) {
@@ -72,7 +74,7 @@ export function CustomerCard({
           <Text className="font-bold" style={{ color: bucketColor(customer.bucket) }}>
             {rupees(customer.outstanding)}
           </Text>
-          <Text className="text-muted-foreground"> due · {bucketLabel(customer.bucket)}</Text>
+          <Text className="text-muted-foreground"> due · {bucketLabel(customer.bucket, bands)}</Text>
         </Text>
       ) : (
         <Text className="text-[13px] font-medium" style={{ color: "#94a3b8" }}>

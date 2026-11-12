@@ -3,23 +3,37 @@
  * web Live-Tracking + dashboard map, so a customer reads identically on both.
  * Kept import-light (one type import) so it's trivially unit-testable.
  */
-import type { DuesBucketKey } from "./admin-tracking";
+import type { DuesBand, DuesBucketKey } from "./admin-tracking";
 
-/** Dues ageing bucket → label + pin colour (web BUCKET_META, verbatim). */
-export const BUCKET_META: Record<DuesBucketKey, { label: string; color: string }> = {
-  "0_30": { label: "0–30 days", color: "#10b981" }, // emerald-500
-  "30_45": { label: "31–45 days", color: "#eab308" }, // yellow-500
-  "45_60": { label: "46–60 days", color: "#f97316" }, // orange-500
-  "60_plus": { label: "61+ days", color: "#f43f5e" }, // rose-500
-};
+/** The fixed 4-step ageing ramp, by band ORDINAL (freshest → most overdue). A
+ *  universal visual scale — only the band labels/ranges are per-enterprise — and
+ *  the SAME colours as the web Live-Tracking map + Collection Dues card. Bands
+ *  beyond the 4th clamp to the most-overdue colour. */
+export const BAND_RAMP = [
+  "#10b981", // emerald-500 — band 0 (freshest)
+  "#eab308", // yellow-500  — band 1
+  "#f97316", // orange-500  — band 2
+  "#f43f5e", // rose-500    — band 3 (most overdue)
+];
 /** No-dues / clear pin colour (slate-400). */
 export const CLEAR_COLOR = "#94a3b8";
 
+/** Ramp colour for a bucket key (its band ordinal). Neutral slate when the
+ *  customer is clear (null) or the key isn't a valid ordinal. Purely ordinal, so
+ *  it needs no band data. */
 export function bucketColor(bucket: DuesBucketKey | null): string {
-  return bucket ? BUCKET_META[bucket].color : CLEAR_COLOR;
+  if (bucket == null) return CLEAR_COLOR;
+  const i = Number(bucket);
+  if (!Number.isInteger(i) || i < 0) return CLEAR_COLOR;
+  return BAND_RAMP[Math.min(i, BAND_RAMP.length - 1)];
 }
-export function bucketLabel(bucket: DuesBucketKey | null): string {
-  return bucket ? BUCKET_META[bucket].label : "No dues";
+
+/** Enterprise label for a bucket key, resolved from the served bands ("No dues"
+ *  when clear). Falls back to the key itself if the band list is missing it. */
+export function bucketLabel(bucket: DuesBucketKey | null, bands?: DuesBand[]): string {
+  if (bucket == null) return "No dues";
+  const band = (bands ?? []).find((b) => b.key === bucket);
+  return band?.label ?? bucket;
 }
 
 /** ₹ with Indian grouping, no paise (matches web `rupees`). */

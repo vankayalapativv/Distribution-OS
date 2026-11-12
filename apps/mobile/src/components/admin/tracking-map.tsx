@@ -12,6 +12,7 @@ import { IndiaMapNative, type MapMarker, type MapRoute } from "vardhan-maps/reac
 import {
   isLive,
   type CheckinMarker,
+  type DuesBand,
   type MapCustomer,
   type RoutePoint,
   type TrackedExecutive,
@@ -54,10 +55,12 @@ export function TrackingMap({
   selectedId,
   setSelectedId,
   customers,
+  bands,
   checkins,
 }: {
   readonly visible: TrackedExecutive[];
   readonly customers: MapCustomer[];
+  readonly bands: DuesBand[];
   readonly checkins: CheckinMarker[];
   readonly route: RoutePoint[];
   /** True in the just-selected gap while the new rep's route is still loading (the
@@ -268,6 +271,7 @@ export function TrackingMap({
       {card?.kind === "customer" ? (
         <CustomerCard
           customer={card.data}
+          bands={bands}
           onClose={() => setCard(null)}
           onOpen={(c) => openCustomer(c.id, c.name)}
         />

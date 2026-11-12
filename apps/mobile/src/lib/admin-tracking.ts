@@ -55,8 +55,20 @@ export function isLive(ex: TrackedExecutive): boolean {
 // ageing bucket) and, for the selected rep, where they checked in that day with
 // the orders/collections made there.
 
-/** Collection-dues ageing bucket — same keys as the web Dues card. */
-export type DuesBucketKey = "0_30" | "30_45" | "45_60" | "60_plus";
+/** Collection-dues ageing bucket — the enterprise band's key, i.e. its ordinal as
+ *  a string ("0".."N-1"), or null when the customer has no outstanding. Bands are
+ *  per-enterprise now, so the old fixed keys ("0_30"…) are gone (web parity). */
+export type DuesBucketKey = string;
+
+/** One collection-dues band as served by /dashboard/map (mirrors the API's
+ *  DuesBand) — its key is the ordinal as a string; labels/ranges are per-enterprise. */
+export interface DuesBand {
+  key: string;
+  ordinal: number;
+  fromDays: number;
+  toDays: number | null;
+  label: string;
+}
 
 /** A customer pin on the tracking map (from GET /dashboard/map). */
 export interface MapCustomer {
@@ -105,10 +117,17 @@ export interface CheckinMarker {
   collections: CheckinCollection[];
 }
 
-/** Every customer with coordinates, for the always-on customer layer. */
-export async function fetchMapCustomers(): Promise<MapCustomer[]> {
-  const data = await apiFetch<{ customers: MapCustomer[] }>("/dashboard/map", { token: token() });
-  return (data.customers ?? []).filter((c) => c.lat != null && c.lng != null);
+/** Every customer with coordinates (always-on customer layer) + the enterprise's
+ *  dues bands (for the pin labels). Bucket colour is ordinal; the label is the
+ *  enterprise's own band label, so both come from /dashboard/map. */
+export async function fetchMapCustomers(): Promise<{ customers: MapCustomer[]; bands: DuesBand[] }> {
+  const data = await apiFetch<{ customers: MapCustomer[]; bands: DuesBand[] }>("/dashboard/map", {
+    token: token(),
+  });
+  return {
+    customers: (data.customers ?? []).filter((c) => c.lat != null && c.lng != null),
+    bands: data.bands ?? [],
+  };
 }
 
 /** One rep's check-ins for `date` — visit locations + the orders/collections made. */

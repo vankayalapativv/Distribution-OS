@@ -7,6 +7,7 @@ import {
   fetchTrackedExecutives,
   istToday,
   type CheckinMarker,
+  type DuesBand,
   type MapCustomer,
   type RoutePoint,
   type TrackedExecutive,
@@ -29,6 +30,8 @@ export function useAdminTracking() {
   // check-ins for the day. Customers come from /dashboard/map (not date-scoped);
   // check-ins follow the selected rep + date, like the route.
   const [customers, setCustomers] = useState<MapCustomer[]>([]);
+  // The enterprise's dues bands (ordinal order) — labels for the pin cards.
+  const [bands, setBands] = useState<DuesBand[]>([]);
   const [checkins, setCheckins] = useState<CheckinMarker[]>([]);
 
   const load = useCallback(async () => {
@@ -40,7 +43,10 @@ export function useAdminTracking() {
         fetchMapCustomers().catch(() => null),
       ]);
       setExecs(ex);
-      if (cu) setCustomers(cu);
+      if (cu) {
+        setCustomers(cu.customers);
+        setBands(cu.bands);
+      }
     } catch {
       setExecs([]);
     } finally {
@@ -122,6 +128,6 @@ export function useAdminTracking() {
   return {
     date, setDate, execs, selectedId, setSelectedId,
     route, routeStale, loading, refreshing, onRefresh, visible,
-    customers, checkins,
+    customers, bands, checkins,
   };
 }

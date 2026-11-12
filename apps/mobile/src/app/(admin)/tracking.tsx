@@ -32,6 +32,7 @@ export default function AdminTrackingScreen() {
           selectedId={t.selectedId}
           setSelectedId={t.setSelectedId}
           customers={t.customers}
+          bands={t.bands}
           checkins={t.checkins}
         />
       </View>

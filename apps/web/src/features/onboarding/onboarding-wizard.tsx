@@ -75,6 +75,7 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const firstRender = useRef(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Debounced autosave of the draft.
   useEffect(() => {
@@ -92,6 +93,11 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
     }, 700);
     return () => clearTimeout(id);
   }, [data, step]);
+
+  // Scroll the form back to the top whenever the step changes.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [step]);
 
   const upd = useCallback(<K extends keyof Data>(key: K, patch: Partial<Data[K]>) => {
     setData((d) => ({ ...d, [key]: { ...(d[key] as object), ...patch } }));
@@ -178,191 +184,224 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
   const pct = ((step + 1) / STEPS.length) * 100;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-border bg-card/90 px-5 py-3 backdrop-blur">
-        <span className="text-[15px] font-extrabold tracking-tight">Distribution&nbsp;OS</span>
-        <span className="text-[10.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Onboarding</span>
-      </header>
-
-      <main className="mx-auto max-w-[1080px] px-4 py-7">
-        <div className="grid items-start gap-6 lg:grid-cols-[276px_1fr]">
-          {/* Rail */}
-          <div className="lg:sticky lg:top-[84px]">
-            <h2 className="text-[18px] font-extrabold tracking-tight">Set up your company</h2>
-            <p className="mb-4 mt-1 text-[12.5px] text-muted-foreground">
-              Every field is required. Progress saves automatically.
-            </p>
-            <div className="mb-[18px] h-[6px] overflow-hidden rounded-full bg-border">
-              <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${pct}%` }} />
+    <div
+      className="flex min-h-screen items-center justify-center p-6"
+      style={{
+        background:
+          "radial-gradient(1100px 560px at 12% -8%, oklch(0.93 0.03 255), transparent 55%), radial-gradient(900px 620px at 112% 118%, oklch(0.93 0.025 258), transparent 50%), oklch(0.968 0.006 255)",
+      }}
+    >
+      {/* 70% × 70% centered surface (full card on phones). */}
+      <div className="flex h-[70vh] min-h-[560px] w-[70vw] max-w-[1180px] overflow-hidden rounded-[20px] border border-border bg-card shadow-[0_18px_50px_-20px_rgba(15,23,42,0.30),0_4px_14px_-8px_rgba(15,23,42,0.18)] max-md:h-auto max-md:min-h-0 max-md:w-full max-md:max-w-[480px]">
+        {/* ── Step tracker (hidden on phones) ── */}
+        <aside
+          className="relative hidden w-[300px] flex-none overflow-hidden p-8 md:flex md:flex-col"
+          style={{
+            background:
+              "linear-gradient(155deg, oklch(0.47 0.17 264) 0%, oklch(0.62 0.188 259.8) 62%, oklch(0.70 0.15 255) 100%)",
+          }}
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-50"
+            style={{
+              background:
+                "radial-gradient(420px 300px at 90% 4%, rgba(255,255,255,0.18), transparent 60%), radial-gradient(360px 300px at 0% 100%, rgba(255,255,255,0.12), transparent 60%)",
+            }}
+          />
+          <div className="relative flex h-full flex-col">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">Company setup</div>
+            <div className="mt-1 text-[14px] font-semibold text-white">Step {step + 1} of {STEPS.length}</div>
+            <div className="mt-3 h-[6px] overflow-hidden rounded-full bg-white/20">
+              <div className="h-full rounded-full bg-white transition-[width] duration-300" style={{ width: `${pct}%` }} />
             </div>
-            <ul className="hidden list-none flex-col gap-0.5 p-0 lg:flex">
+
+            <ol className="mt-6 flex flex-1 list-none flex-col gap-0.5 overflow-auto p-0">
               {STEPS.map((name, i) => {
                 const current = i === step, done = i < step;
                 return (
                   <li key={name}>
                     <button
+                      type="button"
                       onClick={() => setStep(i)}
-                      className={`flex w-full items-center gap-3 rounded-[9px] px-2.5 py-2 text-left text-[13px] ${
-                        current ? "bg-primary/10 font-semibold text-foreground" : done ? "text-foreground hover:bg-secondary" : "text-muted-foreground hover:bg-secondary"
+                      className={`flex w-full items-center gap-3 rounded-[9px] px-2.5 py-2 text-left text-[13px] transition-colors ${
+                        current ? "bg-white/12 font-semibold text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
                       }`}
                     >
-                      <span className={`grid h-[23px] w-[23px] flex-none place-items-center rounded-full text-[11.5px] font-bold ${
-                        done ? "bg-primary text-primary-foreground" : current ? "border-[1.5px] border-primary text-primary" : "border-[1.5px] border-border bg-card"
-                      }`}>{i + 1}</span>
+                      <span
+                        className={`grid h-[23px] w-[23px] flex-none place-items-center rounded-full text-[11.5px] font-bold ${
+                          done ? "bg-white text-primary" : current ? "border-[1.5px] border-white text-white" : "border-[1.5px] border-white/35 text-white/55"
+                        }`}
+                      >
+                        {done ? (
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                        ) : (
+                          i + 1
+                        )}
+                      </span>
                       {name}
                     </button>
                   </li>
                 );
               })}
-            </ul>
-          </div>
+            </ol>
 
-          {/* Panel */}
-          <div className="rounded-[10px] border border-border bg-card p-6 shadow-sm sm:p-7">
-            <div className="mb-3 text-[13px] text-muted-foreground lg:hidden">Step {step + 1} of {STEPS.length} · {STEPS[step]}</div>
-            {rejectedReason ? (
-              <div className="mb-5 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
-                Your previous submission was returned: {rejectedReason}. Update your details and resubmit.
-              </div>
-            ) : null}
-            {error ? (
-              <div className="mb-5 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">{error}</div>
-            ) : null}
-
-            {step === 0 && (
-              <Step n={1} title="Administrator" lead="You'll be the first Super Admin for this company.">
-                <Mand />
-                <div className="grid gap-3.5 sm:grid-cols-2">
-                  <Field label={<>Full name<Req /></>}><Input value={data.admin.name} onChange={(e) => upd("admin", { name: e.target.value })} /></Field>
-                  <Field label={<>Designation<Req /></>}><Input value={data.admin.designation} onChange={(e) => upd("admin", { designation: e.target.value })} placeholder="e.g. Director" /></Field>
-                </div>
-              </Step>
-            )}
-
-            {step === 1 && (
-              <Step n={2} title="Company identity" lead="As it should appear on your GST tax invoices.">
-                <Mand />
-                <Field label={<>Legal company name<Req /></>}><Input value={data.company.legalName} onChange={(e) => upd("company", { legalName: e.target.value })} /></Field>
-                <div className="grid gap-3.5 sm:grid-cols-2">
-                  <Field label={<>GSTIN<Req /></>} hint="15-character GST number, e.g. 36AAAAA0000A1Z5"><Input className="font-mono" value={data.company.gstin} onChange={(e) => upd("company", { gstin: e.target.value })} /></Field>
-                  <Field label={<>Trade / display name<Req /></>}><Input value={data.company.tradeName} onChange={(e) => upd("company", { tradeName: e.target.value })} /></Field>
-                </div>
-                <div className="grid gap-3.5 sm:grid-cols-2">
-                  <Field label={<>Business phone<Req /></>}><Input value={data.company.contactPhone} onChange={(e) => upd("company", { contactPhone: e.target.value })} /></Field>
-                  <Field label={<>Business email<Req /></>}><Input value={data.company.contactEmail} onChange={(e) => upd("company", { contactEmail: e.target.value })} /></Field>
-                </div>
-              </Step>
-            )}
-
-            {step === 2 && (
-              <Step n={3} title="Registered address" lead="Your principal place of business.">
-                <Mand />
-                <Field label={<>Address line 1<Req /></>}><Input value={data.address.line1} onChange={(e) => upd("address", { line1: e.target.value })} /></Field>
-                <Field label="Address line 2"><Input value={data.address.line2} onChange={(e) => upd("address", { line2: e.target.value })} /></Field>
-                <div className="grid gap-3.5 sm:grid-cols-3">
-                  <Field label={<>City<Req /></>}><Input value={data.address.city} onChange={(e) => upd("address", { city: e.target.value })} /></Field>
-                  <Field label={<>State<Req /></>}><Input value={data.address.state} onChange={(e) => upd("address", { state: e.target.value })} /></Field>
-                  <Field label={<>Pincode<Req /></>}><Input className="font-mono" value={data.address.pincode} onChange={(e) => upd("address", { pincode: e.target.value })} /></Field>
-                </div>
-              </Step>
-            )}
-
-            {step === 3 && (
-              <Step n={4} title="Banking & payment" lead="Printed on your invoices so customers can pay you.">
-                <Mand />
-                <div className="grid gap-3.5 sm:grid-cols-2">
-                  <Field label={<>Bank name<Req /></>}><Input value={data.bank.bankName} onChange={(e) => upd("bank", { bankName: e.target.value })} /></Field>
-                  <Field label={<>Account holder name<Req /></>}><Input value={data.bank.accountName} onChange={(e) => upd("bank", { accountName: e.target.value })} /></Field>
-                </div>
-                <div className="grid gap-3.5 sm:grid-cols-2">
-                  <Field label={<>Account number<Req /></>}><Input className="font-mono" value={data.bank.accountNumber} onChange={(e) => upd("bank", { accountNumber: e.target.value })} /></Field>
-                  <Field label={<>IFSC code<Req /></>}><Input className="font-mono" value={data.bank.ifsc} onChange={(e) => upd("bank", { ifsc: e.target.value })} /></Field>
-                </div>
-                <Field label={<>UPI ID<Req /></>} hint="Shown with a QR code on every invoice."><Input className="font-mono" value={data.bank.upiId} onChange={(e) => upd("bank", { upiId: e.target.value })} /></Field>
-              </Step>
-            )}
-
-            {step === 4 && (
-              <Step n={5} title="Invoice setup" lead="Your invoice numbering and the terms printed on each one.">
-                <Mand />
-                <div className="grid gap-3.5 sm:grid-cols-2">
-                  <Field label={<>Invoice prefix<Req /></>} hint="e.g. ACM/2026-27/"><Input className="font-mono" value={data.invoice.prefix} onChange={(e) => upd("invoice", { prefix: e.target.value })} /></Field>
-                  <Field label={<>Starting number<Req /></>}><Input className="font-mono" value={data.invoice.startSeq} onChange={(e) => upd("invoice", { startSeq: e.target.value })} /></Field>
-                </div>
-                <Field label={<>Terms & conditions<Req /></>} hint="Pre-filled with a standard default — edit to match your business.">
-                  <Textarea className="min-h-[110px] font-mono text-[13px]" value={data.invoice.terms} onChange={(e) => upd("invoice", { terms: e.target.value })} />
-                </Field>
-              </Step>
-            )}
-
-            {step === 5 && (
-              <Step n={6} title="Godowns" lead="At least one stock location is required.">
-                <Mand />
-                {data.godowns.map((g, i) => (
-                  <div key={i} className="mb-3 rounded-[7px] border border-border bg-secondary p-4 pb-1">
-                    <div className="mb-2.5 flex items-center justify-between">
-                      <b className="text-[12.5px]">Godown {i + 1}{i === 0 ? " · Primary" : ""}</b>
-                      {i > 0 ? <button onClick={() => setData((d) => ({ ...d, godowns: d.godowns.filter((_, j) => j !== i) }))} className="rounded px-1.5 py-0.5 text-[12px] font-semibold text-destructive hover:bg-destructive/10">Remove</button> : null}
-                    </div>
-                    <div className="grid gap-3.5 sm:grid-cols-2">
-                      <Field label={<>Name<Req /></>}><Input value={g.name} onChange={(e) => setGodown(i, { name: e.target.value })} /></Field>
-                      <Field label="City"><Input value={g.city} onChange={(e) => setGodown(i, { city: e.target.value })} /></Field>
-                      <Field label={<>State<Req /></>}><Input value={g.state} onChange={(e) => setGodown(i, { state: e.target.value })} /></Field>
-                      <Field label={<>GST state code<Req /></>}><Input className="font-mono" value={g.stateCode} onChange={(e) => setGodown(i, { stateCode: e.target.value })} /></Field>
-                    </div>
-                  </div>
-                ))}
-                <button onClick={() => setData((d) => ({ ...d, godowns: [...d.godowns, { name: "", city: "", state: "", stateCode: "" }] }))} className="w-full rounded-[7px] border border-dashed border-border bg-transparent p-2.5 text-[13px] font-semibold text-primary hover:bg-primary/10">+ Add another godown</button>
-              </Step>
-            )}
-
-            {step === 6 && (
-              <Step n={7} title="Field tracking" lead="When the day's GPS tracking auto-stops for each team.">
-                <Mand />
-                <div className="grid gap-3.5 sm:grid-cols-2">
-                  <Field label={<>Sales Executive auto-stop<Req /></>} hint="Field day typically ends by evening."><Input type="time" value={data.tracking.se} onChange={(e) => upd("tracking", { se: e.target.value })} /></Field>
-                  <Field label={<>Logistics auto-stop<Req /></>} hint="Delivery runs often finish later."><Input type="time" value={data.tracking.logistics} onChange={(e) => upd("tracking", { logistics: e.target.value })} /></Field>
-                </div>
-              </Step>
-            )}
-
-            {step === 7 && (
-              <Step n={8} title="Collection dues bands" lead="How overdue money is aged. A customer sits in one band by how long their oldest overdue invoice has been past due.">
-                <Mand><b className="font-semibold text-foreground">Exactly 4 bands</b> — contiguous, starting at day 0; the last is open-ended (leave its To blank). Edit the ranges + labels to suit your business.</Mand>
-                {data.duesBands.map((b, i) => (
-                  <div key={i} className="mb-2.5 grid grid-cols-[1fr_1fr] items-end gap-2.5 sm:grid-cols-[90px_90px_1fr]">
-                    <Field label="From"><Input className="font-mono" value={b.fromDays} onChange={(e) => setBand(i, { fromDays: e.target.value })} /></Field>
-                    <Field label="To"><Input className="font-mono" value={b.toDays} onChange={(e) => setBand(i, { toDays: e.target.value })} placeholder={i === data.duesBands.length - 1 ? "∞" : ""} /></Field>
-                    <Field label="Label"><Input value={b.label} onChange={(e) => setBand(i, { label: e.target.value })} /></Field>
-                  </div>
-                ))}
-              </Step>
-            )}
-
-            {step === 8 && (
-              <Step n={9} title="Review & submit" lead="Check everything, then submit for approval. You can't use the app until it's approved.">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Rev title="Administrator" to={0} setStep={setStep} rows={[["Name", data.admin.name], ["Role", data.admin.designation]]} />
-                  <Rev title="Company" to={1} setStep={setStep} rows={[["Legal", data.company.legalName], ["GSTIN", data.company.gstin]]} />
-                  <Rev title="Address" to={2} setStep={setStep} rows={[["City", data.address.city], ["State", `${data.address.state} · ${data.address.pincode}`]]} />
-                  <Rev title="Banking" to={3} setStep={setStep} rows={[["Bank", data.bank.bankName], ["UPI", data.bank.upiId]]} />
-                  <Rev title="Invoicing" to={4} setStep={setStep} rows={[["Series", `${data.invoice.prefix}${data.invoice.startSeq}`], ["Terms", `${data.invoice.terms.split("\n").filter(Boolean).length} clauses`]]} />
-                  <Rev title="Operations" to={5} setStep={setStep} rows={[["Godowns", String(data.godowns.length)], ["Dues bands", String(data.duesBands.length)]]} />
-                </div>
-              </Step>
-            )}
-
-            <div className="mt-6 flex items-center gap-3 border-t border-border pt-[18px]">
-              {step > 0 ? <Button variant="outline" onClick={back}>Back</Button> : null}
-              <span className={`text-[12px] font-semibold text-[oklch(0.62_0.15_150)] transition-opacity ${saved ? "opacity-100" : "opacity-0"}`}>Saved</span>
-              <span className="flex-1" />
-              <Button onClick={next} disabled={submitting}>
-                {step === STEPS.length - 1 ? (submitting ? "Submitting…" : "Submit for approval") : "Continue"}
-              </Button>
+            <div className="mt-auto border-t border-white/20 pt-3.5 text-[11.5px] text-[#aec5ee]">
+              You can revisit any step before you submit.
             </div>
           </div>
+        </aside>
+
+        {/* ── Form side ── */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div ref={scrollRef} className="flex-1 overflow-auto p-10 max-md:p-7 [&_[data-slot=input]]:h-10 [&_[data-slot=input]]:text-[13.5px]">
+            <div className="mx-auto max-w-[560px]">
+              <div className="mb-4 text-[13px] text-muted-foreground md:hidden">Step {step + 1} of {STEPS.length} · {STEPS[step]}</div>
+              {rejectedReason ? (
+                <div className="mb-5 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
+                  Your previous submission was returned: {rejectedReason}. Update your details and resubmit.
+                </div>
+              ) : null}
+              {error ? (
+                <div className="mb-5 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">{error}</div>
+              ) : null}
+
+              {step === 0 && (
+                <Step n={1} title="Administrator" lead="You'll be the first Super Admin for this company.">
+                  <Mand />
+                  <div className="grid gap-3.5 sm:grid-cols-2">
+                    <Field label={<>Full name<Req /></>}><Input value={data.admin.name} onChange={(e) => upd("admin", { name: e.target.value })} /></Field>
+                    <Field label={<>Designation<Req /></>}><Input value={data.admin.designation} onChange={(e) => upd("admin", { designation: e.target.value })} placeholder="e.g. Director" /></Field>
+                  </div>
+                </Step>
+              )}
+
+              {step === 1 && (
+                <Step n={2} title="Company identity" lead="As it should appear on your GST tax invoices.">
+                  <Mand />
+                  <Field label={<>Legal company name<Req /></>}><Input value={data.company.legalName} onChange={(e) => upd("company", { legalName: e.target.value })} /></Field>
+                  <div className="grid gap-3.5 sm:grid-cols-2">
+                    <Field label={<>GSTIN<Req /></>} hint="15-character GST number, e.g. 36AAAAA0000A1Z5"><Input className="font-mono" value={data.company.gstin} onChange={(e) => upd("company", { gstin: e.target.value })} /></Field>
+                    <Field label={<>Trade / display name<Req /></>}><Input value={data.company.tradeName} onChange={(e) => upd("company", { tradeName: e.target.value })} /></Field>
+                  </div>
+                  <div className="grid gap-3.5 sm:grid-cols-2">
+                    <Field label={<>Business phone<Req /></>}><Input value={data.company.contactPhone} onChange={(e) => upd("company", { contactPhone: e.target.value })} /></Field>
+                    <Field label={<>Business email<Req /></>}><Input value={data.company.contactEmail} onChange={(e) => upd("company", { contactEmail: e.target.value })} /></Field>
+                  </div>
+                </Step>
+              )}
+
+              {step === 2 && (
+                <Step n={3} title="Registered address" lead="Your principal place of business.">
+                  <Mand />
+                  <Field label={<>Address line 1<Req /></>}><Input value={data.address.line1} onChange={(e) => upd("address", { line1: e.target.value })} /></Field>
+                  <Field label="Address line 2"><Input value={data.address.line2} onChange={(e) => upd("address", { line2: e.target.value })} /></Field>
+                  <div className="grid gap-3.5 sm:grid-cols-3">
+                    <Field label={<>City<Req /></>}><Input value={data.address.city} onChange={(e) => upd("address", { city: e.target.value })} /></Field>
+                    <Field label={<>State<Req /></>}><Input value={data.address.state} onChange={(e) => upd("address", { state: e.target.value })} /></Field>
+                    <Field label={<>Pincode<Req /></>}><Input className="font-mono" value={data.address.pincode} onChange={(e) => upd("address", { pincode: e.target.value })} /></Field>
+                  </div>
+                </Step>
+              )}
+
+              {step === 3 && (
+                <Step n={4} title="Banking & payment" lead="Printed on your invoices so customers can pay you.">
+                  <Mand />
+                  <div className="grid gap-3.5 sm:grid-cols-2">
+                    <Field label={<>Bank name<Req /></>}><Input value={data.bank.bankName} onChange={(e) => upd("bank", { bankName: e.target.value })} /></Field>
+                    <Field label={<>Account holder name<Req /></>}><Input value={data.bank.accountName} onChange={(e) => upd("bank", { accountName: e.target.value })} /></Field>
+                  </div>
+                  <div className="grid gap-3.5 sm:grid-cols-2">
+                    <Field label={<>Account number<Req /></>}><Input className="font-mono" value={data.bank.accountNumber} onChange={(e) => upd("bank", { accountNumber: e.target.value })} /></Field>
+                    <Field label={<>IFSC code<Req /></>}><Input className="font-mono" value={data.bank.ifsc} onChange={(e) => upd("bank", { ifsc: e.target.value })} /></Field>
+                  </div>
+                  <Field label={<>UPI ID<Req /></>} hint="Shown with a QR code on every invoice."><Input className="font-mono" value={data.bank.upiId} onChange={(e) => upd("bank", { upiId: e.target.value })} /></Field>
+                </Step>
+              )}
+
+              {step === 4 && (
+                <Step n={5} title="Invoice setup" lead="Your invoice numbering and the terms printed on each one.">
+                  <Mand />
+                  <div className="grid gap-3.5 sm:grid-cols-2">
+                    <Field label={<>Invoice prefix<Req /></>} hint="e.g. ACM/2026-27/"><Input className="font-mono" value={data.invoice.prefix} onChange={(e) => upd("invoice", { prefix: e.target.value })} /></Field>
+                    <Field label={<>Starting number<Req /></>}><Input className="font-mono" value={data.invoice.startSeq} onChange={(e) => upd("invoice", { startSeq: e.target.value })} /></Field>
+                  </div>
+                  <Field label={<>Terms & conditions<Req /></>} hint="Pre-filled with a standard default — edit to match your business.">
+                    <Textarea className="min-h-[110px] font-mono text-[13px]" value={data.invoice.terms} onChange={(e) => upd("invoice", { terms: e.target.value })} />
+                  </Field>
+                </Step>
+              )}
+
+              {step === 5 && (
+                <Step n={6} title="Godowns" lead="At least one stock location is required.">
+                  <Mand />
+                  {data.godowns.map((g, i) => (
+                    <div key={i} className="mb-3 rounded-[7px] border border-border bg-secondary p-4 pb-1">
+                      <div className="mb-2.5 flex items-center justify-between">
+                        <b className="text-[12.5px]">Godown {i + 1}{i === 0 ? " · Primary" : ""}</b>
+                        {i > 0 ? <button type="button" onClick={() => setData((d) => ({ ...d, godowns: d.godowns.filter((_, j) => j !== i) }))} className="rounded px-1.5 py-0.5 text-[12px] font-semibold text-destructive hover:bg-destructive/10">Remove</button> : null}
+                      </div>
+                      <div className="grid gap-3.5 sm:grid-cols-2">
+                        <Field label={<>Name<Req /></>}><Input value={g.name} onChange={(e) => setGodown(i, { name: e.target.value })} /></Field>
+                        <Field label="City"><Input value={g.city} onChange={(e) => setGodown(i, { city: e.target.value })} /></Field>
+                        <Field label={<>State<Req /></>}><Input value={g.state} onChange={(e) => setGodown(i, { state: e.target.value })} /></Field>
+                        <Field label={<>GST state code<Req /></>}><Input className="font-mono" value={g.stateCode} onChange={(e) => setGodown(i, { stateCode: e.target.value })} /></Field>
+                      </div>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setData((d) => ({ ...d, godowns: [...d.godowns, { name: "", city: "", state: "", stateCode: "" }] }))} className="w-full rounded-[7px] border border-dashed border-border bg-transparent p-2.5 text-[13px] font-semibold text-primary hover:bg-primary/10">+ Add another godown</button>
+                </Step>
+              )}
+
+              {step === 6 && (
+                <Step n={7} title="Field tracking" lead="When the day's GPS tracking auto-stops for each team.">
+                  <Mand />
+                  <div className="grid gap-3.5 sm:grid-cols-2">
+                    <Field label={<>Sales Executive auto-stop<Req /></>} hint="Field day typically ends by evening."><Input type="time" value={data.tracking.se} onChange={(e) => upd("tracking", { se: e.target.value })} /></Field>
+                    <Field label={<>Logistics auto-stop<Req /></>} hint="Delivery runs often finish later."><Input type="time" value={data.tracking.logistics} onChange={(e) => upd("tracking", { logistics: e.target.value })} /></Field>
+                  </div>
+                </Step>
+              )}
+
+              {step === 7 && (
+                <Step n={8} title="Collection dues bands" lead="How overdue money is aged. A customer sits in one band by how long their oldest overdue invoice has been past due.">
+                  <Mand><b className="font-semibold text-foreground">Exactly 4 bands</b> — contiguous, starting at day 0; the last is open-ended (leave its To blank). Edit the ranges + labels to suit your business.</Mand>
+                  {data.duesBands.map((b, i) => (
+                    <div key={i} className="mb-2.5 grid grid-cols-[1fr_1fr] items-end gap-2.5 sm:grid-cols-[90px_90px_1fr]">
+                      <Field label="From"><Input className="font-mono" value={b.fromDays} onChange={(e) => setBand(i, { fromDays: e.target.value })} /></Field>
+                      <Field label="To"><Input className="font-mono" value={b.toDays} onChange={(e) => setBand(i, { toDays: e.target.value })} placeholder={i === data.duesBands.length - 1 ? "∞" : ""} /></Field>
+                      <Field label="Label"><Input value={b.label} onChange={(e) => setBand(i, { label: e.target.value })} /></Field>
+                    </div>
+                  ))}
+                </Step>
+              )}
+
+              {step === 8 && (
+                <Step n={9} title="Review & submit" lead="Check everything, then submit for approval. You can't use the app until it's approved.">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Rev title="Administrator" to={0} setStep={setStep} rows={[["Name", data.admin.name], ["Role", data.admin.designation]]} />
+                    <Rev title="Company" to={1} setStep={setStep} rows={[["Legal", data.company.legalName], ["GSTIN", data.company.gstin]]} />
+                    <Rev title="Address" to={2} setStep={setStep} rows={[["City", data.address.city], ["State", `${data.address.state} · ${data.address.pincode}`]]} />
+                    <Rev title="Banking" to={3} setStep={setStep} rows={[["Bank", data.bank.bankName], ["UPI", data.bank.upiId]]} />
+                    <Rev title="Invoicing" to={4} setStep={setStep} rows={[["Series", `${data.invoice.prefix}${data.invoice.startSeq}`], ["Terms", `${data.invoice.terms.split("\n").filter(Boolean).length} clauses`]]} />
+                    <Rev title="Operations" to={5} setStep={setStep} rows={[["Godowns", String(data.godowns.length)], ["Dues bands", String(data.duesBands.length)]]} />
+                  </div>
+                </Step>
+              )}
+            </div>
+          </div>
+
+          {/* nav footer — pinned at the bottom of the surface */}
+          <div className="flex items-center gap-3 border-t border-border px-10 py-4 max-md:px-7">
+            {step > 0 ? <Button variant="outline" onClick={back}>Back</Button> : null}
+            <span className={`text-[12px] font-semibold text-[oklch(0.62_0.15_150)] transition-opacity ${saved ? "opacity-100" : "opacity-0"}`}>Saved</span>
+            <span className="flex-1" />
+            <Button onClick={next} disabled={submitting}>
+              {step === STEPS.length - 1 ? (submitting ? "Submitting…" : "Submit for approval") : "Continue"}
+            </Button>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 
@@ -377,8 +416,8 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
 function Step({ n, title, lead, children }: { n: number; title: string; lead: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Step {n} of 8</div>
-      <h3 className="mb-0.5 mt-1 text-[19px] font-bold tracking-tight">{title}</h3>
+      <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">Step {n} of {STEPS.length}</div>
+      <h3 className="mb-0.5 mt-1 text-[20px] font-bold tracking-tight">{title}</h3>
       <p className="mb-5 text-[13px] text-muted-foreground">{lead}</p>
       <div className="flex flex-col gap-3.5">{children}</div>
     </div>
@@ -389,7 +428,7 @@ function Rev({ title, to, setStep, rows }: { title: string; to: number; setStep:
     <div className="rounded-[7px] border border-border bg-secondary p-[13px_15px]">
       <div className="mb-2 flex justify-between text-[12px] font-bold uppercase tracking-[0.04em] text-muted-foreground">
         {title}
-        <button onClick={() => setStep(to)} className="text-[12px] font-semibold normal-case tracking-normal text-primary">Edit</button>
+        <button type="button" onClick={() => setStep(to)} className="text-[12px] font-semibold normal-case tracking-normal text-primary">Edit</button>
       </div>
       <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-1 text-[12.5px]">
         {rows.map(([k, v]) => (

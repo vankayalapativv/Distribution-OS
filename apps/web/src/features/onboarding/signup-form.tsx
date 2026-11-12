@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,12 +38,97 @@ function ErrorBanner({ children }: { readonly children: React.ReactNode }) {
   );
 }
 
+/** One benefit row in the brand panel: icon chip + title + supporting line. */
+function Feature({ icon, title, children }: { readonly icon: React.ReactNode; readonly title: string; readonly children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-lg bg-white/15 text-white">
+        {icon}
+      </span>
+      <div>
+        <div className="text-[14px] font-semibold text-white">{title}</div>
+        <div className="mt-[2px] text-[12.5px] leading-[1.45] text-[#bcd2ff]">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/** Six-box verification code input, backed by a single string. Auto-advances,
+ *  supports backspace across boxes and pasting the whole code. */
+function CodeBoxes({
+  value,
+  onChange,
+  disabled,
+  invalid,
+  autoFocus,
+}: {
+  readonly value: string;
+  readonly onChange: (v: string) => void;
+  readonly disabled?: boolean;
+  readonly invalid?: boolean;
+  readonly autoFocus?: boolean;
+}) {
+  const refs = useRef<Array<HTMLInputElement | null>>([]);
+  const focus = (i: number) => refs.current[Math.max(0, Math.min(5, i))]?.focus();
+
+  const write = (start: number, raw: string) => {
+    const digits = raw.replace(/\D/g, "");
+    const arr = Array.from({ length: 6 }, (_, k) => value[k] ?? "");
+    if (!digits) {
+      arr[start] = "";
+      onChange(arr.join(""));
+      return;
+    }
+    let j = start;
+    for (const ch of digits) {
+      if (j > 5) break;
+      arr[j] = ch;
+      j += 1;
+    }
+    onChange(arr.join(""));
+    focus(Math.min(j, 5));
+  };
+
+  return (
+    <div className="flex gap-2.5">
+      {Array.from({ length: 6 }, (_, i) => (
+        <input
+          key={i}
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
+          value={value[i] ?? ""}
+          inputMode="numeric"
+          autoComplete={i === 0 ? "one-time-code" : "off"}
+          maxLength={1}
+          disabled={disabled}
+          autoFocus={autoFocus && i === 0}
+          aria-invalid={invalid}
+          aria-label={`Digit ${i + 1}`}
+          onChange={(e) => write(i, e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Backspace" && !value[i] && i > 0) focus(i - 1);
+            if (e.key === "ArrowLeft" && i > 0) focus(i - 1);
+            if (e.key === "ArrowRight" && i < 5) focus(i + 1);
+          }}
+          onPaste={(e) => {
+            e.preventDefault();
+            write(0, e.clipboardData.getData("text"));
+          }}
+          className="h-14 w-12 rounded-xl border border-input bg-transparent text-center text-[22px] font-semibold tabular-nums outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 disabled:opacity-50"
+        />
+      ))}
+    </div>
+  );
+}
+
 const RESEND_COOLDOWN = 30;
 
 export function SignupForm() {
   const router = useRouter();
   const [phase, setPhase] = useState<"form" | "otp">("form");
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirm: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
+  const [showPw, setShowPw] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -108,7 +193,6 @@ export function SignupForm() {
     if (!form.email.trim() || !form.email.includes("@")) fe.email = "Enter a valid email address.";
     if (!form.phone.trim()) fe.phone = "Enter your mobile number.";
     if (form.password.length < 8) fe.password = "At least 8 characters.";
-    if (!fe.password && form.password !== form.confirm) fe.confirm = "Passwords don't match.";
     setFieldErrors(fe);
     if (Object.keys(fe).length > 0) return;
     void sendCode(false);
@@ -158,46 +242,69 @@ export function SignupForm() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="flex items-center gap-2 border-b border-border px-5 py-3">
-        <span className="text-[15px] font-extrabold tracking-tight">Distribution&nbsp;OS</span>
-        <span className="text-[10.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Sign up</span>
-      </header>
-
-      <main className="px-4 py-8">
-        <div className="mx-auto grid max-w-[980px] items-stretch gap-7 md:grid-cols-[1.05fr_0.95fr]">
-          <aside
-            className="relative hidden overflow-hidden rounded-[10px] border p-8 text-[#eaf1fe] md:block"
+    <div
+      className="flex min-h-screen items-center justify-center p-6"
+      style={{
+        background:
+          "radial-gradient(1100px 560px at 12% -8%, oklch(0.93 0.03 255), transparent 55%), radial-gradient(900px 620px at 112% 118%, oklch(0.93 0.025 258), transparent 50%), oklch(0.968 0.006 255)",
+      }}
+    >
+      {/* 70% × 70% centered surface (full card on phones). */}
+      <div className="flex h-[70vh] min-h-[560px] w-[70vw] max-w-[1180px] overflow-hidden rounded-[20px] border border-border bg-card shadow-[0_18px_50px_-20px_rgba(15,23,42,0.30),0_4px_14px_-8px_rgba(15,23,42,0.18)] max-md:h-auto max-md:min-h-0 max-md:w-full max-md:max-w-[440px]">
+        {/* ── Brand panel (hidden on phones) ── */}
+        <aside
+          className="relative hidden w-[44%] overflow-hidden p-[46px] md:block"
+          style={{
+            background:
+              "linear-gradient(155deg, oklch(0.47 0.17 264) 0%, oklch(0.62 0.188 259.8) 62%, oklch(0.70 0.15 255) 100%)",
+          }}
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-50"
             style={{
               background:
-                "linear-gradient(160deg, oklch(0.6231 0.1880 259.81), oklch(0.4244 0.1809 265.64) 82%)",
-              borderColor: "oklch(0.4244 0.1809 265.64)",
+                "radial-gradient(420px 300px at 85% 8%, rgba(255,255,255,0.18), transparent 60%), radial-gradient(360px 300px at 0% 100%, rgba(255,255,255,0.12), transparent 60%)",
             }}
-          >
-            <h2 className="max-w-[14ch] text-[25px] font-extrabold leading-[1.12] tracking-tight text-white">
-              Run your distribution business on one system.
+          />
+          <div className="relative flex h-full flex-col">
+            <h2 className="max-w-[15ch] text-[27px] font-bold leading-[1.18] tracking-tight text-white text-balance">
+              Everything your distribution business runs on.
             </h2>
-            <p className="mt-3 max-w-[34ch] text-[13.5px] text-[#cfddfa]">
-              Orders, invoicing, stock, collections and field tracking — set up in minutes.
+            <p className="mt-2.5 max-w-[32ch] text-[14px] leading-[1.5] text-[#c9dcff]">
+              Orders, invoicing, field tracking and collections — one place for your whole team.
             </p>
-            <ul className="mt-6 flex list-none flex-col gap-3 p-0">
-              {[
-                "Your data stays private to your company.",
-                "Web dashboard for admins, mobile app for the field team.",
-                "GST invoicing, dues ageing and live tracking built in.",
-              ].map((t) => (
-                <li key={t} className="flex items-start gap-3 text-[13px] text-[#dde7fb]">
-                  <span className="mt-[7px] h-[7px] w-[7px] flex-none rounded-full bg-white" />
-                  {t}
-                </li>
-              ))}
-            </ul>
-            <div className="absolute inset-x-8 bottom-6 border-t border-white/20 pt-3.5 text-[11.5px] text-[#aec5ee]">
-              Vardhan Systems · support 8am–4pm IST
-            </div>
-          </aside>
 
-          <div className="rounded-[10px] border border-border bg-card p-8 shadow-sm">
+            <div className="mt-8 flex flex-col gap-4">
+              <Feature
+                title="GST tax invoices"
+                icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" /><path d="M9 13h6M9 17h4" /></svg>}
+              >
+                Compliant billing with e-way-ready exports.
+              </Feature>
+              <Feature
+                title="Live field tracking"
+                icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11Z" /><circle cx="12" cy="10" r="2.4" /></svg>}
+              >
+                Beats, visits and routes for every executive.
+              </Feature>
+              <Feature
+                title="Collections & dues"
+                icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7h18v12H3z" /><path d="M3 10h18" /><path d="M7 15h4" /></svg>}
+              >
+                Ledgers, ageing and reconciliation in sync.
+              </Feature>
+            </div>
+
+            <div className="mt-auto border-t border-white/20 pt-3.5 text-[12px] text-[#aec5ee]">
+              Vardhan Systems · set up your company in minutes.
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Form side ── */}
+        <div className="flex flex-1 items-center justify-center overflow-auto p-10 max-md:p-7">
+          <div className="w-full max-w-[360px]">
             {error ? <ErrorBanner>{error}</ErrorBanner> : null}
             {notice ? (
               <div className="mb-4 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-[13px] text-primary">
@@ -208,22 +315,22 @@ export function SignupForm() {
             {phase === "form" ? (
               <>
                 <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
-                  Create your account
+                  Create account
                 </div>
-                <h1 className="text-[23px] font-extrabold tracking-tight">Start your setup</h1>
+                <h1 className="text-[24px] font-bold tracking-tight text-balance">Create your account</h1>
                 <p className="mb-6 mt-1.5 text-[13.5px] text-muted-foreground">
-                  This creates your login. You&apos;ll configure your company next.
+                  You&apos;ll be the first Super Admin for your company.
                 </p>
 
-                <form onSubmit={submitForm} className="flex flex-col gap-3.5">
+                <form onSubmit={submitForm} className="flex flex-col gap-[15px]">
                   <div className="flex flex-col gap-1.5">
                     <Label>Full name<Req /></Label>
-                    <Input value={form.name} onChange={set("name")} placeholder="Asha Rao" aria-invalid={Boolean(fieldErrors.name)} required />
+                    <Input className="h-11" value={form.name} onChange={set("name")} placeholder="Asha Rao" autoComplete="name" aria-invalid={Boolean(fieldErrors.name)} required />
                     <FieldError>{fieldErrors.name}</FieldError>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label>Work email<Req /></Label>
-                    <Input type="email" value={form.email} onChange={set("email")} placeholder="asha@company.com" aria-invalid={Boolean(fieldErrors.email)} required />
+                    <Input className="h-11" type="email" value={form.email} onChange={set("email")} placeholder="asha@company.com" autoComplete="email" aria-invalid={Boolean(fieldErrors.email)} required />
                     {fieldErrors.email ? (
                       <FieldError>
                         {fieldErrors.email}{" "}
@@ -237,27 +344,47 @@ export function SignupForm() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label>Mobile number<Req /></Label>
-                    <Input inputMode="tel" value={form.phone} onChange={set("phone")} placeholder="+91 98765 43210" aria-invalid={Boolean(fieldErrors.phone)} required />
+                    <Input className="h-11" inputMode="tel" value={form.phone} onChange={set("phone")} placeholder="+91 98765 43210" autoComplete="tel" aria-invalid={Boolean(fieldErrors.phone)} required />
                     <FieldError>{fieldErrors.phone}</FieldError>
                   </div>
-                  <div className="grid gap-3.5 sm:grid-cols-2">
-                    <div className="flex flex-col gap-1.5">
-                      <Label>Password<Req /></Label>
-                      <Input type="password" value={form.password} onChange={set("password")} placeholder="Min. 8 characters" aria-invalid={Boolean(fieldErrors.password)} required />
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Password<Req /></Label>
+                    <div className="relative">
+                      <Input
+                        className="h-11 pr-10"
+                        type={showPw ? "text" : "password"}
+                        value={form.password}
+                        onChange={set("password")}
+                        placeholder="At least 8 characters"
+                        autoComplete="new-password"
+                        aria-invalid={Boolean(fieldErrors.password)}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPw((s) => !s)}
+                        aria-label={showPw ? "Hide password" : "Show password"}
+                        className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        {showPw ? (
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.5 13.5 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" y1="2" x2="22" y2="22" /></svg>
+                        ) : (
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+                        )}
+                      </button>
+                    </div>
+                    {fieldErrors.password ? (
                       <FieldError>{fieldErrors.password}</FieldError>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <Label>Confirm password<Req /></Label>
-                      <Input type="password" value={form.confirm} onChange={set("confirm")} placeholder="Re-enter" aria-invalid={Boolean(fieldErrors.confirm)} required />
-                      <FieldError>{fieldErrors.confirm}</FieldError>
-                    </div>
+                    ) : (
+                      <span className="text-[11.5px] text-muted-foreground">Use 8 or more characters.</span>
+                    )}
                   </div>
-                  <Button type="submit" className="mt-1.5 w-full" disabled={busy}>
-                    {busy ? "Sending code…" : "Continue"}
+                  <Button type="submit" className="mt-1 h-11 w-full" disabled={busy}>
+                    {busy ? "Sending code…" : "Create account"}
                   </Button>
                 </form>
 
-                <div className="mt-4 text-center text-[13px] text-muted-foreground">
+                <div className="mt-4 text-[13px] text-muted-foreground">
                   Already have an account?{" "}
                   <a href="/login" className="font-semibold text-primary">Sign in</a>
                 </div>
@@ -265,36 +392,29 @@ export function SignupForm() {
             ) : (
               <>
                 <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
-                  Verify your email
+                  Verify email
                 </div>
-                <h1 className="text-[23px] font-extrabold tracking-tight">Check your email</h1>
+                <h1 className="text-[24px] font-bold tracking-tight text-balance">Check your inbox</h1>
                 <p className="mb-6 mt-1.5 text-[13.5px] text-muted-foreground">
-                  We sent a 6-digit code to <span className="font-semibold text-foreground">{form.email}</span>. Enter it
-                  below to finish creating your account.
+                  We sent a 6-digit code to <span className="font-semibold text-foreground">{form.email}</span>.
                 </p>
 
                 <form onSubmit={verifyAndCreate} className="flex flex-col gap-3.5">
-                  <div className="flex flex-col gap-1.5">
-                    <Label>Verification code<Req /></Label>
-                    <Input
-                      autoFocus
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      maxLength={6}
+                  <div className="flex flex-col gap-2">
+                    <CodeBoxes
                       value={code}
-                      onChange={(e) => {
-                        setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                      onChange={(v) => {
+                        setCode(v);
                         setFieldErrors((fe) => (fe.code ? { ...fe, code: undefined } : fe));
                       }}
-                      placeholder="••••••"
-                      aria-invalid={Boolean(fieldErrors.code)}
-                      className="text-center text-[22px] font-semibold tracking-[0.5em]"
-                      required
+                      invalid={Boolean(fieldErrors.code)}
+                      disabled={busy}
+                      autoFocus
                     />
                     <FieldError>{fieldErrors.code}</FieldError>
                   </div>
-                  <Button type="submit" className="mt-1.5 w-full" disabled={busy || code.length !== 6}>
-                    {busy ? "Verifying…" : "Verify & create account"}
+                  <Button type="submit" className="mt-1 h-11 w-full" disabled={busy || code.length !== 6}>
+                    {busy ? "Verifying…" : "Verify & continue"}
                   </Button>
                 </form>
 
@@ -324,7 +444,7 @@ export function SignupForm() {
             )}
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

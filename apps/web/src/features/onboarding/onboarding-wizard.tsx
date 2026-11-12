@@ -339,8 +339,10 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
     <div
       className="flex min-h-screen items-center justify-center p-6"
       style={{
-        background:
-          "radial-gradient(1100px 560px at 12% -8%, oklch(0.93 0.03 255), transparent 55%), radial-gradient(900px 620px at 112% 118%, oklch(0.93 0.025 258), transparent 50%), oklch(0.968 0.006 255)",
+        // Hex (not oklch) so it renders on pre-2023 browsers (e.g. Win 7/8 Chromium).
+        backgroundColor: "#f2f5f9",
+        backgroundImage:
+          "radial-gradient(1100px 560px at 12% -8%, #dbe9fc, transparent 55%), radial-gradient(900px 620px at 112% 118%, #dee9f9, transparent 50%)",
       }}
     >
       {/* ~70% × 70% centered split surface on laptop+; a single full card below lg
@@ -351,8 +353,9 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
         <aside
           className="relative hidden w-[300px] flex-none overflow-hidden p-8 lg:flex lg:flex-col"
           style={{
-            background:
-              "linear-gradient(155deg, oklch(0.47 0.17 264) 0%, oklch(0.62 0.188 259.8) 62%, oklch(0.70 0.15 255) 100%)",
+            backgroundColor: "#2751b8",
+            backgroundImage:
+              "linear-gradient(155deg, #2751b8 0%, #3a81f5 62%, #59a0f9 100%)",
           }}
         >
           <div
@@ -364,9 +367,9 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
             }}
           />
           <div className="relative flex h-full flex-col">
-            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">Company setup</div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[rgba(255,255,255,0.7)]">Company setup</div>
             <div className="mt-1 text-[14px] font-semibold text-white">Step {step + 1} of {STEPS.length}</div>
-            <div className="mt-3 h-[6px] overflow-hidden rounded-full bg-white/20">
+            <div className="mt-3 h-[6px] overflow-hidden rounded-full bg-[rgba(255,255,255,0.2)]">
               <div className="h-full rounded-full bg-white transition-[width] duration-300" style={{ width: `${pct}%` }} />
             </div>
 
@@ -383,12 +386,12 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
                       aria-current={current ? "step" : undefined}
                       onClick={() => goTo(i)}
                       className={`flex w-full items-center gap-3 rounded-[9px] px-2.5 py-2 text-left text-[13px] transition-colors ${
-                        current ? "bg-white/12 font-semibold text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+                        current ? "bg-[rgba(255,255,255,0.12)] font-semibold text-white" : "text-[rgba(255,255,255,0.7)] hover:bg-[rgba(255,255,255,0.1)] hover:text-white"
                       }`}
                     >
                       <span
                         className={`grid h-[23px] w-[23px] flex-none place-items-center rounded-full text-[11.5px] font-bold ${
-                          complete ? "bg-white text-primary" : current ? "border-[1.5px] border-white text-white" : "border-[1.5px] border-white/35 text-white/55"
+                          complete ? "bg-white text-[#2751b8]" : current ? "border-[1.5px] border-white text-white" : "border-[1.5px] border-[rgba(255,255,255,0.35)] text-[rgba(255,255,255,0.55)]"
                         }`}
                       >
                         {complete ? (
@@ -404,7 +407,7 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
               })}
             </ol>
 
-            <div className="mt-auto border-t border-white/20 pt-3.5 text-[11.5px] text-white/70">
+            <div className="mt-auto border-t border-[rgba(255,255,255,0.2)] pt-3.5 text-[11.5px] text-[rgba(255,255,255,0.7)]">
               You can revisit any step before you submit.
             </div>
           </div>
@@ -602,7 +605,7 @@ function SaveStatus({ state }: { state: "idle" | "saving" | "saved" | "error" })
   const map = {
     idle: { text: "", cls: "" },
     saving: { text: "Saving…", cls: "text-muted-foreground" },
-    saved: { text: "Saved", cls: "text-[oklch(0.55_0.14_150)]" },
+    saved: { text: "Saved", cls: "text-[#1c8742]" },
     error: { text: "Couldn’t save — check your connection", cls: "text-destructive" },
   } as const;
   const { text, cls } = map[state];

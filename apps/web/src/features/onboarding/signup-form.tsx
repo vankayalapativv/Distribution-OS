@@ -42,7 +42,7 @@ function ErrorBanner({ children }: { readonly children: React.ReactNode }) {
 function Feature({ icon, title, children }: { readonly icon: React.ReactNode; readonly title: string; readonly children: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-lg bg-white/15 text-white">
+      <span className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-lg bg-[rgba(255,255,255,0.15)] text-white">
         {icon}
       </span>
       <div>
@@ -278,8 +278,10 @@ export function SignupForm() {
     <div
       className="flex min-h-screen items-center justify-center p-6"
       style={{
-        background:
-          "radial-gradient(1100px 560px at 12% -8%, oklch(0.93 0.03 255), transparent 55%), radial-gradient(900px 620px at 112% 118%, oklch(0.93 0.025 258), transparent 50%), oklch(0.968 0.006 255)",
+        // Hex (not oklch) so it renders on pre-2023 browsers (e.g. Win 7/8 Chromium).
+        backgroundColor: "#f2f5f9",
+        backgroundImage:
+          "radial-gradient(1100px 560px at 12% -8%, #dbe9fc, transparent 55%), radial-gradient(900px 620px at 112% 118%, #dee9f9, transparent 50%)",
       }}
     >
       {/* ~70% × 70% centered split surface on laptop+; a single full card below lg
@@ -290,8 +292,9 @@ export function SignupForm() {
         <aside
           className="relative hidden w-[44%] overflow-hidden p-[46px] lg:block"
           style={{
-            background:
-              "linear-gradient(155deg, oklch(0.47 0.17 264) 0%, oklch(0.62 0.188 259.8) 62%, oklch(0.70 0.15 255) 100%)",
+            backgroundColor: "#2751b8",
+            backgroundImage:
+              "linear-gradient(155deg, #2751b8 0%, #3a81f5 62%, #59a0f9 100%)",
           }}
         >
           <div
@@ -331,7 +334,7 @@ export function SignupForm() {
               </Feature>
             </div>
 
-            <div className="mt-auto border-t border-white/20 pt-3.5 text-[12px] text-[#aec5ee]">
+            <div className="mt-auto border-t border-[rgba(255,255,255,0.2)] pt-3.5 text-[12px] text-[#aec5ee]">
               Vardhan Systems · set up your company in minutes.
             </div>
           </div>
@@ -478,7 +481,7 @@ export function SignupForm() {
                       </button>
                     )}
                     {resent ? (
-                      <span className="inline-flex items-center gap-1 font-medium text-[oklch(0.55_0.14_150)]">
+                      <span className="inline-flex items-center gap-1 font-medium text-[#1c8742]">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                           <path d="M20 6 9 17l-5-5" />
                         </svg>

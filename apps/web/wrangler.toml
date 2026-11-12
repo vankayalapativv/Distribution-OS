@@ -23,7 +23,7 @@ routes = [
 # and server-side API calls read process.env.DISTRIBUTION_OS_API_BASE_URL.
 DISTRIBUTION_OS_API_BASE_URL = "https://api.distributionos.vardhansystems.in/api/v1"
 # Neon Managed Auth REST base (public endpoint, not a secret).
-NEON_AUTH_BASE_URL = "https://ep-proud-forest-b3snqhvr.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth"
+NEON_AUTH_BASE_URL = "https://ep-curly-mouse-b3m19z98.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth"
 # Origin sent to Neon for SUPER_ADMIN sign-in; must be in Neon's trusted-domains
 # list (this domain was added to Neon Auth trusted domains 2026-09-20).
 NEON_AUTH_WEB_ORIGIN = "https://distributionos.vardhansystems.in"

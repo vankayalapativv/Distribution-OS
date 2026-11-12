@@ -17,12 +17,19 @@ import type { ApiEnv } from "../types";
  * Access derives from the latest paid/free month + grace (see getBillingAccess).
  * Billing + webhook + health/status stay reachable so a blocked user can pay.
  *
+ * `/onboarding/*` is exempt too: it is identity/onboarding-state, read on the
+ * login-landing path (`/onboarding/me` decides where a session goes). Gating it
+ * would make a blocked enterprise's `/onboarding/me` return 402, the web reads
+ * that as "no_account" and logs the user out with `?error=not_registered` — so
+ * they'd never reach the billing screen. For an active enterprise it returns
+ * "active" → the dashboard renders BillingBlockedScreen, which is the intent.
+ *
  * `/me` is NOT exempted wholesale: only the identity/authz reads the web shell
  * needs to bootstrap and render the pay screen are allowed. The data/action
  * routes under `/me` (notifications, tasks, section updates, badge counts,
  * push-token, section-seen) ARE gated, so a blocked org can't keep using them.
  */
-const EXEMPT_PREFIXES = ["/webhooks", "/billing", "/health", "/status"];
+const EXEMPT_PREFIXES = ["/webhooks", "/billing", "/health", "/status", "/onboarding"];
 
 // Identity/status endpoints under /me that must stay reachable while blocked so
 // the UI can load and show the billing dialog. Exact paths only — every other

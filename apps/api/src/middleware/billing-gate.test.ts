@@ -24,6 +24,7 @@ function makeApp() {
   app.get("/me", (c) => c.text("me"));
   app.get("/me/tasks", (c) => c.text("tasks"));
   app.get("/me/notifications", (c) => c.text("notifications"));
+  app.get("/onboarding/me", (c) => c.text("onboarding"));
   return app;
 }
 
@@ -64,6 +65,12 @@ describe("billingGate", () => {
     expect(res.status).toBe(402);
     const body = (await res.json()) as { error?: { code?: string } };
     expect(body.error?.code).toBe("BILLING_BLOCKED");
+  });
+
+  it("never blocks /onboarding/* while blocked (login-landing path must resolve state, not 402→logout)", async () => {
+    svc.getBillingAccess.mockResolvedValue({ blocked: true, reason: "grace-expired", accessUntilMs: 0, config: { enforced: true } });
+    const res = await makeApp().request("/onboarding/me", {}, { BILLING_ENFORCED: "true" } as ApiEnv["Bindings"]);
+    expect(res.status).toBe(200);
   });
 
   it("never blocks billing routes even when blocked", async () => {

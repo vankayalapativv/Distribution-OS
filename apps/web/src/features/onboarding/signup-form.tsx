@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,7 +90,9 @@ function CodeBoxes({
   };
 
   return (
-    <div className="flex gap-2.5">
+    // Fluid 6-column grid so the boxes always fit the form width (fixed widths
+    // overflowed the ~284px form column on a phone).
+    <div className="grid grid-cols-6 gap-2 sm:gap-2.5">
       {Array.from({ length: 6 }, (_, i) => (
         <input
           key={i}
@@ -115,7 +117,7 @@ function CodeBoxes({
             e.preventDefault();
             write(0, e.clipboardData.getData("text"));
           }}
-          className="h-14 w-12 rounded-xl border border-input bg-transparent text-center text-[22px] font-semibold tabular-nums outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 disabled:opacity-50"
+          className={`h-14 w-full min-w-0 rounded-xl border bg-transparent text-center text-[20px] font-semibold tabular-nums outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 disabled:opacity-60 sm:text-[22px] ${value[i] ? "border-foreground/30 bg-muted/40" : "border-input"}`}
         />
       ))}
     </div>
@@ -133,8 +135,13 @@ export function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [verified, setVerified] = useState(false);
+  // Bumping this remounts CodeBoxes → it clears and refocuses the first box.
+  const [otpKey, setOtpKey] = useState(0);
   const [cooldown, setCooldown] = useState(0);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof typeof form | "code", string>>>({});
+  // The code we've already auto-submitted, so the effect doesn't re-fire for it.
+  const submittedRef = useRef("");
 
   // Editing a field clears its own error (and any general banner), so a
   // correction visibly resolves the message as the user types.
@@ -198,8 +205,7 @@ export function SignupForm() {
     void sendCode(false);
   }
 
-  async function verifyAndCreate(e: React.FormEvent) {
-    e.preventDefault();
+  const doVerify = useCallback(async () => {
     setError(null);
     setNotice(null);
     setFieldErrors((fe) => ({ ...fe, code: undefined }));
@@ -226,20 +232,36 @@ export function SignupForm() {
         // account could not be created) is a general banner.
         if (body.otp) {
           setFieldErrors((fe) => ({ ...fe, code: body.error ?? "That code is incorrect." }));
-          // Expired / too many attempts → clear so they request a fresh code.
-          if (body.otp === "expired" || body.otp === "missing" || body.otp === "too_many") setCode("");
         } else {
           setError(body.error ?? "Could not create your account.");
         }
+        // Clear + refocus the boxes so the next attempt starts clean; resetting
+        // submittedRef lets the same digits be re-tried (e.g. a transient error).
+        setCode("");
+        submittedRef.current = "";
+        setOtpKey((k) => k + 1);
         setBusy(false);
         return;
       }
+      setVerified(true); // brief success state before the onboarding redirect
       router.push("/onboarding");
     } catch {
       setError("Network error. Please try again.");
+      setCode("");
+      submittedRef.current = "";
+      setOtpKey((k) => k + 1);
       setBusy(false);
     }
-  }
+  }, [code, form, router]);
+
+  // Auto-verify the instant all six digits are present — no button press needed.
+  // submittedRef guards against re-firing for a code already in flight.
+  useEffect(() => {
+    if (phase === "otp" && code.length === 6 && !busy && !verified && submittedRef.current !== code) {
+      submittedRef.current = code;
+      void doVerify();
+    }
+  }, [phase, code, busy, verified, doVerify]);
 
   return (
     <div
@@ -249,11 +271,13 @@ export function SignupForm() {
           "radial-gradient(1100px 560px at 12% -8%, oklch(0.93 0.03 255), transparent 55%), radial-gradient(900px 620px at 112% 118%, oklch(0.93 0.025 258), transparent 50%), oklch(0.968 0.006 255)",
       }}
     >
-      {/* 70% × 70% centered surface (full card on phones). */}
-      <div className="flex h-[70vh] min-h-[560px] w-[70vw] max-w-[1180px] overflow-hidden rounded-[20px] border border-border bg-card shadow-[0_18px_50px_-20px_rgba(15,23,42,0.30),0_4px_14px_-8px_rgba(15,23,42,0.18)] max-md:h-auto max-md:min-h-0 max-md:w-full max-md:max-w-[440px]">
-        {/* ── Brand panel (hidden on phones) ── */}
+      {/* ~70% × 70% centered split surface on laptop+; a single full card below lg
+          (at md the 70vw box is too narrow for the two-column split). Height is a
+          MIN, so the card grows to fit its content instead of scrolling inside. */}
+      <div className="flex min-h-[70vh] w-[70vw] max-w-[1180px] overflow-hidden rounded-[20px] border border-border bg-card shadow-[0_18px_50px_-20px_rgba(15,23,42,0.30),0_4px_14px_-8px_rgba(15,23,42,0.18)] max-lg:min-h-0 max-lg:w-full max-lg:max-w-[440px]">
+        {/* ── Brand panel (shown on laptop+ only) ── */}
         <aside
-          className="relative hidden w-[44%] overflow-hidden p-[46px] md:block"
+          className="relative hidden w-[44%] overflow-hidden p-[46px] lg:block"
           style={{
             background:
               "linear-gradient(155deg, oklch(0.47 0.17 264) 0%, oklch(0.62 0.188 259.8) 62%, oklch(0.70 0.15 255) 100%)",
@@ -303,7 +327,7 @@ export function SignupForm() {
         </aside>
 
         {/* ── Form side ── */}
-        <div className="flex flex-1 items-center justify-center overflow-auto p-10 max-md:p-7">
+        <div className="flex flex-1 items-center justify-center p-10 max-lg:p-7">
           <div className="w-full max-w-[360px]">
             {error ? <ErrorBanner>{error}</ErrorBanner> : null}
             {notice ? (
@@ -391,30 +415,44 @@ export function SignupForm() {
               </>
             ) : (
               <>
-                <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-primary">
-                  Verify email
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                    <path d="m3 7 9 6 9-6" />
+                  </svg>
                 </div>
                 <h1 className="text-[24px] font-bold tracking-tight text-balance">Check your inbox</h1>
-                <p className="mb-6 mt-1.5 text-[13.5px] text-muted-foreground">
-                  We sent a 6-digit code to <span className="font-semibold text-foreground">{form.email}</span>.
+                <p className="mb-6 mt-1.5 text-[13.5px] leading-[1.5] text-muted-foreground">
+                  Enter the 6-digit code we sent to{" "}
+                  <span className="font-semibold text-foreground">{form.email}</span>.
                 </p>
 
-                <form onSubmit={verifyAndCreate} className="flex flex-col gap-3.5">
+                <form onSubmit={(e) => { e.preventDefault(); void doVerify(); }} className="flex flex-col gap-3.5">
                   <div className="flex flex-col gap-2">
                     <CodeBoxes
+                      key={otpKey}
                       value={code}
                       onChange={(v) => {
                         setCode(v);
                         setFieldErrors((fe) => (fe.code ? { ...fe, code: undefined } : fe));
                       }}
                       invalid={Boolean(fieldErrors.code)}
-                      disabled={busy}
+                      disabled={busy || verified}
                       autoFocus
                     />
-                    <FieldError>{fieldErrors.code}</FieldError>
+                    {fieldErrors.code ? (
+                      <FieldError>{fieldErrors.code}</FieldError>
+                    ) : (
+                      <p className="text-[11.5px] text-muted-foreground">Verifies automatically once all six digits are entered.</p>
+                    )}
                   </div>
-                  <Button type="submit" className="mt-1 h-11 w-full" disabled={busy || code.length !== 6}>
-                    {busy ? "Verifying…" : "Verify & continue"}
+                  <Button type="submit" className="mt-1 h-11 w-full" disabled={busy || verified || code.length !== 6}>
+                    {verified ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M20 6 9 17l-5-5" /></svg>
+                        Verified
+                      </span>
+                    ) : busy ? "Verifying…" : "Verify & continue"}
                   </Button>
                 </form>
 
@@ -424,22 +462,29 @@ export function SignupForm() {
                     onClick={() => {
                       setPhase("form");
                       setCode("");
+                      submittedRef.current = "";
                       setError(null);
                       setNotice(null);
+                      setFieldErrors((fe) => ({ ...fe, code: undefined }));
                     }}
-                    className="font-semibold text-muted-foreground hover:text-foreground"
+                    disabled={busy || verified}
+                    className="font-semibold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
                   >
-                    Use a different email
+                    Change email
                   </button>
                   <button
                     type="button"
-                    disabled={cooldown > 0 || busy}
+                    disabled={cooldown > 0 || busy || verified}
                     onClick={() => void sendCode(true)}
-                    className="font-semibold text-primary disabled:cursor-not-allowed disabled:text-muted-foreground"
+                    className="font-semibold text-primary transition-colors disabled:cursor-not-allowed disabled:text-muted-foreground"
                   >
                     {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
                   </button>
                 </div>
+
+                <p className="mt-5 text-[12px] leading-[1.5] text-muted-foreground">
+                  Didn&apos;t get it? Check your spam folder, or resend once the timer ends.
+                </p>
               </>
             )}
           </div>

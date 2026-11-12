@@ -94,9 +94,10 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
     return () => clearTimeout(id);
   }, [data, step]);
 
-  // Scroll the form back to the top whenever the step changes.
+  // Bring the form's top into view on each step change (the card can now be
+  // taller than the viewport, so this scrolls the page, not an inner box).
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: 0 });
+    scrollRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
   }, [step]);
 
   const upd = useCallback(<K extends keyof Data>(key: K, patch: Partial<Data[K]>) => {
@@ -191,11 +192,13 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
           "radial-gradient(1100px 560px at 12% -8%, oklch(0.93 0.03 255), transparent 55%), radial-gradient(900px 620px at 112% 118%, oklch(0.93 0.025 258), transparent 50%), oklch(0.968 0.006 255)",
       }}
     >
-      {/* 70% × 70% centered surface (full card on phones). */}
-      <div className="flex h-[70vh] min-h-[560px] w-[70vw] max-w-[1180px] overflow-hidden rounded-[20px] border border-border bg-card shadow-[0_18px_50px_-20px_rgba(15,23,42,0.30),0_4px_14px_-8px_rgba(15,23,42,0.18)] max-md:h-auto max-md:min-h-0 max-md:w-full max-md:max-w-[480px]">
-        {/* ── Step tracker (hidden on phones) ── */}
+      {/* ~70% × 70% centered split surface on laptop+; a single full card below lg
+          (at md the 300px tracker leaves the form column far too narrow). Height is
+          a MIN, so the card grows to fit each step instead of scrolling inside. */}
+      <div className="flex min-h-[70vh] w-[70vw] max-w-[1180px] overflow-hidden rounded-[20px] border border-border bg-card shadow-[0_18px_50px_-20px_rgba(15,23,42,0.30),0_4px_14px_-8px_rgba(15,23,42,0.18)] max-lg:min-h-0 max-lg:w-full max-lg:max-w-[480px]">
+        {/* ── Step tracker (shown on laptop+ only) ── */}
         <aside
-          className="relative hidden w-[300px] flex-none overflow-hidden p-8 md:flex md:flex-col"
+          className="relative hidden w-[300px] flex-none overflow-hidden p-8 lg:flex lg:flex-col"
           style={{
             background:
               "linear-gradient(155deg, oklch(0.47 0.17 264) 0%, oklch(0.62 0.188 259.8) 62%, oklch(0.70 0.15 255) 100%)",
@@ -254,9 +257,9 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
 
         {/* ── Form side ── */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <div ref={scrollRef} className="flex-1 overflow-auto p-10 max-md:p-7 [&_[data-slot=input]]:h-10 [&_[data-slot=input]]:text-[13.5px]">
+          <div ref={scrollRef} className="flex-1 p-10 max-lg:p-7 [&_[data-slot=input]]:h-10 [&_[data-slot=input]]:text-[13.5px]">
             <div className="mx-auto max-w-[560px]">
-              <div className="mb-4 text-[13px] text-muted-foreground md:hidden">Step {step + 1} of {STEPS.length} · {STEPS[step]}</div>
+              <div className="mb-4 text-[13px] text-muted-foreground lg:hidden">Step {step + 1} of {STEPS.length} · {STEPS[step]}</div>
               {rejectedReason ? (
                 <div className="mb-5 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
                   Your previous submission was returned: {rejectedReason}. Update your details and resubmit.
@@ -392,7 +395,7 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
           </div>
 
           {/* nav footer — pinned at the bottom of the surface */}
-          <div className="flex items-center gap-3 border-t border-border px-10 py-4 max-md:px-7">
+          <div className="flex items-center gap-3 border-t border-border px-10 py-4 max-lg:px-7">
             {step > 0 ? <Button variant="outline" onClick={back}>Back</Button> : null}
             <span className={`text-[12px] font-semibold text-[oklch(0.62_0.15_150)] transition-opacity ${saved ? "opacity-100" : "opacity-0"}`}>Saved</span>
             <span className="flex-1" />

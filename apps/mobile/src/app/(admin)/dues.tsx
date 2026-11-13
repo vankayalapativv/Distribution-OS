@@ -38,11 +38,10 @@ export default function AdminDuesScreen() {
         ) : (
           <>
             <DuesBucketSelector
+              buckets={d.buckets}
               bucket={d.bucket}
               setBucket={d.setBucket}
               loading={d.loading}
-              bucketCount={d.bucketCount}
-              bucketOutstanding={d.bucketOutstanding}
             />
             <DuesCustomerList listLoading={d.listLoading} customers={d.customers} />
           </>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import type { DuesBucketKey, DuesSummary } from "./dues";
+import type { DuesBucketKey, DuesBucketSummary, DuesSummary } from "./dues";
 import {
   fetchAdminDuesCustomers,
   fetchAdminDuesSummary,
@@ -9,27 +9,28 @@ import {
   type SalesExec,
 } from "./admin-dues";
 
-export const BUCKETS: DuesBucketKey[] = ["0_30", "30_45", "45_60", "60_plus"];
-
 /** State + data-loading for the master collection-dues screen: the SE list, the
- *  ageing summary, and the customers in the selected bucket (per SE filter). */
+ *  ageing summary, and the customers in the selected bucket (per SE filter).
+ *
+ *  Bands are SERVER-DRIVEN — each enterprise defines its own ageing bands in
+ *  onboarding and the API returns them keyed by ordinal ("0".."N-1"). This hook
+ *  must therefore read the band list from the summary; it must NOT assume the
+ *  legacy fixed keys ("0_30"…), which no longer exist (doing so made every bucket
+ *  read 0 and the customer list 422 → "No customers in this bucket"). */
 export function useAdminDues() {
-  // The Home dues card deep-links a specific bucket via `?bucket=` — open that
-  // tab (falling back to 0–30 when absent/invalid, e.g. a plain card tap).
+  // The Home dues card deep-links a specific band via `?bucket=` (a real ordinal
+  // key). Seed from it; reconcile to a valid band once the summary loads.
   const { bucket: bucketParam } = useLocalSearchParams<{ bucket?: string }>();
-  const paramBucket = BUCKETS.includes(bucketParam as DuesBucketKey)
-    ? (bucketParam as DuesBucketKey)
-    : null;
   const [execs, setExecs] = useState<SalesExec[]>([]);
   const [execsLoading, setExecsLoading] = useState(true);
   const [execId, setExecId] = useState<string | null>(null); // null = All
-  const [bucket, setBucket] = useState<DuesBucketKey>(paramBucket ?? "0_30");
+  const [bucket, setBucket] = useState<DuesBucketKey>(bucketParam ?? "");
 
   // Re-select the tab if the incoming bucket changes (new navigation with a
   // different `?bucket=`), without clobbering a manual tab tap.
   useEffect(() => {
-    if (paramBucket) setBucket(paramBucket);
-  }, [paramBucket]);
+    if (bucketParam) setBucket(bucketParam);
+  }, [bucketParam]);
   const [summary, setSummary] = useState<DuesSummary | null>(null);
   const [customers, setCustomers] = useState<AdminDuesCustomer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +50,18 @@ export function useAdminDues() {
     }
   }, [execId]);
 
+  const buckets: DuesBucketSummary[] = summary?.buckets ?? [];
+
+  // Once the enterprise's bands are known, make sure a REAL band is selected.
+  // The seeded param (or "") may match none — e.g. a plain card tap, or a stale
+  // legacy key — so fall back to the first band.
+  useEffect(() => {
+    if (buckets.length === 0) return;
+    if (!buckets.some((b) => b.key === bucket)) setBucket(buckets[0].key);
+  }, [buckets, bucket]);
+
   const loadCustomers = useCallback(async () => {
+    if (!bucket) return; // no band selected yet (summary not loaded)
     setListLoading(true);
     try {
       const res = await fetchAdminDuesCustomers(bucket, execId);
@@ -81,14 +93,8 @@ export function useAdminDues() {
     setRefreshing(false);
   }, [loadSummary, loadCustomers]);
 
-  const bucketCount = (k: DuesBucketKey) =>
-    summary?.buckets.find((b) => b.key === k)?.customers ?? 0;
-  const bucketOutstanding = (k: DuesBucketKey) =>
-    summary?.buckets.find((b) => b.key === k)?.outstanding ?? 0;
-
   return {
-    execs, execsLoading, execId, setExecId, bucket, setBucket, customers,
+    execs, execsLoading, execId, setExecId, bucket, setBucket, buckets, customers,
     loading, listLoading, error, refreshing, onRefresh, loadSummary,
-    bucketCount, bucketOutstanding,
   };
 }

@@ -17,7 +17,7 @@ import { cacheKeys } from "./cache-keys";
 import { fetchTodayBeat } from "./beat/today-beat-online";
 import { fetchSeCustomers } from "./customer-directory";
 import type { ServerOrder } from "./customer/types";
-import { fetchDuesCustomers, fetchDuesSummary, type DuesBucketKey } from "./dues";
+import { fetchDuesCustomers, fetchDuesSummary } from "./dues";
 import { getIsOnline } from "./connectivity";
 import { fetchNotifications } from "./invoice-notifications";
 import type { LedgerData } from "./ledger";
@@ -26,12 +26,20 @@ import { fetchMyPerformance } from "./performance";
 import { shouldPrefetch } from "./prefetch-throttle";
 import { cachedFetch, writeCache } from "./read-cache";
 
-const DUES_BUCKETS: DuesBucketKey[] = ["0_30", "30_45", "45_60", "60_plus"];
 const PREFETCH_INTERVAL_MS = 5 * 60 * 1000;
 let lastPrefetchAt = 0;
 
 /** Swallow a rejection so one failed endpoint never aborts the batch. */
 const quiet = (p: Promise<unknown>) => p.catch(() => undefined);
+
+/** Prefetch the SE dues summary + each ageing band's customer list. Band keys are
+ *  SERVER-DRIVEN (enterprise ordinals), so they come from the summary — never a
+ *  hardcoded set, which no longer matches the API (the old fixed keys 422). */
+async function prefetchDues(): Promise<void> {
+  const summary = await fetchDuesSummary();
+  if (!summary) return;
+  await Promise.allSettled(summary.buckets.map((b) => fetchDuesCustomers(b.key)));
+}
 
 /** Per-customer ledgers in ONE call → write each to the key the ledger screen reads. */
 async function prefetchLedgers(token: string | null): Promise<void> {
@@ -75,8 +83,7 @@ export async function prefetchReadData(opts: { force?: boolean } = {}): Promise<
     jobs.push(
       quiet(cachedFetch(cacheKeys.customersList, () => fetchSeCustomers(token))),
       quiet(fetchMyPerformance()),
-      quiet(fetchDuesSummary()),
-      ...DUES_BUCKETS.map((b) => quiet(fetchDuesCustomers(b))),
+      quiet(prefetchDues()),
       quiet(fetchTodayBeat(token)),
       quiet(cachedFetch(cacheKeys.notifications, fetchNotifications)),
       quiet(cachedFetch(cacheKeys.orderOils, () => fetchOils(token))),

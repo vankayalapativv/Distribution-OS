@@ -1,11 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const neonSignIn = vi.fn();
 const neonJwtFromSession = vi.fn();
 const serverApiFetch = vi.fn();
 
 vi.mock("../../../../lib/neon-auth-server", () => ({
-  neonSignIn: (...a: unknown[]) => neonSignIn(...a),
   neonJwtFromSession: (...a: unknown[]) => neonJwtFromSession(...a),
 }));
 vi.mock("../../../../lib/server-api", () => ({
@@ -14,10 +12,10 @@ vi.mock("../../../../lib/server-api", () => ({
 
 import { POST } from "./route";
 
-function req(body: unknown) {
+function req(body: unknown, headers?: Record<string, string>) {
   return new Request("http://localhost:3000/api/auth/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(headers ?? {}) },
     body: JSON.stringify(body),
   });
 }
@@ -26,15 +24,28 @@ function meOk(role: string) {
   return { ok: true, json: async () => ({ data: { auth: { role } } }) } as Response;
 }
 
+/** Route both API calls: /auth/login → a session, /me → the given role. A custom
+ *  `login` Response overrides the sign-in (e.g. a failure). */
+function mockApi({ role = "MANAGER", session = "sess", login }: { role?: string; session?: string; login?: Response } = {}) {
+  serverApiFetch.mockImplementation((path: string) =>
+    Promise.resolve(
+      path === "/auth/login"
+        ? (login ?? ({ ok: true, json: async () => ({ data: { session } }) } as Response))
+        : path === "/me"
+          ? meOk(role)
+          : ({ ok: true, json: async () => ({ data: {} }) } as Response),
+    ),
+  );
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
-  neonSignIn.mockResolvedValue({ ok: true, session: "sess" });
   neonJwtFromSession.mockResolvedValue("jwt");
 });
 
 describe("POST /api/auth/login", () => {
   it("rejects a SALES_EXECUTIVE with no web access and sets no session cookie", async () => {
-    serverApiFetch.mockResolvedValue(meOk("SALES_EXECUTIVE"));
+    mockApi({ role: "SALES_EXECUTIVE" });
     const res = await POST(req({ email: "se@x.com", password: "pw" }));
     expect(res.status).toBe(403);
     const body = (await res.json()) as { error?: string };
@@ -43,13 +54,13 @@ describe("POST /api/auth/login", () => {
   });
 
   it("rejects LOGISTICS too", async () => {
-    serverApiFetch.mockResolvedValue(meOk("LOGISTICS"));
+    mockApi({ role: "LOGISTICS" });
     const res = await POST(req({ email: "log@x.com", password: "pw" }));
     expect(res.status).toBe(403);
   });
 
   it("lets a web role (MANAGER) in and sets the session cookie", async () => {
-    serverApiFetch.mockResolvedValue(meOk("MANAGER"));
+    mockApi({ role: "MANAGER", session: "sess" });
     const res = await POST(req({ email: "m@x.com", password: "pw" }));
     expect(res.status).toBe(200);
     const body = (await res.json()) as { ok?: boolean; role?: string };
@@ -58,36 +69,52 @@ describe("POST /api/auth/login", () => {
     expect(res.headers.get("set-cookie") ?? "").toContain("sa_session=sess");
   });
 
-  it("signs a phone identifier in via the API (not direct Neon) and sets its session", async () => {
-    serverApiFetch.mockImplementation((path: string) =>
-      Promise.resolve(
-        path === "/auth/login"
-          ? ({ ok: true, json: async () => ({ data: { session: "sess-phone" } }) } as Response)
-          : meOk("ACCOUNTANT"),
-      ),
-    );
+  it("signs both email and phone in via the API (one path) and sets the session", async () => {
+    mockApi({ role: "ACCOUNTANT", session: "sess-phone" });
     const res = await POST(req({ identifier: "9985294475", password: "pw" }));
     expect(res.status).toBe(200);
-    expect(neonSignIn).not.toHaveBeenCalled(); // phone goes through the API, not direct Neon
+    // The first API call is the sign-in, carrying the raw identifier (email or phone).
+    const loginCall = serverApiFetch.mock.calls.find(([p]) => p === "/auth/login");
+    expect(loginCall).toBeTruthy();
+    expect(JSON.parse((loginCall![1] as RequestInit).body as string).identifier).toBe("9985294475");
     expect(res.headers.get("set-cookie") ?? "").toContain("sa_session=sess-phone");
   });
 
-  it("rejects bad credentials before any role check", async () => {
-    neonSignIn.mockResolvedValue({ ok: false, session: null, error: "Invalid email or password." });
+  it("rejects bad credentials with a generic 401 before any role check", async () => {
+    mockApi({
+      login: { ok: false, json: async () => ({ error: { code: "UNAUTHORIZED", message: "bad" } }) } as Response,
+    });
     const res = await POST(req({ email: "x@x.com", password: "bad" }));
     expect(res.status).toBe(401);
-    expect(serverApiFetch).not.toHaveBeenCalled();
+    expect((await res.json()).error).toMatch(/invalid email\/phone or password/i);
+    // No role/JWT resolution happens without a session.
+    expect(neonJwtFromSession).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a deactivated account as 403 with the clear message (email OR phone)", async () => {
+    mockApi({
+      login: {
+        ok: false,
+        json: async () => ({
+          error: { code: "ACCOUNT_INACTIVE", message: "Your account has been deactivated. Please contact your administrator." },
+        }),
+      } as Response,
+    });
+    const res = await POST(req({ email: "gone@x.com", password: "pw" }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toMatch(/deactivated/i);
+    expect(res.headers.get("set-cookie") ?? "").not.toContain("sa_session=");
+    expect(neonJwtFromSession).not.toHaveBeenCalled();
   });
 
   it("forwards the browser User-Agent to the sign-in so the session records the real device", async () => {
-    serverApiFetch.mockResolvedValue(meOk("MANAGER"));
+    mockApi({ role: "MANAGER" });
     const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0 Safari/537.36";
-    const request = new Request("http://localhost:3000/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "User-Agent": ua },
-      body: JSON.stringify({ email: "m@x.com", password: "pw" }),
-    });
-    await POST(request);
-    expect(neonSignIn).toHaveBeenCalledWith("m@x.com", "pw", ua);
+    await POST(req({ email: "m@x.com", password: "pw" }, { "User-Agent": ua }));
+    const loginCall = serverApiFetch.mock.calls.find(([p]) => p === "/auth/login");
+    expect(loginCall).toBeTruthy();
+    const init = loginCall![1] as RequestInit;
+    expect((init.headers as Record<string, string>)["User-Agent"]).toBe(ua);
+    expect(JSON.parse(init.body as string).device).toBe(ua);
   });
 });

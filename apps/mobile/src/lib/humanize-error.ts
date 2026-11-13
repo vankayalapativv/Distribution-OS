@@ -20,6 +20,13 @@ export interface FriendlyError {
 /** Friendly title/message/severity for a server-side (ApiRequestError) failure,
  *  or null when the status doesn't map to one (falls through to generic handling). */
 function friendlyApiError(error: ApiRequestError): FriendlyError | null {
+  if (error.code === "ACCOUNT_INACTIVE") {
+    return {
+      title: "Account deactivated",
+      message: error.message || "Your account has been deactivated. Please contact your administrator.",
+      severity: "error",
+    };
+  }
   if (error.status >= 500) {
     return { title: "Server hiccup", message: "Something went wrong on our end. Please try again in a moment.", severity: "error" };
   }

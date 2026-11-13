@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { serverApiFetch } from "../../../../lib/server-api";
-import { neonJwtFromSession, neonSignIn } from "../../../../lib/neon-auth-server";
+import { neonJwtFromSession } from "../../../../lib/neon-auth-server";
 import { isWebRole } from "../../../../features/auth/auth-role";
 import type { Role } from "@distribution-os/shared";
 
@@ -23,37 +23,42 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Email/phone and password are required." }, { status: 400 });
   }
 
-  // 1. Authenticate against Neon Managed Better Auth and get a session.
-  //    An email signs in directly from here; a phone number is resolved to its
-  //    account email AND signed in by the API in one call (the web server has no
-  //    DB access, and resolving-then-signing-in server-side never exposes the
-  //    email). The browser's User-Agent is forwarded either way so the session
-  //    records the real device.
+  // 1. Authenticate via the API's /auth/login — email OR phone, one path. The API
+  //    resolves a phone to its account email, signs in against Neon Managed Better
+  //    Auth, AND enforces the deactivation check uniformly (email and phone alike),
+  //    so a deactivated account can't slip through by signing in with its email.
+  //    The web server has no DB access, so it never does this itself. The browser's
+  //    User-Agent is forwarded so the session records the real device.
   const userAgent = request.headers.get("user-agent");
   let session: string | null = null;
   let signInError = "Invalid email/phone or password.";
-  if (identifier.includes("@")) {
-    const signIn = await neonSignIn(identifier, password, userAgent);
-    if (signIn.ok && signIn.session) session = signIn.session;
-    else signInError = signIn.error ?? signInError;
-  } else {
-    try {
-      const res = await serverApiFetch("/auth/login", {
-        method: "POST",
-        cache: "no-store",
-        headers: { "Content-Type": "application/json", ...(userAgent ? { "User-Agent": userAgent } : {}) },
-        body: JSON.stringify({ identifier, password, device: userAgent }),
-      });
-      if (res.ok) {
-        const j = (await res.json()) as { data?: { session?: string } };
-        session = j.data?.session ?? null;
+  let signInStatus = 401;
+  try {
+    const res = await serverApiFetch("/auth/login", {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", ...(userAgent ? { "User-Agent": userAgent } : {}) },
+      body: JSON.stringify({ identifier, password, device: userAgent }),
+    });
+    if (res.ok) {
+      const j = (await res.json()) as { data?: { session?: string } };
+      session = j.data?.session ?? null;
+    } else {
+      // Surface a deactivated account clearly; everything else stays the generic
+      // "invalid credentials" (no account enumeration).
+      const err = (await res.json().catch(() => null)) as {
+        error?: { code?: string; message?: string };
+      } | null;
+      if (err?.error?.code === "ACCOUNT_INACTIVE") {
+        signInError = err.error.message ?? "Your account has been deactivated. Please contact your administrator.";
+        signInStatus = 403;
       }
-    } catch {
-      // leave session null → the generic 401 below
     }
+  } catch {
+    // leave session null → the generic 401 below
   }
   if (!session) {
-    return NextResponse.json({ error: signInError }, { status: 401 });
+    return NextResponse.json({ error: signInError }, { status: signInStatus });
   }
 
   // 2. Resolve the application role. Neon tokens carry no role claim — the API

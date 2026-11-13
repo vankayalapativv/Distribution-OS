@@ -19,7 +19,7 @@ const post = async (p: string, b: unknown) => {
   return app.request(`/api/v1/auth/${p}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) }, ENV);
 };
 
-beforeEach(() => { vi.resetModules(); installAuth(); M.signIn.mockReset(); M.mint.mockReset(); M.signOut.mockReset(); M.db = {}; });
+beforeEach(() => { vi.resetModules(); installAuth(); M.signIn.mockReset(); M.mint.mockReset(); M.signOut.mockReset(); M.db = { login_account_status: [{ status: "active" }] }; });
 
 describe("auth routes (public)", () => {
   it("login returns session+token when sign-in and mint succeed", async () => {
@@ -30,7 +30,7 @@ describe("auth routes (public)", () => {
     expect((await res.json()).data.token).toBe("jwt");
   });
   it("resolves a phone identifier to its account email, then signs in", async () => {
-    M.db = { login_resolve_email_by_phone: [{ email: "se@x.com" }] };
+    M.db = { login_resolve_email_by_phone: [{ email: "se@x.com", status: "active" }], login_account_status: [{ status: "active" }] };
     M.signIn.mockResolvedValue({ ok: true, session: "sess", user: { id: "u1" } });
     M.mint.mockResolvedValue({ status: "active", token: "jwt" });
     const res = await post("login", { identifier: "99852 94475", password: "pw" });
@@ -38,11 +38,19 @@ describe("auth routes (public)", () => {
     // Signed in with the resolved email, not the raw phone.
     expect(M.signIn).toHaveBeenLastCalledWith(expect.anything(), "se@x.com", "pw", undefined);
   });
-  it("401s a phone that matches no active user (no enumeration)", async () => {
+  it("401s a phone that matches no account (no enumeration)", async () => {
     M.db = { login_resolve_email_by_phone: [] };
     const res = await post("login", { identifier: "9000000000", password: "pw" });
     expect(res.status).toBe(401);
     expect(M.signIn).not.toHaveBeenCalled();
+  });
+  it("403s a deactivated account AFTER a correct password (email + phone alike)", async () => {
+    M.db = { login_account_status: [{ status: "inactive" }] };
+    M.signIn.mockResolvedValue({ ok: true, session: "sess", user: { id: "u1" } });
+    const res = await post("login", { email: "gone@x.com", password: "pw" });
+    expect(res.status).toBe(403);
+    expect((await res.json()).error.code).toBe("ACCOUNT_INACTIVE");
+    expect(M.signOut).toHaveBeenCalledWith(expect.anything(), "sess"); // session revoked
   });
   it("login returns null token when the mint is not active", async () => {
     M.signIn.mockResolvedValue({ ok: true, session: "sess", user: { id: "u1" } });

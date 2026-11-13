@@ -39,6 +39,23 @@ export const authRoutes = new Hono<ApiEnv>()
         r.status >= 500 ? 503 : 401,
       );
     }
+    // Deactivation blocks sign-in — the SAME for email and phone — but only AFTER
+    // a correct password, so a deactivated account can't be probed. We checked no
+    // status filter in resolveSignInEmail precisely so we can give this clear
+    // message instead of a confusing generic 401. The just-created Neon session
+    // is revoked best-effort so it can't be reused.
+    const statusRows = (await getSqlClient(c)`
+      /* login_account_status */
+      select status from users where lower(email) = lower(${email}) limit 1
+    `) as Array<{ status: string }>;
+    if (statusRows[0]?.status !== "active") {
+      await Promise.resolve(neonSignOut(c.env, r.session)).catch(() => {});
+      throw new ApiError(
+        "ACCOUNT_INACTIVE",
+        "Your account has been deactivated. Please contact your administrator.",
+        403,
+      );
+    }
     // Mint the first API JWT here too, so the client gets session+token+user in
     // one round-trip. A failed mint still returns the session (client retries).
     const minted = await neonMintToken(c.env, r.session);

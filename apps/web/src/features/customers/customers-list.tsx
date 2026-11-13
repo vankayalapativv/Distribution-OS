@@ -12,6 +12,7 @@ import { customerColumns, customerSkeleton } from "./customers-columns";
 import { CustomerCreateDialog } from "./customers-create-dialog";
 import { CustomersFilterBar } from "./customers-filter-bar";
 import { useCustomersList } from "./use-customers-list";
+import { cacheCustomer } from "./customers-cache";
 import { type CustomersRole } from "./customers-list-logic";
 import { plural } from "@/lib/format";
 
@@ -76,7 +77,10 @@ function CustomersInner({ role, actionConfig }: { readonly role: CustomersRole; 
               </>
             )
           }
-          onRowClick={(row) => router.push(`/customers/${row.id}`)}
+          onRowClick={(row) => {
+            cacheCustomer(row); // seed the detail header so it renders instantly
+            router.push(`/customers/${row.id}`);
+          }}
         />
       </DashboardShell>
 

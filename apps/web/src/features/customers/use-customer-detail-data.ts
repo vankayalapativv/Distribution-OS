@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiGet, type ActionConfig } from "@/lib/api-client";
 import type { CustomerPhoto } from "./customer-photos-tab";
+import { notesKey, type CustomerNote } from "./customer-note-item";
 import type { Order } from "@/features/orders/orders-api";
 
 /** The three side queries the detail page shows across its tabs: profile photos,
@@ -29,6 +30,12 @@ export function useCustomerDetailData(customerId: string, actionConfig: ActionCo
       apiGet<{ summary: { all: number } }>(actionConfig, `/customers/${customerId}/visits?pageSize=1`),
   });
 
+  // Shares the Notes tab's query key, so this count fetch also warms that tab.
+  const notesQuery = useQuery({
+    queryKey: notesKey(customerId),
+    queryFn: () => apiGet<{ notes: CustomerNote[] }>(actionConfig, `/customers/${customerId}/notes`),
+  });
+
   return {
     photos: photosQuery.data?.photos ?? [],
     photosLoading: photosQuery.isLoading,
@@ -37,5 +44,7 @@ export function useCustomerDetailData(customerId: string, actionConfig: ActionCo
     ordersLoading: ordersQuery.isLoading,
     visitsCount: visitsCountQuery.data?.summary.all ?? 0,
     visitsLoading: visitsCountQuery.isLoading,
+    notesCount: notesQuery.data?.notes.length ?? 0,
+    notesLoading: notesQuery.isLoading,
   };
 }

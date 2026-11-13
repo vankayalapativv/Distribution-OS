@@ -7,6 +7,11 @@ vi.mock("@/features/shell/dashboard-shell", () => ({
 vi.mock("@/components/data-table/query-provider", () => ({
   withQueryClient: (C: (p: unknown) => React.ReactNode) => C,
 }));
+// The loader fetches the customer via useQuery; return it directly so the
+// detail renders (the cache/placeholder path is exercised in the browser).
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: () => ({ data: { id: "c1", legalName: "Raj Motors" }, isError: false }),
+}));
 vi.mock("./customer-detail-sections", () => ({ INFO_TABS: [{ key: "details", label: "Details" }] }));
 vi.mock("./use-customer-detail-data", () => ({
   useCustomerDetailData: () => ({
@@ -44,14 +49,12 @@ vi.mock("./customer-status-dialog", () => ({
 }));
 
 import { CustomerDetail } from "./customer-detail";
-import type { Customer } from "./customers-api";
 
 const cfg = { apiBaseUrl: "x", authToken: "t" };
-const customer = { id: "c1", legalName: "Raj Motors" } as unknown as Customer;
 
 describe("CustomerDetail", () => {
   it("opens the edit + status dialogs from the header (editable roles)", () => {
-    render(<CustomerDetail customer={customer} role="SUPER_ADMIN" actionConfig={cfg} />);
+    render(<CustomerDetail customerId="c1" role="SUPER_ADMIN" actionConfig={cfg} />);
     expect(screen.getByText("header canEdit:true")).toBeInTheDocument();
     expect(screen.getByText("content:details")).toBeInTheDocument();
 
@@ -62,13 +65,13 @@ describe("CustomerDetail", () => {
   });
 
   it("switches the active tab via the tab bar", () => {
-    render(<CustomerDetail customer={customer} role="SUPER_ADMIN" actionConfig={cfg} />);
+    render(<CustomerDetail customerId="c1" role="SUPER_ADMIN" actionConfig={cfg} />);
     fireEvent.click(screen.getByText("go-orders"));
     expect(screen.getByText("content:orders")).toBeInTheDocument();
   });
 
   it("hides the edit dialogs for a read-only role (ACCOUNTANT)", () => {
-    render(<CustomerDetail customer={customer} role="ACCOUNTANT" actionConfig={cfg} />);
+    render(<CustomerDetail customerId="c1" role="ACCOUNTANT" actionConfig={cfg} />);
     expect(screen.getByText("header canEdit:false")).toBeInTheDocument();
     fireEvent.click(screen.getByText("hdr-edit")); // no-op: dialogs not mounted
     expect(screen.queryByText("edit-dialog")).not.toBeInTheDocument();

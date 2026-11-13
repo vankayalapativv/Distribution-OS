@@ -18,6 +18,7 @@ const note = (over: Partial<CustomerNote> = {}): CustomerNote => ({
   body: "Original body",
   createdAt: "2026-07-01",
   authorName: "Ravi",
+  authorRole: null,
   edited: false,
   editedAt: null,
   editorName: null,
@@ -51,7 +52,7 @@ describe("NoteItem", () => {
 
   it("shows the edited badge and editor footer when edited", () => {
     renderItem(note({ edited: true, editorName: "Admin", editedAt: "2026-07-02" }), false);
-    expect(screen.getByText("edited")).toBeInTheDocument();
+    expect(screen.getByText("· edited")).toBeInTheDocument();
     expect(screen.getByText(/edited by Admin · t:2026-07-02/)).toBeInTheDocument();
   });
 

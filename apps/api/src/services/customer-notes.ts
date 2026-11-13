@@ -13,6 +13,9 @@ export interface CustomerNote {
   body: string;
   createdAt: string;
   authorName: string;
+  /** Author's role code, preferring a field role — lets the web thread place
+   *  field notes (SALES_EXECUTIVE / LOGISTICS) on the right, office on the left. */
+  authorRole: string | null;
   edited: boolean;
   editedAt: string | null;
   editorName: string | null;
@@ -32,6 +35,7 @@ function mapNote(r: Record<string, unknown>): CustomerNote {
     body: r.body as string,
     createdAt: iso(r.createdAt) ?? "",
     authorName: (r.authorName as string | null) ?? "Unknown",
+    authorRole: (r.authorRole as string | null) ?? null,
     edited: editedAt !== null,
     editedAt,
     editorName: (r.editorName as string | null) ?? null,
@@ -48,7 +52,11 @@ export async function listCustomerNotes(
   const rows = await sql`
     /* list_customer_notes */
     select n.id, n.body, n.created_at as "createdAt",
-           a.name as "authorName", n.edited_at as "editedAt", e.name as "editorName"
+           a.name as "authorName",
+           (select r.code from user_roles ur join roles r on r.id = ur.role_id
+            where ur.user_id = a.id
+            order by case when r.code in ('SALES_EXECUTIVE', 'LOGISTICS') then 0 else 1 end limit 1) as "authorRole",
+           n.edited_at as "editedAt", e.name as "editorName"
     from customer_notes n
     join users a on a.id = n.created_by
     left join users e on e.id = n.edited_by
@@ -74,7 +82,11 @@ export async function createCustomerNote(
       returning id, body, created_at, created_by, edited_at, edited_by
     )
     select i.id, i.body, i.created_at as "createdAt",
-           a.name as "authorName", i.edited_at as "editedAt", null as "editorName"
+           a.name as "authorName",
+           (select r.code from user_roles ur join roles r on r.id = ur.role_id
+            where ur.user_id = a.id
+            order by case when r.code in ('SALES_EXECUTIVE', 'LOGISTICS') then 0 else 1 end limit 1) as "authorRole",
+           i.edited_at as "editedAt", null as "editorName"
     from inserted i join users a on a.id = i.created_by
   `;
   return mapNote(rows[0]);
@@ -97,7 +109,11 @@ export async function updateCustomerNote(
       returning id, body, created_at, created_by, edited_at, edited_by
     )
     select u.id, u.body, u.created_at as "createdAt",
-           a.name as "authorName", u.edited_at as "editedAt", e.name as "editorName"
+           a.name as "authorName",
+           (select r.code from user_roles ur join roles r on r.id = ur.role_id
+            where ur.user_id = a.id
+            order by case when r.code in ('SALES_EXECUTIVE', 'LOGISTICS') then 0 else 1 end limit 1) as "authorRole",
+           u.edited_at as "editedAt", e.name as "editorName"
     from updated u
     join users a on a.id = u.created_by
     left join users e on e.id = u.edited_by

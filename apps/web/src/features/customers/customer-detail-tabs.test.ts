@@ -8,6 +8,8 @@ const counts = {
   visitsLoading: false,
   photosCount: 2,
   photosLoading: false,
+  notesCount: 5,
+  notesLoading: false,
 };
 
 describe("buildTabs", () => {
@@ -20,14 +22,22 @@ describe("buildTabs", () => {
     expect(tabs.find((t) => t.key === ORDERS_TAB)?.count).toBe(3);
     expect(tabs.find((t) => t.key === "visits")?.count).toBe(7);
     expect(tabs.find((t) => t.key === PHOTOS_TAB)?.count).toBe(2);
-    // Ledger + Notes never carry a count
+    expect(tabs.find((t) => t.key === "notes")?.count).toBe(5);
+    // Ledger never carries a count
     expect(tabs.find((t) => t.key === LEDGER_TAB)?.count).toBeUndefined();
   });
 
   it("hides the count while a tab's query is loading", () => {
-    const tabs = buildTabs({ ...counts, ordersLoading: true, visitsLoading: true, photosLoading: true });
+    const tabs = buildTabs({
+      ...counts,
+      ordersLoading: true,
+      visitsLoading: true,
+      photosLoading: true,
+      notesLoading: true,
+    });
     expect(tabs.find((t) => t.key === ORDERS_TAB)?.count).toBeUndefined();
     expect(tabs.find((t) => t.key === "visits")?.count).toBeUndefined();
     expect(tabs.find((t) => t.key === PHOTOS_TAB)?.count).toBeUndefined();
+    expect(tabs.find((t) => t.key === "notes")?.count).toBeUndefined();
   });
 });

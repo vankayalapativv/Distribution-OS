@@ -1,6 +1,5 @@
-import { notFound } from "next/navigation";
 import { requireSectionAccess } from "../../../../features/auth/auth-role";
-import { getCustomer, getActionConfig } from "../../../../features/customers/customers-api";
+import { getActionConfig } from "../../../../features/customers/customers-api";
 import { CustomerDetail } from "../../../../features/customers/customer-detail";
 import { requireAuthToken } from "../../../../features/auth/server-session";
 
@@ -16,19 +15,13 @@ export default async function CustomerDetailPage({ params }: Props) {
   // `section:customers` permission also blocks the detail route.
   const auth = await requireSectionAccess("customers");
   const authToken = await requireAuthToken();
-
-  let customer;
-  try {
-    customer = await getCustomer(id);
-  } catch {
-    notFound();
-  }
-
   const config = getActionConfig();
 
+  // The customer is fetched on the client (seeded from the list for an instant
+  // header); the server route only gates access and hands off the auth token.
   return (
     <CustomerDetail
-      customer={customer}
+      customerId={id}
       role={auth.role as "SUPER_ADMIN" | "MANAGER" | "ACCOUNTANT"}
       actionConfig={{ ...config, authToken }}
     />

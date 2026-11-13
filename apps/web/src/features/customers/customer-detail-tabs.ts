@@ -23,12 +23,14 @@ export function buildTabs(counts: {
   visitsLoading: boolean;
   photosCount: number;
   photosLoading: boolean;
+  notesCount: number;
+  notesLoading: boolean;
 }): DetailTab[] {
   return [
     ...INFO_TABS.map((t) => ({ key: t.key, label: t.label, count: undefined })),
     { key: ORDERS_TAB, label: "Orders", count: counts.ordersLoading ? undefined : counts.ordersTotal },
     { key: LEDGER_TAB, label: "Ledger", count: undefined },
-    { key: NOTES_TAB, label: "Notes", count: undefined },
+    { key: NOTES_TAB, label: "Notes", count: counts.notesLoading ? undefined : counts.notesCount },
     { key: VISITS_TAB, label: "Visits", count: counts.visitsLoading ? undefined : counts.visitsCount },
     { key: PHOTOS_TAB, label: "Photos", count: counts.photosLoading ? undefined : counts.photosCount },
   ];

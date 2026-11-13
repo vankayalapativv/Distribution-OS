@@ -10,14 +10,19 @@ import { Splash } from "./splash";
 export function AuthGate({ children }: { readonly children: ReactNode }) {
   const { hydrated, started, revealed } = useAuthGate();
 
-  // Keep the navigator (children) mounted at ALL times — including before
-  // hydration — and cover it with the splash overlay until the correct screen is
-  // on screen. Returning a bare <Splash/> before hydration would leave the
-  // navigator unmounted while expo-router resolves the initial URL; when that
-  // promise resolves it calls setState on the not-yet-mounted navigator, which is
-  // the LogBox warning "Can't perform a React state update on a component that
-  // hasn't mounted yet" (expo-router fork/useLinking.native.js). Mounting the
-  // navigator from the first render gives that state update a live target.
+  // Do NOT mount the navigator (children) until the auth token has HYDRATED from
+  // storage. On a warm resume — Android reclaims the JS process after a few idle
+  // minutes — the store restarts with token=null and loads the saved session
+  // asynchronously; if the screens mount first, their data hooks fire a request
+  // with no token → 401 → a FALSE "Session expired" that a pull-to-refresh only
+  // clears once the token lands. Gating the mount on `hydrated` guarantees every
+  // screen's first fetch carries the real token (and the splash already covers
+  // this brief window).
+  //
+  // The cost is a benign expo-router dev warning ("Can't perform a React state
+  // update on a component that hasn't mounted yet", from fork/useLinking.native.js
+  // resolving the initial URL before the navigator mounts): a no-op in production,
+  // and silenced by the LogBox.ignoreLogs rule in _layout.tsx.
   //
   // The GlobalOfflineBar above already consumes the status-bar inset. A NESTED
   // SafeAreaProvider wrapping the navigator re-measures the safe area from its
@@ -32,7 +37,7 @@ export function AuthGate({ children }: { readonly children: ReactNode }) {
     <View className="flex-1">
       <GlobalOfflineBar />
       <SafeAreaProvider style={{ flex: 1 }}>
-        {children}
+        {hydrated ? children : null}
         {ready ? null : <Splash overlay />}
       </SafeAreaProvider>
     </View>

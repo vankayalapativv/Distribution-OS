@@ -10,13 +10,15 @@ import { Splash } from "./splash";
 export function AuthGate({ children }: { readonly children: ReactNode }) {
   const { hydrated, started, revealed } = useAuthGate();
 
-  // Before hydration there is no navigator to route yet — plain splash.
-  if (!hydrated || !started) {
-    return <Splash />;
-  }
-
-  // Keep the navigator mounted (so router.replace works), but cover it with the
-  // splash until the correct screen for this role is actually on screen.
+  // Keep the navigator (children) mounted at ALL times — including before
+  // hydration — and cover it with the splash overlay until the correct screen is
+  // on screen. Returning a bare <Splash/> before hydration would leave the
+  // navigator unmounted while expo-router resolves the initial URL; when that
+  // promise resolves it calls setState on the not-yet-mounted navigator, which is
+  // the LogBox warning "Can't perform a React state update on a component that
+  // hasn't mounted yet" (expo-router fork/useLinking.native.js). Mounting the
+  // navigator from the first render gives that state update a live target.
+  //
   // The GlobalOfflineBar above already consumes the status-bar inset. A NESTED
   // SafeAreaProvider wrapping the navigator re-measures the safe area from its
   // own position (below the bar), so each screen's `SafeAreaView edges={["top"]}`
@@ -24,12 +26,14 @@ export function AuthGate({ children }: { readonly children: ReactNode }) {
   // reports the full status-bar height when the bar is hidden — without any
   // per-screen change. (A JS SafeAreaInsetsContext override would NOT work: the
   // native SafeAreaView view ignores it.)
+  const ready = hydrated && started && revealed;
+
   return (
     <View className="flex-1">
       <GlobalOfflineBar />
       <SafeAreaProvider style={{ flex: 1 }}>
         {children}
-        {revealed ? null : <Splash overlay />}
+        {ready ? null : <Splash overlay />}
       </SafeAreaProvider>
     </View>
   );

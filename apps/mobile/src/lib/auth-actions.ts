@@ -14,6 +14,7 @@ import {
   TOKEN_KEY,
   USER_KEY,
 } from "./auth-storage";
+import { isMobileRole } from "./auth-roles";
 import { getLocalDb } from "./db";
 import { LEGACY_UNSCOPED_KEYS, scopedKeysFor } from "./gps-config";
 import { clearAllLocalData } from "./local-db";
@@ -62,12 +63,17 @@ export async function login(set: AuthSet, identifier: string, password: string):
   const role = me.auth.role;
 
   // This app serves field Sales Executives, Logistics, and (2026-08) SUPER_ADMIN
-  // — who get their own admin area. MANAGER / ACCOUNTANT remain web-only.
-  const allowedRoles = ["SALES_EXECUTIVE", "LOGISTICS", "SUPER_ADMIN"];
-  if (!role || !allowedRoles.includes(role)) {
+  // — who get their own admin area. MANAGER / ACCOUNTANT remain web-only (see
+  // ./auth-roles — the exact complement of the web's isWebRole gate). The check
+  // runs only AFTER a correct password, so a wrong-platform account is told where
+  // to go rather than getting a confusing "invalid credentials".
+  if (!isMobileRole(role)) {
+    // Revoke the session we just created so a wrong-platform (or not-yet-
+    // provisioned) account leaves no live session behind on this shared device.
+    await neonSignOut(session);
     throw new ApiRequestError(
       "FORBIDDEN",
-      "This app is for Sales Executives, Logistics, and Super Admins. Managers/Accountants use the web dashboard.",
+      "This app is for Sales Executives, Logistics, and Super Admins. Managers and Accountants use the web dashboard.",
       403,
     );
   }

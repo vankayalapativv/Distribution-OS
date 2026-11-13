@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "19436249294",
-    "project_id": "sri-aparajitha-enterprise",
-    "storage_bucket": "sri-aparajitha-enterprise.firebasestorage.app"
+    "project_number": "912151421523",
+    "project_id": "distribution-os-cb09f",
+    "storage_bucket": "distribution-os-cb09f.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:19436249294:android:510a3981b75c3648d1b09f",
+        "mobilesdk_app_id": "1:912151421523:android:26297e7be1699a88511ca6",
         "android_client_info": {
           "package_name": "com.vardhansystems.distributionos"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCi63uLZjhJdsLL0BV6OQADC9IpnjfcAKo"
+          "current_key": "AIzaSyDHCAiKdZnsAni9hIZx7HeerJyNUzP3bL8"
         }
       ],
       "services": {

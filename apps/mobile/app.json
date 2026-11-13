@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Distribution OS",
-    "slug": "distribution-os-automobiles-and-lubricants",
-    "version": "1.1.2",
+    "slug": "distribution-os",
+    "version": "0.0.1",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
@@ -11,7 +11,7 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/7aa36c81-0594-4cc2-93df-e6879f101e5e",
+      "url": "https://u.expo.dev/43210552-690b-4cf4-b935-43d90d7ea97b",
       "fallbackToCacheTimeout": 0
     },
     "android": {
@@ -32,8 +32,11 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.WAKE_LOCK",
         "android.permission.SCHEDULE_EXACT_ALARM",
-        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
       ],
       "package": "com.vardhansystems.distributionos",
       "googleServicesFile": "./google-services.json"
@@ -79,7 +82,8 @@
         "expo-image-picker",
         {
           "cameraPermission": "Distribution OS uses the camera to photograph customer shops and shelves.",
-          "photosPermission": "Distribution OS uploads photos you choose for customer records."
+          "photosPermission": "Distribution OS uploads photos you choose for customer records.",
+          "microphonePermission": false
         }
       ],
       "@react-native-community/datetimepicker",
@@ -111,8 +115,10 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "7aa36c81-0594-4cc2-93df-e6879f101e5e"
-      }
+        "projectId": "43210552-690b-4cf4-b935-43d90d7ea97b"
+      },
+      "otaBuild": "0.0.1.1",
+      "releaseNotes": []
     },
     "owner": "vardhansystems_support"
   }

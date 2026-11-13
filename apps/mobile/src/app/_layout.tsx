@@ -3,6 +3,7 @@ import "../global.css";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack, type ErrorBoundaryProps } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { LogBox } from "react-native";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AuthGate } from "../components/auth-gate";
 import { DialogProvider } from "../components/dialog";
@@ -32,6 +33,16 @@ export function ErrorBoundary({ error, retry }: Readonly<ErrorBoundaryProps>) {
   reportMobileError(error, { boundary: "root-render", fatal: true });
   return <ErrorScreen error={error} retry={retry} />;
 }
+
+// Known-benign expo-router DEV-CLIENT warning. On cold start the dev launcher URL
+// (mobile://expo-development-client/?url=…) resolves as an "unhandled link" and
+// expo-router's useLinking (build/fork/useLinking.native.js → onUnhandledLinking)
+// sets state before its store has mounted. React treats this as a no-op, and it
+// does NOT occur in the production build (no dev client, and LogBox is dev-only).
+// Suppressing just this message keeps the dev LogBox clear for real issues.
+LogBox.ignoreLogs([
+  /Can't perform a React state update on a component that hasn't mounted yet/,
+]);
 
 installGlobalErrorLogging();
 // ErrorUtils only catches synchronous/uncaught errors — also route unhandled

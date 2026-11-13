@@ -3,6 +3,7 @@
  * feed. Invoice PDF download-and-share lives in ./invoice-pdf (re-exported here
  * for existing callers).
  */
+import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
@@ -11,7 +12,12 @@ import { useAuth } from "./auth";
 
 export { downloadInvoicePdf, shareInvoiceFile, shareInvoicePdf } from "./invoice-pdf";
 
-const EAS_PROJECT_ID = "558ffdd7-f55c-46e5-80f3-c2cba5a9c201";
+// The EAS projectId that scopes this app's Expo push tokens. Read it from the app
+// config (app.json → extra.eas.projectId) so it ALWAYS matches the project the app
+// was actually built under. Never hardcode it: a stale literal silently mints push
+// tokens for the wrong project, and the pushes then never arrive.
+const EAS_PROJECT_ID = (Constants.expoConfig?.extra?.eas as { projectId?: string } | undefined)
+  ?.projectId;
 
 export interface InvoiceNotification {
   id: string;
@@ -43,6 +49,8 @@ export async function registerPushToken(): Promise<void> {
       permission = await Notifications.requestPermissionsAsync();
     }
     if (!permission.granted) return;
+    // No projectId in the app config → can't scope a push token; skip silently.
+    if (!EAS_PROJECT_ID) return;
     const expoToken = await Notifications.getExpoPushTokenAsync({
       projectId: EAS_PROJECT_ID,
     });

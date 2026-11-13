@@ -17,7 +17,9 @@ import { GodownsSection } from "./settings-godowns";
 
 const FIELD = "w-full sm:w-72";
 const MONO = `${FIELD} font-mono uppercase tracking-wide`;
-const HERO_BG = "linear-gradient(135deg, oklch(0.52 0.17 262), oklch(0.45 0.16 285))";
+// rgb (not oklch) so it renders on pre-2023 browsers (inline styles bypass the
+// PostCSS oklch fallback).
+const HERO_BG = "linear-gradient(135deg, #2e62c9, #5040a8)";
 
 type IdErrors = Partial<Record<"legalName" | "gstin" | "addressLine1" | "city" | "state" | "pincode", string>>;
 

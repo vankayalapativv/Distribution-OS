@@ -7,7 +7,7 @@ import type { DuesBucketSummary } from "../../lib/dues";
  *  colour grades by POSITION across however many bands the enterprise defines. */
 const TONE_STOPS = ["text-green-600", "text-amber-600", "text-orange-600", "text-red-600"];
 
-function toneForPosition(index: number, total: number): string {
+export function toneForPosition(index: number, total: number): string {
   if (total <= 1) return TONE_STOPS[TONE_STOPS.length - 1];
   const stop = Math.round((index / (total - 1)) * (TONE_STOPS.length - 1));
   return TONE_STOPS[stop] ?? "text-foreground";

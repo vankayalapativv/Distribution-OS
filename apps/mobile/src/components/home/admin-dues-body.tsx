@@ -1,34 +1,31 @@
 import { Pressable, Text, View } from "react-native";
 import { Skeleton } from "../skeleton";
 import { compactInr } from "../../lib/format";
+import { toneForPosition } from "./dues-card-strip";
 import type { DuesBucketKey, DuesSummary } from "../../lib/dues";
 
-const BUCKETS: DuesBucketKey[] = ["0_30", "30_45", "45_60", "60_plus"];
-const SHORT: Record<string, string> = {
-  "0_30": "0–30d",
-  "30_45": "31–45d",
-  "45_60": "46–60d",
-  "60_plus": "61d+",
-};
-const COUNT_TONE: Record<string, string> = {
-  "0_30": "text-green-600",
-  "30_45": "text-amber-600",
-  "45_60": "text-orange-600",
-  "60_plus": "text-red-600",
-};
+// Four placeholder cells for the loading strip (the real band count is
+// server-driven and unknown until the summary loads).
+const SKELETON_CELLS = [null, null, null, null];
 
-/** Data-only region of the SA dues card (total, customer count, bucket numbers).
+/** Data-only region of the SA dues card (total, customer count, ageing strip).
  *  The SAME JSX reads `summary`: null shows shimmers, present shows values.
- *  The caller wraps it in one SkeletonTheme while loading so shimmers sync. */
+ *
+ *  The ageing bands are SERVER-DRIVEN — each enterprise defines its own bands in
+ *  onboarding, and the API returns them with their own key/label. So the strip
+ *  renders straight from `summary.buckets`; it must NOT hardcode the legacy fixed
+ *  keys ("0_30"…), which no longer exist (doing so made every bucket read 0 while
+ *  the header total was correct). The colour grades by POSITION across whatever
+ *  bands the enterprise defines (same as the SE card's DuesCardStrip). */
 export function AdminDuesBody({
   summary,
   onBucket,
 }: {
   readonly summary: DuesSummary | null;
-  /** Tap a single bucket cell → open the dues screen on that bucket's tab. */
+  /** Tap a single band cell → open the dues screen on that band's tab. */
   readonly onBucket?: (k: DuesBucketKey) => void;
 }) {
-  const bucketFor = (k: DuesBucketKey) => summary?.buckets.find((b) => b.key === k);
+  const cells = summary ? summary.buckets : SKELETON_CELLS;
   return (
     <>
       {summary ? (
@@ -52,29 +49,31 @@ export function AdminDuesBody({
       </View>
 
       <View className="flex-row overflow-hidden rounded-xl border border-border">
-        {BUCKETS.map((k, i) => (
+        {cells.map((bucket, i) => (
           <Pressable
-            key={k}
-            onPress={() => onBucket?.(k)}
-            className={`flex-1 items-center py-2 active:bg-secondary ${i < BUCKETS.length - 1 ? "border-r border-border" : ""}`}
+            key={bucket?.key ?? i}
+            onPress={bucket ? () => onBucket?.(bucket.key) : undefined}
+            className={`flex-1 items-center py-2 active:bg-secondary ${i < cells.length - 1 ? "border-r border-border" : ""}`}
           >
-            {summary ? (
+            {bucket ? (
               <>
-                <Text className={`text-base font-extrabold ${COUNT_TONE[k] ?? "text-foreground"}`}>
-                  {bucketFor(k)?.customers ?? 0}
+                <Text className={`text-base font-extrabold ${toneForPosition(i, cells.length)}`}>
+                  {bucket.customers}
                 </Text>
                 <Text className="mt-0.5 text-[11px] font-semibold text-card-foreground">
-                  {compactInr(bucketFor(k)?.outstanding ?? 0)}
+                  {compactInr(bucket.outstanding)}
+                </Text>
+                <Text className="mt-0.5 text-center text-[10px] text-muted-foreground">
+                  {bucket.label}
                 </Text>
               </>
             ) : (
               <>
                 <Skeleton width={22} height={16} />
                 <Skeleton width={34} height={11} style={{ marginTop: 6 }} />
+                <Skeleton width={30} height={10} style={{ marginTop: 6 }} />
               </>
             )}
-            {/* Day-label is static → always shown. */}
-            <Text className="mt-0.5 text-[10px] text-muted-foreground">{SHORT[k]}</Text>
           </Pressable>
         ))}
       </View>

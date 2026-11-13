@@ -52,21 +52,68 @@ function mapInvoice(row: Row) {
   };
 }
 
-/** Fire Expo push messages (caller wraps in ctx.waitUntil). Best-effort. */
+type ExpoTicket = { status?: string; id?: string; details?: { error?: string } };
+type ExpoResp = { data?: ExpoTicket[]; errors?: { code?: string }[] };
+
+/** POST one Expo push request (array of messages). Returns the parsed body, or
+ *  null on a network/parse failure. */
+async function postExpoPush(messages: unknown[]): Promise<ExpoResp | null> {
+  try {
+    const r = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(messages),
+    });
+    return (await r.json()) as ExpoResp;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fire Expo push messages (caller wraps in ctx.waitUntil). Best-effort.
+ *
+ * A single Expo request may only carry tokens for ONE Expo project. If the
+ * caller's tokens span projects — which happens when a user still has a stale
+ * token from an old app/project in `push_tokens` — Expo rejects the WHOLE
+ * request with `PUSH_TOO_MANY_EXPERIENCE_IDS` and NOBODY gets the push, valid
+ * devices included. So on that error we retry each token on its own, so good
+ * devices still receive it and only the stale tokens fail (in isolation).
+ *
+ * When a `sql` handle is passed, tokens Expo reports as `DeviceNotRegistered`
+ * (app uninstalled, or token for a dead project) are deleted so they stop
+ * poisoning future sends.
+ */
 export async function sendExpoPush(
   tokens: string[],
   title: string,
   body: string,
   data: Record<string, unknown>,
+  sql?: SqlClient,
 ): Promise<void> {
   if (tokens.length === 0) return;
-  await fetch("https://exp.host/--/api/v2/push/send", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(
-      tokens.map((to) => ({ to, title, body, data, sound: "default" })),
-    ),
-  }).catch(() => undefined);
+  const msg = (to: string) => ({ to, title, body, data, sound: "default" });
+
+  const batch = await postExpoPush(tokens.map(msg));
+  let tickets: { token: string; ticket: ExpoTicket }[];
+  if (batch?.errors?.some((e) => e.code === "PUSH_TOO_MANY_EXPERIENCE_IDS")) {
+    const perToken = await Promise.all(
+      tokens.map(async (t) => ({ token: t, res: await postExpoPush([msg(t)]) })),
+    );
+    tickets = perToken.map(({ token, res }) => ({ token, ticket: res?.data?.[0] ?? {} }));
+  } else {
+    tickets = (batch?.data ?? []).map((ticket, i) => ({ token: tokens[i] ?? "", ticket }));
+  }
+
+  if (sql) {
+    const dead = tickets
+      .filter((t) => t.ticket?.status === "error" && t.ticket?.details?.error === "DeviceNotRegistered")
+      .map((t) => t.token)
+      .filter(Boolean);
+    if (dead.length > 0) {
+      await sql`delete from push_tokens where token = any(${dead}::text[])`.catch(() => undefined);
+    }
+  }
 }
 
 export interface ListInvoicesFilters {

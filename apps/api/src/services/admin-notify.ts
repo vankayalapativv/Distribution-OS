@@ -55,10 +55,13 @@ export async function notifyAdmins(sql: SqlClient, input: AdminNotifyInput): Pro
   `) as Row[];
   const tokens = tokenRows.map((t) => str(t.token)).filter(Boolean);
   if (tokens.length > 0) {
-    await sendExpoPush(tokens, input.title, input.body, {
-      type: input.type,
-      customerId: input.customerId ?? null,
-    });
+    await sendExpoPush(
+      tokens,
+      input.title,
+      input.body,
+      { type: input.type, customerId: input.customerId ?? null },
+      sql,
+    );
   }
 }
 

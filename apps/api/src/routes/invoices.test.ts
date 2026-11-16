@@ -24,7 +24,7 @@ vi.mock("../services/invoicing", () => ({
   getInvoicePdfData: vi.fn().mockResolvedValue({ invoice: {} }),
   getNextInvoiceNumberPreview: vi.fn().mockResolvedValue({ next: "INV-2" }),
 }));
-vi.mock("../services/invoice-gst-export", () => ({ getInvoiceExport: vi.fn().mockResolvedValue({ rows: [] }) }));
+vi.mock("../services/invoice-gst-export", () => ({ getGstr1Dataset: vi.fn().mockResolvedValue({ rows: [] }) }));
 
 const jh = (r: Parameters<typeof headers>[0] = "superAdmin") => ({ ...headers(r), "content-type": "application/json" });
 beforeEach(() => { vi.resetModules(); installAuth(); });

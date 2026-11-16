@@ -1,5 +1,6 @@
 import type { SqlClient } from "../lib/db";
 import type { ApiEnv } from "../types";
+import { sendEmail as sendResendEmail } from "../lib/email";
 import { GRACE_DAYS, getBillingAccess } from "./billing-v2";
 
 /**
@@ -50,12 +51,8 @@ async function unmark(sql: SqlClient, key: string): Promise<void> {
 }
 
 async function sendEmail(env: ReminderEnv, to: string[], subject: string, html: string): Promise<boolean> {
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
-    body: JSON.stringify({ from: env.ALERT_FROM ?? DEFAULT_FROM, to, subject, html }),
-  });
-  return res.ok;
+  // Billing nudges keep their own From; everything else is the shared Resend helper.
+  return sendResendEmail(env, { to, subject, html, from: env.ALERT_FROM ?? DEFAULT_FROM });
 }
 
 function money(paisa: number): string {

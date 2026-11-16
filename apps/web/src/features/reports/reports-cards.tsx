@@ -157,9 +157,9 @@ function CaExportCard({ onOpen }: Readonly<{ onOpen: () => void }>) {
         <FileSpreadsheet className="size-5" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-foreground">Tax Export</span>
+        <span className="block text-sm font-semibold text-foreground">GST Report</span>
         <span className="mt-0.5 block text-sm text-muted-foreground">
-          <span className="font-semibold text-foreground">GSTR-1</span> · B2B · B2CS · HSN
+          <span className="font-semibold text-foreground">GSTR-1</span> · download or email your CA
         </span>
       </span>
       <ChevronRight className="size-4 flex-none text-muted-foreground transition-transform group-hover:translate-x-0.5" />

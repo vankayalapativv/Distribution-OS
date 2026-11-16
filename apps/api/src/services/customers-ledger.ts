@@ -19,7 +19,17 @@ import {
 } from "./customers-shared";
 
 function toDateStr(v: unknown): string {
-  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (v instanceof Date) {
+    // The Neon driver returns a PostgreSQL `date` as a JS Date at LOCAL midnight,
+    // so `toISOString()` (UTC) shifts the calendar day back by one under any
+    // non-UTC runtime (e.g. a dev machine in IST): an Oct-1 invoice reads as
+    // Sep-30. Read the LOCAL calendar parts instead, which give the intended date
+    // in every timezone (including UTC on Cloudflare Workers).
+    const y = v.getFullYear();
+    const m = String(v.getMonth() + 1).padStart(2, "0");
+    const d = String(v.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
   if (typeof v === "string") return v.slice(0, 10);
   return "";
 }

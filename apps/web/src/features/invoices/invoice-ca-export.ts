@@ -1,57 +1,26 @@
 /**
- * CA export — a GSTR-1-ready .xlsx of the period's generated invoices. Fetches
- * the register from `GET /invoices/export` and builds a multi-sheet workbook
- * (B2B / B2CS / HSN / Docs) with SheetJS, imported at call time.
+ * CA export — the GSTR-1 dataset for the Reports → GST Report preview. Fetches
+ * the register from `GET /invoices/export`. The .xlsx itself is built server-side
+ * (official GSTN template) and downloaded/emailed via `/invoices/gstr1.xlsx` and
+ * `/invoices/gstr1/email` — see docs/GSTR1-EXPORT-PLAN.md.
  */
 import { apiRequest, type ActionConfig } from "@/lib/api-client";
 
-export interface InvoiceExport {
+export interface Gstr1Dataset {
   period: { from: string; to: string };
-  b2b: { invoiceNumber: string; invoiceDate: string; gstin: string; stateCode: string; placeOfSupply: string | null; taxable: number; cgst: number; sgst: number; igst: number; total: number }[];
-  b2cs: { stateCode: string; invoices: number; taxable: number; cgst: number; sgst: number; igst: number }[];
-  hsn: { hsnCode: string; rate: number; qty: number; taxable: number; cgst: number; sgst: number; igst: number }[];
-  docs: { issued: number; cancelled: number; firstNo: string | null; lastNo: string | null };
+  seller: { gstin: string; legalName: string; stateCode: string };
+  b2b: { invoiceNumber: string; invoiceDate: string; gstin: string; receiver: string; invoiceValue: number; placeOfSupply: string | null; reverseCharge: boolean; rate: number; taxable: number; cgst: number; sgst: number; igst: number }[];
+  b2cl: { invoiceNumber: string; invoiceDate: string; invoiceValue: number; placeOfSupply: string | null; rate: number; taxable: number; igst: number }[];
+  b2cs: { placeOfSupply: string; supplyType: string; rate: number; taxable: number; cgst: number; sgst: number; igst: number }[];
+  cdnr: { noteNumber: string; noteDate: string; gstin: string; receiver: string; noteValue: number; placeOfSupply: string | null; rate: number; taxable: number; cgst: number; sgst: number; igst: number }[];
+  cdnur: { noteNumber: string; noteDate: string; urType: string; receiver: string; noteValue: number; placeOfSupply: string | null; rate: number; taxable: number; cgst: number; sgst: number; igst: number }[];
+  exemp: { regType: string; supplyType: string; exempted: number }[];
+  hsnB2b: { hsnCode: string; uqc: string; rate: number; qty: number; taxable: number; cgst: number; sgst: number; igst: number }[];
+  hsnB2c: { hsnCode: string; uqc: string; rate: number; qty: number; taxable: number; cgst: number; sgst: number; igst: number }[];
+  docs: { docType: string; firstNo: string | null; lastNo: string | null; issued: number; cancelled: number }[];
   totals: { invoices: number; taxable: number; tax: number };
 }
 
-export function fetchInvoiceExport(cfg: ActionConfig, from: string, to: string): Promise<InvoiceExport> {
-  return apiRequest<InvoiceExport>(cfg, "GET", `/invoices/export?from=${from}&to=${to}`);
-}
-
-export async function downloadCaExport(data: InvoiceExport): Promise<void> {
-  const XLSX = await import("xlsx");
-  const wb = XLSX.utils.book_new();
-
-  const b2b = [
-    ["Invoice no", "Date", "Buyer GSTIN", "State code", "Place of supply", "Taxable", "CGST", "SGST", "IGST", "Total"],
-    ...data.b2b.map((r) => [r.invoiceNumber, r.invoiceDate, r.gstin, r.stateCode, r.placeOfSupply ?? "", r.taxable, r.cgst, r.sgst, r.igst, r.total]),
-  ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(b2b), "B2B");
-
-  const b2cs = [
-    ["State code", "Invoices", "Taxable", "CGST", "SGST", "IGST"],
-    ...data.b2cs.map((r) => [r.stateCode, r.invoices, r.taxable, r.cgst, r.sgst, r.igst]),
-  ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(b2cs), "B2CS");
-
-  const hsn = [
-    ["HSN", "Rate %", "Qty (units)", "Taxable", "CGST", "SGST", "IGST"],
-    ...data.hsn.map((r) => [r.hsnCode, r.rate, r.qty, r.taxable, r.cgst, r.sgst, r.igst]),
-  ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hsn), "HSN summary");
-
-  const docsAoa = [
-    ["Documents issued", ""],
-    ["Period", `${data.period.from} to ${data.period.to}`],
-    ["Invoices issued", data.docs.issued],
-    ["Cancelled", data.docs.cancelled],
-    ["First number", data.docs.firstNo ?? "—"],
-    ["Last number", data.docs.lastNo ?? "—"],
-    ["", ""],
-    ["Total taxable", data.totals.taxable],
-    ["Total tax", data.totals.tax],
-  ];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(docsAoa), "Docs");
-
-  XLSX.writeFile(wb, `distribution-os-gstr1-${data.period.from}_${data.period.to}.xlsx`);
+export function fetchInvoiceExport(cfg: ActionConfig, from: string, to: string): Promise<Gstr1Dataset> {
+  return apiRequest<Gstr1Dataset>(cfg, "GET", `/invoices/export?from=${from}&to=${to}`);
 }

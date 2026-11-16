@@ -21,6 +21,8 @@ const full: CompanyProfile = {
   bankIfsc: "",
   upiId: "",
   termsAndConditions: "",
+  caName: "",
+  caEmail: "",
 };
 
 describe("companyAddressLines", () => {

@@ -20,6 +20,9 @@ export interface CompanyProfile {
   upiId: string;
   /** Terms & Conditions block printed in the invoice footer. */
   termsAndConditions: string;
+  /** Chartered Accountant — default recipient for the GSTR-1 "email to CA" flow. */
+  caName: string;
+  caEmail: string;
 }
 
 export const EMPTY_COMPANY: CompanyProfile = {
@@ -37,6 +40,8 @@ export const EMPTY_COMPANY: CompanyProfile = {
   bankIfsc: "",
   upiId: "",
   termsAndConditions: "",
+  caName: "",
+  caEmail: "",
 };
 
 /** True when any bank/UPI payment detail is filled (so the invoice can decide

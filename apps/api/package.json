@@ -12,12 +12,13 @@
     "lint": "oxlint src"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.1.0",
     "@distribution-os/shared": "workspace:*",
+    "@neondatabase/serverless": "^1.1.0",
     "hono": "^4.13.8",
     "jspdf": "4.2.1",
     "jspdf-autotable": "5.0.8",
     "qrcode": "1.5.4",
+    "xlsx": "0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {

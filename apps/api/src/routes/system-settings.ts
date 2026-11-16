@@ -68,6 +68,13 @@ const CompanySchema = z.object({
     .refine((v) => v === "" || /^[\w.\-]{2,}@[\w.\-]{2,}$/.test(v), "Enter a valid UPI ID (e.g. name@bank)."),
   // Terms & Conditions printed in the invoice footer. Free text, blank allowed.
   termsAndConditions: z.string().max(5000),
+  // Chartered Accountant — default recipient for the GSTR-1 email. Optional.
+  caName: z.string().trim().max(120),
+  caEmail: z
+    .string()
+    .trim()
+    .max(120)
+    .refine((v) => v === "" || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), "Enter a valid email."),
 });
 
 // `.partial()` so a panel can save just its own slice (e.g. only the bank

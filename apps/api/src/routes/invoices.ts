@@ -11,7 +11,11 @@ import {
 } from "../services/invoices";
 import { getReturnableInvoice } from "../services/sales-returns";
 import { cancelInvoice, editGeneratedInvoice, generateInvoice, getGeneratedInvoiceForEdit, getInvoiceItems, getInvoicePdfBytes, getInvoicePdfData, getNextInvoiceNumberPreview, type GenerateLineInput } from "../services/invoicing";
-import { getInvoiceExport } from "../services/invoice-gst-export";
+import { getGstr1Dataset, type Gstr1Dataset } from "../services/invoice-gst-export";
+import { buildGstr1Workbook } from "../services/gstr1-workbook";
+import { getSystemSettings, type CompanyProfile } from "../services/system-settings";
+import { arrayBufferToBase64, sendEmail } from "../lib/email";
+import { ApiError } from "../lib/errors";
 import { notifyReorder } from "../lib/reorder-notify";
 import { keysForInvoice } from "../services/stock-reorder";
 import { readJsonObject, requiredString } from "../lib/request-body";
@@ -21,6 +25,54 @@ import type { ApiEnv } from "../types";
 // reaches these if SA granted them the Invoices section. Include MANAGER here so
 // the handler's own role check doesn't re-block a granted Manager.
 const OFFICE_ROLES = ["SUPER_ADMIN", "MANAGER", "ACCOUNTANT"] as const;
+
+/** A human period label for the GSTR-1 email: "October 2026" for a whole-month
+ *  range, else "from → to". */
+function gstPeriodLabel(from: string, to: string): string {
+  const monthOf = (iso: string) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(iso)
+      ? new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", month: "long", year: "numeric" }).format(new Date(`${iso}T00:00:00+05:30`))
+      : iso;
+  const label = monthOf(from);
+  return from.slice(0, 7) === to.slice(0, 7) ? label : `${from} → ${to}`;
+}
+
+const inr = (n: number) => `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Escape user-supplied values before interpolating them into the email HTML. */
+function esc(v: string): string {
+  return v.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch] ?? ch);
+}
+
+/** Summary email body: the CA sees the period totals + section counts without
+ *  opening the attached workbook. */
+function gstr1EmailHtml(data: Gstr1Dataset, monthLabel: string, company: CompanyProfile): string {
+  const creditNotes = data.cdnr.length + data.cdnur.length;
+  const hsnRows = data.hsnB2b.length + data.hsnB2c.length;
+  const docsIssued = data.docs.reduce((s, d) => s + d.issued, 0);
+  const title = esc(monthLabel);
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:4px 12px 4px 0;color:#475569;">${label}</td><td style="padding:4px 0;text-align:right;color:#0f172a;font-weight:600;">${value}</td></tr>`;
+  return (
+    `<div style="font-family:system-ui,Segoe UI,Arial,sans-serif;max-width:560px;color:#0f172a;">` +
+    `<h2 style="font-size:17px;margin:0 0 4px;">GSTR-1 — ${title}</h2>` +
+    `<p style="color:#334155;font-size:14px;margin:0 0 16px;">${esc(company.legalName || "Distribution OS")}${company.gstin ? ` · GSTIN ${esc(company.gstin)}` : ""}</p>` +
+    `<p style="color:#334155;font-size:14px;line-height:1.5;margin:0 0 12px;">` +
+    `The GSTR-1 workbook for <strong>${title}</strong> is attached in the GSTN Offline Tool format. Summary:</p>` +
+    `<table style="font-size:14px;border-collapse:collapse;margin:0 0 16px;">` +
+    row("B2B rows", String(data.b2b.length)) +
+    row("B2CL rows", String(data.b2cl.length)) +
+    row("B2CS rows", String(data.b2cs.length)) +
+    row("Credit notes", String(creditNotes)) +
+    row("HSN rows", String(hsnRows)) +
+    row("Documents issued", String(docsIssued)) +
+    row("Total taxable value", inr(data.totals.taxable)) +
+    row("Total tax", inr(data.totals.tax)) +
+    `</table>` +
+    `<p style="color:#94a3b8;font-size:12px;margin:0;">Sent from Distribution OS.</p>` +
+    `</div>`
+  );
+}
 
 export const invoicesRoutes = new Hono<ApiEnv>()
   .get("/", async (c) => {
@@ -38,12 +90,67 @@ export const invoicesRoutes = new Hono<ApiEnv>()
     return c.json(success(c, result));
   })
 
-  // GSTR-1-ready register for the CA (data; the web builds the .xlsx). Registered
+  // GSTR-1-ready register for the CA (data; the web renders a preview). Registered
   // before /:id so "export" isn't read as an invoice id.
   .get("/export", async (c) => {
     requireRole(c, ["SUPER_ADMIN", "ACCOUNTANT"]);
-    const data = await getInvoiceExport(getSqlClient(c), c.req.query("from") ?? "", c.req.query("to") ?? "");
+    const data = await getGstr1Dataset(getSqlClient(c), c.req.query("from") ?? "", c.req.query("to") ?? "");
     return c.json(success(c, data));
+  })
+
+  // The same period as the official GSTN GSTR-1 Excel workbook (the CA uploads it
+  // to the GST Offline Tool). Registered before /:id so "gstr1.xlsx" isn't read as
+  // an invoice id.
+  .get("/gstr1.xlsx", async (c) => {
+    requireRole(c, ["SUPER_ADMIN", "ACCOUNTANT"]);
+    const from = c.req.query("from") ?? "";
+    const to = c.req.query("to") ?? "";
+    const data = await getGstr1Dataset(getSqlClient(c), from, to);
+    const bytes = buildGstr1Workbook(data);
+    return new Response(bytes, {
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="GSTR1-${from}_${to}.xlsx"`,
+      },
+    });
+  })
+
+  // Email the same GSTR-1 workbook to the firm's CA (configured in Settings →
+  // Company). SUPER_ADMIN + ACCOUNTANT; the web confirms before calling this.
+  .post("/gstr1/email", async (c) => {
+    const auth = requireRole(c, ["SUPER_ADMIN", "ACCOUNTANT"]);
+    const from = c.req.query("from") ?? "";
+    const to = c.req.query("to") ?? "";
+    const sql = getSqlClient(c);
+
+    const settings = await getSystemSettings(sql);
+    const caEmail = settings.company.caEmail.trim();
+    if (!caEmail) {
+      throw new ApiError("CA_EMAIL_NOT_SET", "Add the CA's email in Settings → Company before emailing the GST report.", 422);
+    }
+
+    const data = await getGstr1Dataset(sql, from, to); // also validates from/to (422)
+    const workbook = buildGstr1Workbook(data);
+    const monthLabel = gstPeriodLabel(from, to);
+    const sellerName = data.seller.legalName || "Distribution OS";
+
+    const sent = await sendEmail(c.env, {
+      to: caEmail,
+      subject: `GSTR-1 ${monthLabel} — ${sellerName}`,
+      html: gstr1EmailHtml(data, monthLabel, settings.company),
+      attachments: [{ filename: `GSTR1-${from}_${to}.xlsx`, content: arrayBufferToBase64(workbook) }],
+    });
+    if (!sent) {
+      throw new ApiError("EMAIL_NOT_CONFIGURED", "Email could not be sent — the mail provider isn't configured or rejected the message.", 503);
+    }
+
+    await logAudit(sql, actorOf(auth), {
+      action: "invoice.gstr1_email",
+      entityType: "system_settings",
+      summary: `Emailed GSTR-1 (${from}–${to}) to ${caEmail}`,
+      metadata: { from, to, toEmail: caEmail, invoices: data.totals.invoices },
+    });
+    return c.json(success(c, { sent: true, to: caEmail, period: { from, to }, totals: data.totals }));
   })
 
   // Provisional preview of the number the next generated invoice will get —

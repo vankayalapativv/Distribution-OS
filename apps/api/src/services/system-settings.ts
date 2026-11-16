@@ -19,6 +19,10 @@ export interface CompanyProfile {
   upiId: string;
   // Terms & Conditions block printed in the invoice footer (editable).
   termsAndConditions: string;
+  // The firm's Chartered Accountant — the default recipient for the GSTR-1
+  // "email to CA" flow. Both optional (blank until configured).
+  caName: string;
+  caEmail: string;
 }
 
 /** The address/identity fields that must be present before a company profile is
@@ -52,6 +56,8 @@ const COMPANY_KEYS = {
   bankIfsc: "company_bank_ifsc",
   upiId: "company_upi_id",
   termsAndConditions: "company_terms",
+  caName: "company_ca_name",
+  caEmail: "company_ca_email",
 } as const;
 
 /** All key→value system settings as a map, with typed accessors layered on top. */
@@ -79,6 +85,8 @@ export async function getSystemSettings(sql: SqlClient): Promise<SystemSettings>
       bankIfsc: map[COMPANY_KEYS.bankIfsc] ?? "",
       upiId: map[COMPANY_KEYS.upiId] ?? "",
       termsAndConditions: map[COMPANY_KEYS.termsAndConditions] ?? "",
+      caName: map[COMPANY_KEYS.caName] ?? "",
+      caEmail: map[COMPANY_KEYS.caEmail] ?? "",
     },
   };
 }
@@ -117,6 +125,8 @@ export async function setCompanyProfile(
   if (company.bankIfsc !== undefined) pairs.push([COMPANY_KEYS.bankIfsc, company.bankIfsc]);
   if (company.upiId !== undefined) pairs.push([COMPANY_KEYS.upiId, company.upiId]);
   if (company.termsAndConditions !== undefined) pairs.push([COMPANY_KEYS.termsAndConditions, company.termsAndConditions]);
+  if (company.caName !== undefined) pairs.push([COMPANY_KEYS.caName, company.caName]);
+  if (company.caEmail !== undefined) pairs.push([COMPANY_KEYS.caEmail, company.caEmail]);
   if (pairs.length === 0) return;
 
   const keys = pairs.map((p) => p[0]);

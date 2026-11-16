@@ -7,6 +7,7 @@
  * scoped to the chosen brand, with its own Excel / PDF download.
  */
 import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { keepPreviousData, useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { ChevronLeft, Info } from "lucide-react";
 import { withQueryClient } from "@/components/data-table/query-provider";
@@ -119,9 +120,23 @@ function ReportDetail({
 function ReportsViewInner({ actionConfig, role }: { readonly actionConfig: ActionConfig; readonly role: string }) {
   const canExportForCa = role === "SUPER_ADMIN" || role === "ACCOUNTANT";
   const [range, setRange] = useState<ReportRange>(() => todayRange());
-  const [selected, setSelected] = useState<Selected | null>(null);
-  const [caOpen, setCaOpen] = useState(false);
-  const [profitOpen, setProfitOpen] = useState(false);
+
+  // Each detail view is encoded in the URL (?view=…) so the BROWSER back button
+  // returns to the card list instead of leaving the Reports page, and a detail
+  // view survives a refresh / is shareable. The in-page "All reports" button
+  // uses router.back() for the same single-step-back behaviour.
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const view = searchParams.get("view");
+  const caOpen = view === "gst";
+  const profitOpen = view === "profit";
+  const reportKey = searchParams.get("key");
+  const selected: Selected | null =
+    view === "report" && reportKey ? { key: reportKey as ReportKey, brand: searchParams.get("brand") ?? "all" } : null;
+
+  const openView = (qs: string) => router.push(`${pathname}?${qs}`);
+  const goBack = () => router.back();
 
   const summaryQuery = useQuery({
     queryKey: ["reports", "summary", range.from, range.to],
@@ -160,11 +175,11 @@ function ReportsViewInner({ actionConfig, role }: { readonly actionConfig: Actio
 
   function body() {
     if (caOpen)
-      return <ReportsCaExportDetail actionConfig={actionConfig} range={range} onBack={() => setCaOpen(false)} />;
+      return <ReportsCaExportDetail actionConfig={actionConfig} onBack={goBack} />;
     if (profitOpen)
-      return <ReportsProfitDetail actionConfig={actionConfig} range={range} onBack={() => setProfitOpen(false)} />;
+      return <ReportsProfitDetail actionConfig={actionConfig} range={range} onBack={goBack} />;
     if (selected)
-      return <ReportDetail selected={selected} reportQuery={reportQuery} onBack={() => setSelected(null)} />;
+      return <ReportDetail selected={selected} reportQuery={reportQuery} onBack={goBack} />;
     if (summaryQuery.isError)
       return (
         <ReportsError
@@ -179,9 +194,9 @@ function ReportsViewInner({ actionConfig, role }: { readonly actionConfig: Actio
           summary={summary.summary}
           brands={brands}
           brandTeasers={brandTeasers}
-          onOpen={(key, brand) => setSelected({ key, brand })}
-          onOpenCaExport={canExportForCa ? () => setCaOpen(true) : undefined}
-          onOpenProfit={() => setProfitOpen(true)}
+          onOpen={(key, brand) => openView(`view=report&key=${encodeURIComponent(key)}&brand=${encodeURIComponent(brand)}`)}
+          onOpenCaExport={canExportForCa ? () => openView("view=gst") : undefined}
+          onOpenProfit={() => openView("view=profit")}
         />
       );
     return <ReportsSkeleton />;

@@ -12,6 +12,7 @@ import { type CompanyProfile, PanelHeader } from "./settings-shared";
 import { SectionCard } from "./settings-card";
 import { EditRow, errBorder, SaveError } from "./settings-field";
 import { BankSection } from "./settings-bank";
+import { CaSection } from "./settings-ca";
 import { InvoiceSettingsSection } from "./settings-invoice";
 import { GodownsSection } from "./settings-godowns";
 
@@ -162,6 +163,7 @@ export function CompanyPanel({ company, actionConfig }: Readonly<{ company: Comp
       <div className="mt-4 flex flex-col gap-4">
         <IdentitySection company={company} actionConfig={actionConfig} />
         <BankSection company={company} actionConfig={actionConfig} />
+        <CaSection company={company} actionConfig={actionConfig} />
         <InvoiceSettingsSection company={company} actionConfig={actionConfig} />
         <GodownsSection actionConfig={actionConfig} />
       </div>

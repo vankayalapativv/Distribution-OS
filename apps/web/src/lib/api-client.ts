@@ -177,6 +177,38 @@ export function apiGet<T>(config: ActionConfig, path: string): Promise<T> {
   return apiRequest<T>(config, "GET", path);
 }
 
+/** GET a binary file (e.g. a generated .xlsx) as a Blob, with the same bearer
+ *  token + one-shot 401 refresh as apiRequest. */
+export function apiDownload(config: ActionConfig, path: string): Promise<Blob> {
+  return downloadWithToken(config, path, liveToken ?? config.authToken, false);
+}
+
+async function downloadWithToken(config: ActionConfig, path: string, token: string, isRetry: boolean): Promise<Blob> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${config.apiBaseUrl}${path}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    if (response.status === 401 && !isRetry) {
+      clearTimeout(timeout);
+      const fresh = await refreshAuthToken();
+      if (fresh) return await downloadWithToken(config, path, fresh, true);
+      if (typeof window !== "undefined") window.location.href = "/login";
+      throw new ApiRequestError("Your session has expired. Please sign in again.", 401);
+    }
+    if (!response.ok) throw await toApiError(response);
+    return await response.blob();
+  } catch (error) {
+    throw toRequestError(error, controller.signal.aborted);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 /** Read `err.message` from a thrown value, with a fallback. */
 export function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;

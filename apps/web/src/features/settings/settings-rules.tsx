@@ -1,68 +1,28 @@
 "use client";
 
-import { type SyntheticEvent, useState } from "react";
 import { Clock, RotateCw } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { type ActionConfig, apiRequest, errorMessage } from "@/lib/api-client";
-import {
-  PanelHeader,
-  ReadOnlyPill,
-  type SaveMessage,
-  SaveBar,
-  SettingRow,
-  type SystemSettings,
-} from "./settings-shared";
+import { PanelHeader, ReadOnlyPill, SettingRow } from "./settings-shared";
 
-export function RulesPanel({
-  systemSettings,
-  actionConfig,
-}: {
-  readonly systemSettings: SystemSettings;
-  readonly actionConfig: ActionConfig;
-}) {
-  const [creditDays, setCreditDays] = useState(String(systemSettings.creditOverdueDays));
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<SaveMessage>(null);
-
-  async function handleSave(e: SyntheticEvent) {
-    e.preventDefault();
-    const days = parseInt(creditDays, 10);
-    if (!Number.isInteger(days) || days < 1 || days > 365) {
-      setMessage({ type: "error", text: "Must be between 1 and 365 days." });
-      return;
-    }
-    setSaving(true);
-    setMessage(null);
-    try {
-      await apiRequest(actionConfig, "PATCH", "/system-settings", { creditOverdueDays: days });
-      setMessage({ type: "success", text: "Rules updated." });
-    } catch (err) {
-      setMessage({ type: "error", text: errorMessage(err, "Failed to save.") });
-    } finally {
-      setSaving(false);
-    }
-  }
-
+/**
+ * Business Rules — now entirely system-managed, read-only. Credit control is NO
+ * longer an org-wide threshold: ordering is gated per-customer (each customer's
+ * own credit days set their invoice due dates, and a customer is blocked once a
+ * dues is past due). SUPER_ADMIN can always push orders through. So there is no
+ * editable rule here anymore; the panel just surfaces the fixed system rules.
+ */
+export function RulesPanel() {
   return (
-    <form onSubmit={handleSave}>
-      <PanelHeader title="Business Rules" subtitle="System-wide rules that govern orders, credit and field tracking." />
+    <div>
+      <PanelHeader title="Business Rules" subtitle="System-managed rules that govern orders, credit and field tracking." />
 
-      <p className="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground">CREDIT CONTROL</p>
+      <p className="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground">
+        CREDIT CONTROL <span className="font-normal text-muted-foreground/70">· per customer</span>
+      </p>
       <SettingRow
-        label="Credit overdue threshold"
-        description="Sales executives cannot create orders for a customer whose invoices are overdue beyond this many days."
+        label="Order credit block"
+        description="Sales executives cannot create orders for a customer who owes money and has a dues past its due date (set by that customer's own credit days). Super admins can always place orders."
       >
-        <div className="flex items-center gap-2">
-          <Input
-            type="number"
-            min={1}
-            max={365}
-            value={creditDays}
-            onChange={(e) => setCreditDays(e.target.value)}
-            className="w-20 text-center"
-          />
-          <span className="text-sm text-muted-foreground">days</span>
-        </div>
+        <ReadOnlyPill>Per customer</ReadOnlyPill>
       </SettingRow>
 
       <p className="mb-2 mt-6 text-[11px] font-semibold tracking-wide text-muted-foreground">
@@ -83,8 +43,6 @@ export function RulesPanel({
       >
         <ReadOnlyPill icon={<RotateCw size={14} className="text-muted-foreground" />}>Daily · after 9 AM IST</ReadOnlyPill>
       </SettingRow>
-
-      <SaveBar saving={saving} message={message} label="Save rules" />
-    </form>
+    </div>
   );
 }

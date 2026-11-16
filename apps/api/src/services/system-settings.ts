@@ -35,7 +35,6 @@ export const REQUIRED_COMPANY_FIELDS: (keyof CompanyProfile)[] = [
 ];
 
 export interface SystemSettings {
-  creditOverdueDays: number;
   company: CompanyProfile;
 }
 
@@ -69,7 +68,6 @@ export async function getSystemSettings(sql: SqlClient): Promise<SystemSettings>
   const map: Record<string, string> = {};
   for (const row of rows) map[String(row.key)] = String(row.value);
   return {
-    creditOverdueDays: Number.parseInt(map.credit_overdue_days ?? "60", 10),
     company: {
       legalName: map[COMPANY_KEYS.legalName] ?? "",
       gstin: map[COMPANY_KEYS.gstin] ?? "",
@@ -89,16 +87,6 @@ export async function getSystemSettings(sql: SqlClient): Promise<SystemSettings>
       caEmail: map[COMPANY_KEYS.caEmail] ?? "",
     },
   };
-}
-
-/** Upsert the credit-overdue-days threshold (validated by the caller). */
-export async function setCreditOverdueDays(sql: SqlClient, days: number): Promise<void> {
-  await sql`
-    /* upsert_credit_overdue_days */
-    insert into system_settings (key, value)
-    values ('credit_overdue_days', ${String(days)})
-    on conflict (enterprise_id, key) do update set value = excluded.value, updated_at = now()
-  `;
 }
 
 /**

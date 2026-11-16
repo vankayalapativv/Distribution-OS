@@ -159,9 +159,7 @@ export function SettingsDialog({
               <BillingCardV2 initialAccess={billingAccess} initialCharges={billingCharges} actionConfig={actionConfig} />
             </>
           )}
-          {active === "rules" && systemSettings && (
-            <RulesPanel systemSettings={systemSettings} actionConfig={actionConfig} />
-          )}
+          {active === "rules" && systemSettings && <RulesPanel />}
           {active === "dues" && <DuesPanel actionConfig={actionConfig} />}
           {active === "mcp" && <McpPanel actionConfig={actionConfig} />}
         </section>

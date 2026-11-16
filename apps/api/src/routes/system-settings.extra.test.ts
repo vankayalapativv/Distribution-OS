@@ -6,9 +6,8 @@ vi.mock("@neondatabase/serverless", async () => {
 });
 vi.mock("../services/audit", () => ({ actorOf: () => ({}), logAudit: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("../services/system-settings", () => ({
-  getSystemSettings: vi.fn().mockResolvedValue({ company: { legalName: "SA" }, creditOverdueDays: 30 }),
+  getSystemSettings: vi.fn().mockResolvedValue({ company: { legalName: "SA" } }),
   setCompanyProfile: vi.fn().mockResolvedValue(undefined),
-  setCreditOverdueDays: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("../services/invoicing", () => ({
   getInvoiceNumberConfig: vi.fn().mockResolvedValue({ prefix: "SA", nextNumber: 1 }),
@@ -32,7 +31,7 @@ describe("system-settings routes", () => {
       bankAccountName: "SA", bankAccountNumber: "123456", bankIfsc: "HDFC0001234", upiId: "sa@okhdfc",
       termsAndConditions: "Pay in 30 days",
     };
-    const res = await (await app()).request("/api/v1/system-settings", { method: "PATCH", headers: jh(), body: JSON.stringify({ creditOverdueDays: 45, company }) }, ENV);
+    const res = await (await app()).request("/api/v1/system-settings", { method: "PATCH", headers: jh(), body: JSON.stringify({ company }) }, ENV);
     expect(res.status).toBe(200);
   });
 });

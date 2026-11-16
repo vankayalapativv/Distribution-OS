@@ -15,7 +15,7 @@ describe("getCustomerCreditStatus (per-customer overdue model)", () => {
   const base = (overdue: { invoiceOverdue?: boolean; openingOverdue?: boolean }, balance = "500") => ({
     get_customer_credit_days: [{ creditDays: 30 }],
     customer_net_ledger_balance: [{ ledgerBalance: balance }],
-    customer_overdue_past_terms: [{ invoiceOverdue: false, openingOverdue: false, ...overdue }],
+    customer_overdue_past_due: [{ invoiceOverdue: false, openingOverdue: false, ...overdue }],
   });
 
   it("blocks when the customer owes AND an invoice is past its due date", async () => {
@@ -23,9 +23,14 @@ describe("getCustomerCreditStatus (per-customer overdue model)", () => {
     expect(out).toEqual({ creditBlocked: true, creditOverdueDays: 30, totalOutstanding: 500 });
   });
 
-  it("blocks when an opening balance has aged past the customer's credit_days", async () => {
+  it("blocks when an opening balance is past its as-of date", async () => {
     const out = await getCustomerCreditStatus(makeSql(base({ openingOverdue: true })), "c1");
     expect(out.creditBlocked).toBe(true);
+  });
+
+  it("does NOT block a SUPER_ADMIN, even when owing and past due (bypass)", async () => {
+    const out = await getCustomerCreditStatus(makeSql(base({ invoiceOverdue: true })), "c1", { role: "SUPER_ADMIN" });
+    expect(out.creditBlocked).toBe(false);
   });
 
   it("does NOT block when within terms (owes but nothing past due)", async () => {

@@ -342,10 +342,13 @@ export interface CustomerCreditStatus {
  * customer-detail header (so the blocked state is known at first paint) and the
  * invoices list (so the two can never disagree). Caller is responsible for the
  * visibility/existence check — this computes credit for the given id directly.
+ *
+ * SUPER_ADMIN is never blocked — they can always push orders through (web).
  */
 export async function getCustomerCreditStatus(
   sql: SqlClient,
   customerId: string,
+  opts: { role?: string | null } = {},
 ): Promise<CustomerCreditStatus> {
   // Overdue model (multi-enterprise): block right at each customer's OWN credit
   // terms — no company-wide grace. An invoice's due_date already encodes the
@@ -378,11 +381,12 @@ export async function getCustomerCreditStatus(
                   where sr.customer_id = ${customerId}::uuid), 0)
     )::numeric as "ledgerBalance"
   `,
-    // Overdue when PAST this customer's own terms — no company-wide grace. An
-    // invoice is overdue once now is past its due_date; an opening once it has
-    // aged past the customer's credit_days from as_of_date.
+    // Overdue when PAST due — no company-wide grace. An invoice is overdue once
+    // now is past its due_date (which already encodes the customer's credit_days);
+    // an opening balance (pre-system carry-forward, no due date) is overdue once
+    // now is past its as_of_date.
     sql`
-    /* customer_overdue_past_terms */
+    /* customer_overdue_past_due */
     select
       exists(
         select 1 from invoices i
@@ -392,10 +396,9 @@ export async function getCustomerCreditStatus(
       ) as "invoiceOverdue",
       exists(
         select 1 from customer_opening_balances ob
-        join customers c on c.id = ob.customer_id
         where ob.customer_id = ${customerId}::uuid
           and ob.outstanding_amount > 0
-          and ((now() at time zone 'Asia/Kolkata')::date - ob.as_of_date) > coalesce(c.credit_days, 0)
+          and (now() at time zone 'Asia/Kolkata')::date > ob.as_of_date
       ) as "openingOverdue"
   `,
   ]);
@@ -403,9 +406,12 @@ export async function getCustomerCreditStatus(
   const totalOutstanding = numberValue((ledgerRows as Row[])[0]?.ledgerBalance);
   const overdueRow = (overdueRows as Row[])[0];
 
-  // Only block when the customer owes AND has debt overdue past the threshold.
+  // SUPER_ADMIN is never blocked. Otherwise block only when the customer owes AND
+  // has a dues past due.
   const creditBlocked =
-    totalOutstanding > 0 && (overdueRow?.invoiceOverdue === true || overdueRow?.openingOverdue === true);
+    opts.role !== "SUPER_ADMIN" &&
+    totalOutstanding > 0 &&
+    (overdueRow?.invoiceOverdue === true || overdueRow?.openingOverdue === true);
 
   return { creditBlocked, creditOverdueDays, totalOutstanding };
 }
@@ -483,9 +489,9 @@ export async function listCustomerInvoices(
   `;
   const advanceCredit = Math.max(0, numberValue(creditRow?.heldCredit));
 
-  // Credit decision (block state + outstanding + threshold) comes from the shared
-  // helper, so this list and the customer-detail header never disagree.
-  const credit = await getCustomerCreditStatus(sql, customerId);
+  // Credit decision (block state + outstanding) comes from the shared helper, so
+  // this list and the customer-detail header never disagree. SUPER_ADMIN bypasses.
+  const credit = await getCustomerCreditStatus(sql, customerId, { role: context.role });
 
   return {
     customer: {
@@ -570,7 +576,7 @@ export async function getCustomerById(
   // Fold the credit gate into the header so the mobile action row knows the
   // blocked state at first paint (no enabled-"Order"→"Blocked" flash). Same
   // helper the invoices list uses, so the two can never disagree.
-  const credit = await getCustomerCreditStatus(sql, id);
+  const credit = await getCustomerCreditStatus(sql, id, { role: context.role });
   return { ...mapCustomerRow(rows[0]), ...credit };
 }
 

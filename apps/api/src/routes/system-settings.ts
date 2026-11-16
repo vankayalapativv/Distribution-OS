@@ -6,7 +6,7 @@ import { getSqlClient } from "../lib/db";
 import { readJsonObject } from "../lib/request-body";
 import { validate } from "../lib/validate";
 import { actorOf, logAudit } from "../services/audit";
-import { getSystemSettings, setCompanyProfile, setCreditOverdueDays } from "../services/system-settings";
+import { getSystemSettings, setCompanyProfile } from "../services/system-settings";
 import { getInvoiceNumberConfig, setInvoiceNumberConfig } from "../services/invoicing";
 import type { ApiEnv } from "../types";
 
@@ -81,7 +81,6 @@ const CompanySchema = z.object({
 // details, or only the address) — setCompanyProfile writes only the keys given,
 // and each provided field is still validated by the rules above.
 const SystemSettingsPatchSchema = z.object({
-  creditOverdueDays: z.coerce.number().int().min(1).max(365).optional(),
   company: CompanySchema.partial().optional(),
 });
 
@@ -119,16 +118,6 @@ export const systemSettingsRoutes = new Hono<ApiEnv>()
     const auth = requireRole(c, ["SUPER_ADMIN"]);
     const input = validate(SystemSettingsPatchSchema, await readJsonObject(c));
     const sql = getSqlClient(c);
-
-    if (input.creditOverdueDays !== undefined) {
-      await setCreditOverdueDays(sql, input.creditOverdueDays);
-      await logAudit(sql, actorOf(auth), {
-        action: "system_settings.update",
-        entityType: "system_settings",
-        summary: `Set credit overdue days to ${input.creditOverdueDays}`,
-        metadata: { creditOverdueDays: input.creditOverdueDays },
-      });
-    }
 
     if (input.company !== undefined && Object.keys(input.company).length > 0) {
       await setCompanyProfile(sql, input.company);

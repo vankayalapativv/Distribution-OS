@@ -5,7 +5,6 @@ const SUPER_ADMIN_ID = "00000000-0000-4000-8000-000000000001";
 
 // Captures the last company upsert so tests can assert what was written.
 let lastCompanyUpsert: { keys: unknown; values: unknown } | null = null;
-let lastCreditUpsert: unknown = null;
 
 vi.mock("@neondatabase/serverless", () => ({
   neon: () => async (strings: TemplateStringsArray, ...values: unknown[]) => {
@@ -21,7 +20,6 @@ vi.mock("@neondatabase/serverless", () => ({
 
     if (query.includes("system_settings_list")) {
       return [
-        { key: "credit_overdue_days", value: "45" },
         { key: "company_legal_name", value: "Distribution OS" },
         { key: "company_gstin", value: "36ABCDE1234F1Z5" },
       ];
@@ -29,11 +27,6 @@ vi.mock("@neondatabase/serverless", () => ({
 
     if (query.includes("upsert_company_profile")) {
       lastCompanyUpsert = { keys: values[0], values: values[1] };
-      return [];
-    }
-
-    if (query.includes("upsert_credit_overdue_days")) {
-      lastCreditUpsert = values[0];
       return [];
     }
 
@@ -55,7 +48,6 @@ describe("system-settings routes", () => {
   beforeEach(() => {
     vi.resetModules();
     lastCompanyUpsert = null;
-    lastCreditUpsert = null;
     vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json(installAuthFetchMock()));
   });
 
@@ -65,7 +57,6 @@ describe("system-settings routes", () => {
       const res = await app.request("/api/v1/system-settings", { headers: headers("neon-super-admin") }, env);
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.data.creditOverdueDays).toBe(45);
       expect(body.data.company).toMatchObject({
         legalName: "Distribution OS",
         gstin: "36ABCDE1234F1Z5",
@@ -158,19 +149,5 @@ describe("system-settings routes", () => {
       expect(lastCompanyUpsert).toBeNull();
     });
 
-    test("still saves the credit overdue threshold", async () => {
-      const { default: app } = await import("../index");
-      const res = await app.request(
-        "/api/v1/system-settings",
-        {
-          method: "PATCH",
-          headers: headers("neon-super-admin"),
-          body: JSON.stringify({ creditOverdueDays: 30 }),
-        },
-        env,
-      );
-      expect(res.status).toBe(200);
-      expect(lastCreditUpsert).toBe("30");
-    });
   });
 });

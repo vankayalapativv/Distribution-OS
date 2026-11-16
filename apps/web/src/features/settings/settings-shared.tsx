@@ -13,7 +13,6 @@ import type { CompanyProfile } from "@/lib/company";
 export type { CompanyProfile };
 
 export interface SystemSettings {
-  creditOverdueDays: number;
   company: CompanyProfile;
 }
 

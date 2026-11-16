@@ -117,10 +117,10 @@ vi.mock("@neondatabase/serverless", () => ({
 
     // Credit gate (shared getCustomerCreditStatus) — folded into the header so the
     // mobile action row knows the blocked state at first paint. CUSTOMER_ID owes
-    // and has an invoice overdue past the threshold → blocked.
+    // and has an invoice past its due date → blocked (for a non-admin role).
     if (query.includes("get_customer_credit_days")) return [{ creditDays: 60 }];
     if (query.includes("customer_net_ledger_balance")) return [{ ledgerBalance: 12000 }];
-    if (query.includes("customer_overdue_past_terms")) {
+    if (query.includes("customer_overdue_past_due")) {
       return [{ invoiceOverdue: true, openingOverdue: false }];
     }
 
@@ -526,7 +526,7 @@ describe("customers routes", () => {
 
       const res = await app.request(
         `/api/v1/customers/${CUSTOMER_ID}`,
-        { headers: headers("neon-super-admin") },
+        { headers: headers("neon-se") },
         env,
       );
 
@@ -534,9 +534,24 @@ describe("customers routes", () => {
       const body = await res.json();
       expect(body.data).toMatchObject({
         creditBlocked: true,
-        creditOverdueDays: 60,
+        creditOverdueDays: 60, // the customer's own credit period (credit_days)
         totalOutstanding: 12000,
       });
+    });
+
+    test("SUPER_ADMIN bypasses the credit block (can always push orders)", async () => {
+      const { default: app } = await import("../index");
+
+      const res = await app.request(
+        `/api/v1/customers/${CUSTOMER_ID}`,
+        { headers: headers("neon-super-admin") },
+        env,
+      );
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      // Same owing + past-due customer, but a SUPER_ADMIN is never blocked.
+      expect(body.data).toMatchObject({ creditBlocked: false, totalOutstanding: 12000 });
     });
 
     test("Manager can get a customer by ID", async () => {

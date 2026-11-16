@@ -192,9 +192,9 @@ vi.mock("@neondatabase/serverless", () => {
       if (values.includes(GOOD_CUSTOMER_ID)) return [{ ledgerBalance: 5000 }];
       return [{ ledgerBalance: 0 }];
     }
-    // Credit gate's overdue-beyond-threshold check (shared getCustomerCreditStatus):
-    // the overdue customer has an invoice past the 60-day threshold; the good one doesn't.
-    if (query.includes("customer_overdue_past_terms")) {
+    // Credit gate's past-due check (shared getCustomerCreditStatus): the overdue
+    // customer has an invoice past its due date; the good one doesn't.
+    if (query.includes("customer_overdue_past_due")) {
       if (values.includes(OVERDUE_CUSTOMER_ID)) return [{ invoiceOverdue: true, openingOverdue: false }];
       return [{ invoiceOverdue: false, openingOverdue: false }];
     }

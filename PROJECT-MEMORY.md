@@ -3576,3 +3576,33 @@ Tailwind v4 emits every colour as `oklch()` and every `/opacity` utility as `col
 Count badge beside **"Notes"** (eager in `use-customer-detail-data.ts`, shares the Notes query key; wired via `buildTabs`). The thread is now a **chat**: **field notes (SALES_EXECUTIVE / LOGISTICS) align right (blue bubble), office notes (SA / Manager / Accountant) align left (white)**, oldest→newest in a scrollable area, **composer pinned at the bottom**, auto-scrolls to newest; Edit/Delete stay Super-Admin-only. **API change** (`services/customer-notes.ts`): the list/create/update selects now return `authorRole` via a subquery joining `user_roles`/`roles`, preferring a field role — this drives the left/right split. **No migration** (role tables exist). ⚠️ Needs an **API deploy** (for `authorRole`) + web deploy.
 
 All verified live on localhost (local dev = prod DB). Tests + tsc + lint green on both apps. Branch is ahead of GitHub (not pushed since `0f33ff9`).
+
+---
+
+# Data-driven multi-state maps — Customers Map + Live Tracking de-hardcoded (2026-11-16)
+
+Both web maps were **hardcoded to Telangana / Hyderabad** (region bounds, state clip/mask, the 4 GHMC districts). This client's customers are in **Krishna district, Andhra Pradesh**, so the dashboard Customers Map showed the wrong state and the Live Tracking map **masked + pan-locked AP out entirely** (empty Telangana). Reworked both to derive the operating region **geometrically from the data** — point-in-polygon of each lat/lng against `vardhan-maps` state/district boundaries — so each deployment follows wherever its customers (and field executives) actually are, with no hardcoded state. **Web-only**; the API is unchanged. Commit `215dc71` on `main` (pushed), **DEPLOYED prod 2026-11-16** (web version `8d9b5110-5f2c-4748-90f1-36def111e7d6`, API `629fd261-7c7c-4414-8dd7-ff91ac8a217d`).
+
+**Dependency:** `vardhan-maps` **0.19.0 → 0.20.0** in `apps/web` (adds the extra per-state data). `vardhan-maps/data` exposes `getStates()` (36 states, `properties.name` + `code`), `loadDistricts(stateName)` → district features carrying `properties {name, state}` (AP = 28 districts incl. Krishna), `indiaOutline`, bundled `states`, `stateSlug`. (`states`/`getStates`/`indiaOutline` already existed in 0.19.0; 0.20.0 just adds coverage.)
+
+## Dashboard Customers Map (`apps/web/src/features/dashboard/map/`, hand-rolled Leaflet)
+Now a **3-tier, fully data-driven drill-down** (geometric assignment via point-in-polygon):
+- **Overview** — India basemap fit to **only the states that contain customers**; each a blue heat polygon (opacity ∝ count) + count badge + dues hover-tooltip. Click a state → zoom in.
+- **State detail** — bold state outline (`SELECTED_STATE_LINE`, weight 2) over **every** district border + heat/badges/customer-dots on the districts that have customers. Click a district → zoom in.
+- **District detail** — the district outline + its customers as dues-coloured dots.
+- Framing **fits to the states-with-customers but pans freely** across India (soft India bounds, **no** Telangana mask/boundary/lock).
+
+Key files: `osm-map.tsx` (owns `selectedState` + `selectedDistrict`), `use-district-layer.ts` (`useMapLayer`, the 3 tiers), **new** `use-map-geodata.ts` (`useAllStates` bundled + `useStateDistricts` lazy per-state), `create-region-map.ts` (India vector basemap + faint `indiaOutline`, mask removed), `use-osm-map-init.ts` (two-tier background-click step-out + fit-to-operating-region), `use-fit-button.ts` (fits **all** customer pins now, no region filter), `osm-map-geometry.ts` (`isClickOutsideSelection`; Telangana mask deleted), `district-layer-data.ts` (`groupByRegion`, generic over states OR districts by `properties.name`), `map-constants.ts` (added `INDIA_BOUNDS`, `INDIA_MIN_ZOOM`, `STATE_LINE`, `SELECTED_STATE_LINE`). **Deleted** `use-telangana-districts.ts`.
+
+## Live Tracking map (`apps/web/src/features/tracking/`, declarative `IndiaMap` from `vardhan-maps/react`)
+Kept as the single operational day-view (SE live positions, GPS route trail, check-in flags, customer dues-dots), but de-hardcoded:
+- Operating region = **states-with-customers ∪ states of today's executive positions + GPS route points** (geometric — `operatingStatesOf` in **new** `tracking-region.ts`).
+- `IndiaMap` props now: `stateNames={operatingStates}`, **`level="state"`** (district borders deliberately NOT drawn — too busy for the live view, per the user), `mask={false}`, **no** `lockBounds` / `clipToStates` / `maskStates` / `center` / `zoom`, `fitTo={hasData ? "data" : "india"}`.
+- Files: `tracking-map.tsx`, `tracking-region.ts` (new), `tracking-map-model.ts` (now just `STATE_OUTLINE`). `use-tracking-overlays.ts` dropped its hardcoded-Telangana `customerDistricts` computation (and the prop in `tracking-view.tsx`).
+
+## Notes / lessons
+- `IndiaMap` (leaflet mode) is fully data-drivable: `stateNames[]`, `level` state|district|both, `mask`/`clipToStates`/`maskStates`, `lockBounds`/`lockToIndia`, `districtFill(name, props)`, `fitTo` + `fitKey`, `stateStyle`. **`level="state"` is the lever to drop district borders** while keeping the state outline + markers.
+- The dashboard's `district-helpers` (`districtOf`/`inPolygon`/`polygonsOf`) + `groupByRegion` are **generic over any feature set** (states or districts), so the tracking map reuses them.
+- The two maps **share** `map-constants` + `district-helpers`; the legacy Telangana/Hyderabad exports (`REGION_BOUNDS`, `HYDERABAD_*`, `TELANGANA_DISTRICTS`, `telangana-boundary`) were **left intact** (now largely unused here) rather than deleted.
+- **⚠️ Pre-existing test flake:** `features/tracking/tracking-map.test.tsx` fails to LOAD with `Invalid PostCSS Plugin found at: plugins[0]` (via its `leaflet.css` import → `postcss.config.mjs`) — confirmed on the `main` baseline by stashing, **not caused by this work**. All other dashboard-map + tracking tests pass; `tsc` + ESLint clean on web.
+- Verified live (local dev = prod DB): dashboard shows **Andhra Pradesh highlighted, 26 customers, Krishna cluster**; tracking shows SE **"Murali"**'s real route (146 pts, 35.7 km, Vijayawada) on the clean district-less map. The pre-commit hook (import-cycle check on `apps/api/src`) passed; `main` pushed to origin.

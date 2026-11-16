@@ -26,6 +26,7 @@ import {
   DAY_ENDED_KEY,
   DAY_ON_KEY,
   DAY_START_ODO_KEY,
+  SE_STOP_HOUR_KEY,
   SERVER_SESSION_KEY,
 } from "./gps-config";
 
@@ -45,6 +46,8 @@ export const dayStartOdoKey = (): string => scoped(DAY_START_ODO_KEY);
 export const clientSessionKey = (): string => scoped(CLIENT_SESSION_KEY);
 /** Server tracking-session id, scoped to the signed-in user. */
 export const serverSessionKey = (): string => scoped(SERVER_SESSION_KEY);
+/** Cached SE auto-stop hour (0–23 IST), scoped to the signed-in user. */
+export const stopHourKey = (): string => scoped(SE_STOP_HOUR_KEY);
 
 // The PURE key helpers (LEGACY_UNSCOPED_KEYS, scopedKeysFor) moved to gps-config
 // so auth-actions can import them WITHOUT pulling in this module's `useAuth`

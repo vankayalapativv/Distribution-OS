@@ -1,19 +1,59 @@
 "use client";
 
-import { Clock, RotateCw } from "lucide-react";
-import { PanelHeader, ReadOnlyPill, SettingRow } from "./settings-shared";
+import { type SyntheticEvent, useState } from "react";
+import { RotateCw } from "lucide-react";
+import { type ActionConfig, apiRequest, errorMessage } from "@/lib/api-client";
+import {
+  PanelHeader,
+  ReadOnlyPill,
+  type SaveMessage,
+  SaveBar,
+  SettingRow,
+  type SystemSettings,
+} from "./settings-shared";
+
+/** "7:00 PM" for hour 19, "9:00 AM" for 9, "12:00 AM" for 0. Whole-hour only. */
+function hourLabel(h: number): string {
+  const am = h < 12;
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:00 ${am ? "AM" : "PM"}`;
+}
+
+const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
 /**
- * Business Rules — now entirely system-managed, read-only. Credit control is NO
- * longer an org-wide threshold: ordering is gated per-customer (each customer's
- * own credit days set their invoice due dates, and a customer is blocked once a
- * dues is past due). SUPER_ADMIN can always push orders through. So there is no
- * editable rule here anymore; the panel just surfaces the fixed system rules.
+ * Business Rules. Credit control is per-customer (read-only). Field tracking:
+ * the SE GPS auto-stop hour is editable (whole-hour); Logistics tracking has NO
+ * auto-stop (a run ends only on "End run"), so there is no logistics row.
  */
-export function RulesPanel() {
+export function RulesPanel({
+  systemSettings,
+  actionConfig,
+}: {
+  readonly systemSettings: SystemSettings;
+  readonly actionConfig: ActionConfig;
+}) {
+  const [stopHour, setStopHour] = useState(systemSettings.seTrackingStopHour);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<SaveMessage>(null);
+
+  async function handleSave(e: SyntheticEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setMessage(null);
+    try {
+      await apiRequest(actionConfig, "PATCH", "/system-settings", { seTrackingStopHour: stopHour });
+      setMessage({ type: "success", text: "Rules updated." });
+    } catch (err) {
+      setMessage({ type: "error", text: errorMessage(err, "Failed to save.") });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <div>
-      <PanelHeader title="Business Rules" subtitle="System-managed rules that govern orders, credit and field tracking." />
+    <form onSubmit={handleSave}>
+      <PanelHeader title="Business Rules" subtitle="Rules that govern orders, credit and field tracking." />
 
       <p className="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground">
         CREDIT CONTROL <span className="font-normal text-muted-foreground/70">· per customer</span>
@@ -25,17 +65,23 @@ export function RulesPanel() {
         <ReadOnlyPill>Per customer</ReadOnlyPill>
       </SettingRow>
 
-      <p className="mb-2 mt-6 text-[11px] font-semibold tracking-wide text-muted-foreground">
-        FIELD TRACKING &amp; DUES <span className="font-normal text-muted-foreground/70">· system-managed</span>
-      </p>
+      <p className="mb-2 mt-6 text-[11px] font-semibold tracking-wide text-muted-foreground">FIELD TRACKING &amp; DUES</p>
       <SettingRow
         label="Sales executive tracking auto-stop"
-        description="GPS tracking stops for the day at this time (IST); enforced on device, in ingestion and by cron."
+        description="GPS tracking stops for the day at this time (IST). The SE's day is auto-ended, tracking stops on the device, and they can't start again until tomorrow. Enforced on device, in ingestion and by cron."
       >
-        <ReadOnlyPill icon={<Clock size={14} className="text-muted-foreground" />}>7:00 PM IST</ReadOnlyPill>
-      </SettingRow>
-      <SettingRow label="Logistics tracking auto-stop" description="Delivery staff keep a later tracking window.">
-        <ReadOnlyPill icon={<Clock size={14} className="text-muted-foreground" />}>9:00 PM IST</ReadOnlyPill>
+        <select
+          value={stopHour}
+          onChange={(e) => setStopHour(Number(e.target.value))}
+          className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          aria-label="Sales executive tracking auto-stop time"
+        >
+          {HOURS.map((h) => (
+            <option key={h} value={h}>
+              {hourLabel(h)} IST
+            </option>
+          ))}
+        </select>
       </SettingRow>
       <SettingRow
         label="Dues ageing sweep"
@@ -43,6 +89,8 @@ export function RulesPanel() {
       >
         <ReadOnlyPill icon={<RotateCw size={14} className="text-muted-foreground" />}>Daily · after 9 AM IST</ReadOnlyPill>
       </SettingRow>
-    </div>
+
+      <SaveBar saving={saving} message={message} label="Save rules" />
+    </form>
   );
 }

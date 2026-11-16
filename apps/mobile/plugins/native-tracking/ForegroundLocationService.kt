@@ -109,6 +109,7 @@ class ForegroundLocationService : Service() {
       .putString(KEY_CLIENT_SESSION_ID, intent.getStringExtra(EXTRA_CLIENT_SESSION_ID))
       .putString(KEY_SERVER_SESSION_ID, intent.getStringExtra(EXTRA_SERVER_SESSION_ID))
       .putString(KEY_CAP_DATE_IST, intent.getStringExtra(EXTRA_CAP_DATE_IST))
+      .putString(KEY_CAP_HOUR_IST, intent.getStringExtra(EXTRA_CAP_HOUR_IST))
       .putLong(KEY_STARTED_AT_MS, System.currentTimeMillis())
       .apply()
   }
@@ -120,19 +121,32 @@ class ForegroundLocationService : Service() {
     return fmt.format(Date())
   }
 
+  /** Current IST hour of day (0–23). */
+  private fun istHourToday(): Int {
+    val fmt = SimpleDateFormat("HH", Locale.US)
+    fmt.timeZone = TimeZone.getTimeZone("Asia/Kolkata")
+    return fmt.format(Date()).toIntOrNull() ?: 0
+  }
+
   /**
-   * Midnight safety cap: a Sales-executive day self-stops once the IST date rolls
-   * past the day it started on — the JS layer passes that start date ("yyyy-MM-dd")
-   * on start; null/blank (Logistics runs) means no cap. There is no fixed-hour
-   * cutoff anymore (the SE ends their own day with the in-app "End day" button).
-   * Checked on every wake-up so the service kills itself even with the app swiped
-   * away.
+   * Auto-stop cap: a Sales-executive day self-stops once the configured IST stop
+   * hour arrives on the day it started (the JS layer passes the start date
+   * "yyyy-MM-dd" + the stop hour "0".."23" on start), OR the IST date rolls past
+   * the start day (a safety net). null/blank cap date (Logistics runs) means no
+   * cap. Checked on every wake-up so the service kills itself even with the app
+   * swiped away.
    */
   private fun isPastCutoff(): Boolean {
-    val capDate = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getString(KEY_CAP_DATE_IST, null)
+    val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+    val capDate = prefs.getString(KEY_CAP_DATE_IST, null)
     if (capDate.isNullOrBlank()) return false
+    val today = istDateToday()
     // yyyy-MM-dd compares correctly as a string; the clock only moves forward.
-    return istDateToday() > capDate
+    if (today > capDate) return true // IST date rolled past the start day (safety net)
+    if (today < capDate) return false
+    // Same IST day: stop once the configured auto-stop hour has arrived.
+    val capHour = prefs.getString(KEY_CAP_HOUR_IST, null)?.toIntOrNull() ?: return false
+    return istHourToday() >= capHour
   }
 
   /**
@@ -516,6 +530,8 @@ class ForegroundLocationService : Service() {
     const val EXTRA_SERVER_SESSION_ID = "serverSessionId"
     const val EXTRA_CAP_DATE_IST = "capDateIst"
     const val KEY_CAP_DATE_IST = "capDateIst"
+    const val EXTRA_CAP_HOUR_IST = "capHourIst"
+    const val KEY_CAP_HOUR_IST = "capHourIst"
     const val PREFS_NAME = "beyond_native_tracking"
     const val KEY_ACTIVE = "active"
     const val KEY_SIGNED_IN = "signedIn"

@@ -7,9 +7,9 @@ const conflict = () => Object.assign(new Error("dup"), { code: "23505", constrai
 
 describe("pure helpers", () => {
   it("trackingCutoffHour + isAfterAllowedEndTime", () => {
-    expect(trackingCutoffHour("SALES_EXECUTIVE")).toBe(24);
-    expect(trackingCutoffHour("LOGISTICS")).toBeNull();
-    expect(isAfterAllowedEndTime({ recordedAt: "2026-06-02T10:00:00+05:30", sessionDate: "2026-06-01", timezone: "Asia/Kolkata", cutoffHour: 24 })).toBe(true);
+    expect(trackingCutoffHour("SALES_EXECUTIVE", 19)).toBe(19);
+    expect(trackingCutoffHour("LOGISTICS", 19)).toBeNull();
+    expect(isAfterAllowedEndTime({ recordedAt: "2026-06-02T10:00:00+05:30", sessionDate: "2026-06-01", timezone: "Asia/Kolkata", cutoffHour: 19 })).toBe(true);
     expect(isAfterAllowedEndTime({ recordedAt: "x", sessionDate: "2026-06-01", timezone: "Asia/Kolkata", cutoffHour: null })).toBe(false);
   });
 });
@@ -28,7 +28,7 @@ describe("startTrackingSession", () => {
     expect(await startTrackingSession(makeSql({ get_active_tracking_session: [], get_tracking_session_by_client_session_id: [SESSION], backfill_start_odometer: [] }), input())).toMatchObject({ existing: true });
   });
   it("blocks an SE who already ended their day (422)", async () => {
-    const sql = makeSql({ get_active_tracking_session: [], get_tracking_session_by_client_session_id: [], se_manual_ended_today: [{ found: 1 }] });
+    const sql = makeSql({ get_active_tracking_session: [], get_tracking_session_by_client_session_id: [], se_ended_today: [{ found: 1 }] });
     await expect(startTrackingSession(sql, input({ role: "SALES_EXECUTIVE" }))).rejects.toMatchObject({ code: "DAY_ENDED", status: 422 });
   });
   it("creates a fresh session", async () => {

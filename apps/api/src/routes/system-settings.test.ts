@@ -5,6 +5,7 @@ const SUPER_ADMIN_ID = "00000000-0000-4000-8000-000000000001";
 
 // Captures the last company upsert so tests can assert what was written.
 let lastCompanyUpsert: { keys: unknown; values: unknown } | null = null;
+let lastStopHourUpsert: unknown = null;
 
 vi.mock("@neondatabase/serverless", () => ({
   neon: () => async (strings: TemplateStringsArray, ...values: unknown[]) => {
@@ -30,6 +31,11 @@ vi.mock("@neondatabase/serverless", () => ({
       return [];
     }
 
+    if (query.includes("upsert_se_tracking_stop_hour")) {
+      lastStopHourUpsert = values[0];
+      return [];
+    }
+
     if (query.includes("insert_audit_log")) {
       return [];
     }
@@ -48,6 +54,7 @@ describe("system-settings routes", () => {
   beforeEach(() => {
     vi.resetModules();
     lastCompanyUpsert = null;
+    lastStopHourUpsert = null;
     vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json(installAuthFetchMock()));
   });
 
@@ -57,6 +64,7 @@ describe("system-settings routes", () => {
       const res = await app.request("/api/v1/system-settings", { headers: headers("neon-super-admin") }, env);
       expect(res.status).toBe(200);
       const body = await res.json();
+      expect(body.data.seTrackingStopHour).toBe(19); // default 7 PM when unset
       expect(body.data.company).toMatchObject({
         legalName: "Distribution OS",
         gstin: "36ABCDE1234F1Z5",
@@ -147,6 +155,28 @@ describe("system-settings routes", () => {
       );
       expect(res.status).toBe(422);
       expect(lastCompanyUpsert).toBeNull();
+    });
+
+    test("saves the SE tracking auto-stop hour", async () => {
+      const { default: app } = await import("../index");
+      const res = await app.request(
+        "/api/v1/system-settings",
+        { method: "PATCH", headers: headers("neon-super-admin"), body: JSON.stringify({ seTrackingStopHour: 18 }) },
+        env,
+      );
+      expect(res.status).toBe(200);
+      expect(lastStopHourUpsert).toBe("18");
+    });
+
+    test("rejects an out-of-range auto-stop hour with 422", async () => {
+      const { default: app } = await import("../index");
+      const res = await app.request(
+        "/api/v1/system-settings",
+        { method: "PATCH", headers: headers("neon-super-admin"), body: JSON.stringify({ seTrackingStopHour: 24 }) },
+        env,
+      );
+      expect(res.status).toBe(422);
+      expect(lastStopHourUpsert).toBeNull();
     });
 
   });

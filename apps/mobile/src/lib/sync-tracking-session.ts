@@ -5,7 +5,7 @@
 import * as SecureStore from "expo-secure-store";
 import { apiFetch } from "./api";
 import { useAuth } from "./auth";
-import { clientSessionKey, serverSessionKey } from "./gps-keys";
+import { clientSessionKey, serverSessionKey, stopHourKey } from "./gps-keys";
 import type { GpsPingInput } from "./sync-core";
 
 export async function ensureServerTrackingSession(points: GpsPingInput[]): Promise<string | null> {
@@ -19,12 +19,16 @@ export async function ensureServerTrackingSession(points: GpsPingInput[]): Promi
     (await SecureStore.getItemAsync(clientSessionKey()).catch(() => null));
   if (!clientSessionId) return null;
 
-  const session = await apiFetch<{ trackingSessionId: string }>("/tracking-sessions/start", {
-    method: "POST",
-    token,
-    body: { clientSessionId, deviceId: null },
-  });
+  const session = await apiFetch<{ trackingSessionId: string; seTrackingStopHour?: number | null }>(
+    "/tracking-sessions/start",
+    { method: "POST", token, body: { clientSessionId, deviceId: null } },
+  );
   await SecureStore.setItemAsync(serverSessionKey(), session.trackingSessionId).catch(() => undefined);
+  // Cache the server's auto-stop hour so the native service + watchdog self-stop
+  // at it (SE only; Logistics sends null).
+  if (typeof session.seTrackingStopHour === "number") {
+    await SecureStore.setItemAsync(stopHourKey(), String(session.seTrackingStopHour)).catch(() => undefined);
+  }
   return session.trackingSessionId;
 }
 

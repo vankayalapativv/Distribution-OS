@@ -8,15 +8,24 @@ import * as SecureStore from "expo-secure-store";
 import { AppState } from "react-native";
 import { apiFetch } from "./api";
 import { useAuth } from "./auth";
-import { istDate } from "./day-flag";
+import { istDate, istHour } from "./day-flag";
 import { CLOSURE_RECOVERY_INTERVAL_MS } from "./gps-config";
 import { clientSessionKey, dayOnKey, serverSessionKey } from "./gps-keys";
-import { startNativeForegroundTracking } from "./gps-native";
+import { readSeStopHour, startNativeForegroundTracking } from "./gps-native";
 import { startBackgroundUpdates } from "./gps-recording";
 import { setClientSessionId } from "./gps-state";
 import { isDayTracking } from "./gps-status";
 import { stopDayTracking } from "./gps-stop";
 import { reconcileServerTrackingSession } from "./tracking-session-recovery";
+
+/** True once an SE is past their configured auto-stop hour (default 7 PM) on the
+ *  current IST day — the cue to tear this device's tracking down locally (the
+ *  server cron does the authoritative session close + blocks re-start). Logistics
+ *  has no hour cap. */
+async function isPastSeStopHour(): Promise<boolean> {
+  if (useAuth.getState().user?.role !== "SALES_EXECUTIVE") return false;
+  return istHour() >= (await readSeStopHour());
+}
 
 export async function reconcileServerClosedTrackingSession(): Promise<void> {
   const token = useAuth.getState().token;
@@ -60,6 +69,11 @@ export function installGpsWatchdog(): void {
         return;
       }
       if (dayOn !== istDate()) return;
+      // Past the SE auto-stop hour → don't (re)start tracking; tear it down locally.
+      if (await isPastSeStopHour()) {
+        await stopDayTracking({ endServerSession: false });
+        return;
+      }
       const sessionId = await SecureStore.getItemAsync(clientSessionKey()).catch(() => null);
       setClientSessionId(sessionId);
       if (sessionId && (await startNativeForegroundTracking(sessionId))) return;
@@ -75,6 +89,13 @@ export function installGpsWatchdog(): void {
       // midnight-cap cron does the authoritative session close).
       const dayOn = await SecureStore.getItemAsync(dayOnKey()).catch(() => null);
       if (dayOn && dayOn !== istDate()) {
+        await stopDayTracking({ endServerSession: false });
+        return;
+      }
+      // Fixed-hour auto-stop (SE): once the configured stop hour passes, tear this
+      // device's tracking down (local only — the server cron closes the session as
+      // 'server_auto_stop' and blocks a same-day re-start).
+      if (dayOn === istDate() && (await isPastSeStopHour())) {
         await stopDayTracking({ endServerSession: false });
         return;
       }

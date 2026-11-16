@@ -20,13 +20,14 @@ class NativeTrackingModule(private val reactContext: ReactApplicationContext) :
   override fun getName(): String = "NativeTracking"
 
   @ReactMethod
-  fun startForegroundTracking(clientSessionId: String?, serverSessionId: String?, capDateIst: String?, promise: Promise) {
+  fun startForegroundTracking(clientSessionId: String?, serverSessionId: String?, capDateIst: String?, capHourIst: String?, promise: Promise) {
     try {
       val intent = Intent(reactContext, ForegroundLocationService::class.java).apply {
         action = ForegroundLocationService.ACTION_START
         putExtra(ForegroundLocationService.EXTRA_CLIENT_SESSION_ID, clientSessionId)
         putExtra(ForegroundLocationService.EXTRA_SERVER_SESSION_ID, serverSessionId)
         putExtra(ForegroundLocationService.EXTRA_CAP_DATE_IST, capDateIst)
+        putExtra(ForegroundLocationService.EXTRA_CAP_HOUR_IST, capHourIst)
       }
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         reactContext.startForegroundService(intent)

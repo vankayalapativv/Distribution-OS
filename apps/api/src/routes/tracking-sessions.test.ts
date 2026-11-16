@@ -421,7 +421,7 @@ describe("tracking session routes", () => {
     ]);
   });
 
-  test("points within the IST day are accepted; points spilling into the next IST day are rejected", async () => {
+  test("points before the SE stop hour are accepted; points at/after it are rejected", async () => {
     const { default: app } = await import("../index");
     await app.request(
       "/api/v1/tracking-sessions/start",
@@ -442,18 +442,18 @@ describe("tracking session routes", () => {
         body: JSON.stringify({
           points: [
             {
-              // 23:55 IST on the session day — late evening, now kept (no 8 PM cutoff)
+              // 15:30 IST on the session day — before the 19:00 (7 PM) stop hour → kept
               locationPointId: POINT_ID,
               latitude: 17.249,
               longitude: 80.153,
-              recordedAt: "2026-07-20T18:25:00.000Z",
+              recordedAt: "2026-07-20T10:00:00.000Z",
             },
             {
-              // 00:05 IST the NEXT day — spilled past the session's IST day → dropped
+              // 21:05 IST on the session day — past the 19:00 stop hour → dropped
               locationPointId: AFTER_CLOSE_POINT_ID,
               latitude: 17.25,
               longitude: 80.154,
-              recordedAt: "2026-07-20T18:35:00.000Z",
+              recordedAt: "2026-07-20T15:35:00.000Z",
             },
           ],
         }),

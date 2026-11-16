@@ -2,6 +2,7 @@ import type { SqlClient } from "../lib/db";
 import { ApiError } from "../lib/errors";
 import { materializeTodayPlan } from "./beat-materialize";
 import { createCheckoutFollowup } from "./followups";
+import { getSeTrackingStopHour } from "./system-settings";
 import { trackingCutoffHour } from "./tracking-sessions";
 
 type Row = Record<string, unknown>;
@@ -484,10 +485,11 @@ export async function autoCloseStaleVisits(sql: SqlClient) {
 }
 
 export async function batchGpsPings(sql: SqlClient, context: BatchGpsContext) {
-  // SEs stop being tracked at 8 PM IST; Logistics have no cutoff (a run ends
-  // only when the driver ends it, even past midnight) → keep every point. Single
-  // source of truth so ingestion always matches the session-close cutoff.
-  const cutoffHour = trackingCutoffHour(context.role);
+  // SEs stop being tracked at the configured auto-stop hour (default 7 PM IST);
+  // Logistics have no cutoff (a run ends only when the driver ends it, even past
+  // midnight) → keep every point. Single source of truth so ingestion always
+  // matches the session-close cutoff.
+  const cutoffHour = trackingCutoffHour(context.role, await getSeTrackingStopHour(sql));
   const points =
     cutoffHour === null
       ? context.points

@@ -1,5 +1,6 @@
 import type { SqlClient } from "../lib/db";
 import { notifyAdminsOfDayEvent } from "./admin-notify";
+import { getSeTrackingStopHour } from "./system-settings";
 import { recalculateTrackingSessionDistance } from "./tracking-distance";
 import { recalculateTrackingSessionDwell } from "./tracking-dwell";
 
@@ -50,36 +51,47 @@ export interface TrackingMaintenanceResult {
 }
 
 /**
- * Midnight safety cap: force-close any SE tracking session still 'active' once its
- * IST day has fully rolled over. SEs now end their own day with the in-app "End
- * day" button (ended_reason 'manual'); this only catches the ones they forgot to
- * end. The cap is dated to the next IST-day start (end of the session's own day),
- * and tagged 'server_midnight_cap' so attendance (which reports manual ends only)
- * can tell it apart from a real end.
+ * SE tracking auto-stop: force-close any SE tracking session still 'active' once
+ * the configured stop hour of its IST day has passed (default 7 PM) — OR its IST
+ * day has fully rolled over (a session that somehow outlived the hour). SEs can
+ * also end their own day early with the in-app "End day" button (ended_reason
+ * 'manual'); this closes the rest. The close is dated to the stop moment
+ * (session_date at the stop hour) and tagged 'server_auto_stop' so attendance
+ * (which reports manual ends only) can tell it apart from a real end, and the
+ * Start-day guard blocks a same-day re-start.
  *
  * Logistics never auto-close — a delivery run ends only when the driver ends it.
- * Runs on EVERY cron tick (not just the office-hours window) because IST midnight
- * falls outside that window.
+ * Runs on EVERY cron tick (not just the office-hours window).
  */
 export async function capExpiredSeSessions(
   sql: SqlClient,
   options: { now?: string } = {},
 ): Promise<{ closedSessions: number }> {
   const now = options.now ?? new Date().toISOString();
+  const stopHour = await getSeTrackingStopHour(sql);
   const closed = await sql`
     /* cap_expired_se_tracking_sessions */
     update gps_tracking_sessions s
     set
       status = 'ended',
-      ended_at = coalesce(ended_at, ((s.session_date + 1)::text || ' 00:00')::timestamp at time zone timezone),
-      ended_reason = coalesce(ended_reason, 'server_midnight_cap')
+      ended_at = coalesce(
+        ended_at,
+        ((s.session_date::text || ' ' || lpad(${stopHour}::text, 2, '0') || ':00')::timestamp at time zone timezone)
+      ),
+      ended_reason = coalesce(ended_reason, 'server_auto_stop')
     where status = 'active'
       and exists (
         select 1 from user_roles ur
         join roles r on r.id = ur.role_id
         where ur.user_id = s.user_id and r.code = 'SALES_EXECUTIVE'
       )
-      and (${now}::timestamptz at time zone timezone)::date > s.session_date
+      and (
+        (${now}::timestamptz at time zone timezone)::date > s.session_date
+        or (
+          (${now}::timestamptz at time zone timezone)::date = s.session_date
+          and extract(hour from (${now}::timestamptz at time zone timezone)) >= ${stopHour}
+        )
+      )
     returning id, user_id as "userId"
   ` as Row[];
 

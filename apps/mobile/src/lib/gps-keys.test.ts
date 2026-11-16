@@ -10,6 +10,7 @@ import {
   DAY_ON_KEY,
   DAY_START_ODO_KEY,
   LEGACY_UNSCOPED_KEYS,
+  SE_STOP_HOUR_KEY,
   SERVER_SESSION_KEY,
   scopedKeysFor,
 } from "./gps-config";
@@ -69,6 +70,7 @@ describe("gps per-user SecureStore keys", () => {
       `${DAY_START_ODO_KEY}.${id}`,
       `${CLIENT_SESSION_KEY}.${id}`,
       `${SERVER_SESSION_KEY}.${id}`,
+      `${SE_STOP_HOUR_KEY}.${id}`,
     ]);
     for (const key of keys) {
       expect(key).toMatch(SECURE_STORE_KEY);

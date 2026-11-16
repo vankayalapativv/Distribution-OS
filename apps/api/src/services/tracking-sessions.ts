@@ -1,5 +1,6 @@
 import type { SqlClient } from "../lib/db";
 import { ApiError } from "../lib/errors";
+import { getSeTrackingStopHour } from "./system-settings";
 import { recalculateTrackingSessionDistance } from "./tracking-distance";
 import { recalculateTrackingSessionDwell } from "./tracking-dwell";
 
@@ -79,14 +80,17 @@ function localDateTimeParts(iso: string, timezone: string) {
   };
 }
 
-// Sales Executives are tracked until the END of their IST day (cutoff hour 24):
-// every point whose IST date is the session's start day is accepted, and only
-// points that spill into the NEXT IST date are dropped. SEs end their day with
-// the in-app "End day" button; a forgotten day is force-closed by the midnight
-// cap cron. Logistics have NO cutoff (`null`) — a run ends only when the driver
-// ends it, even across midnight.
-export function trackingCutoffHour(role: string | null | undefined): number | null {
-  return role === "SALES_EXECUTIVE" ? 24 : null;
+// Sales Executives are tracked until a configurable hour of their IST day
+// (`seStopHour`, default 7 PM): points recorded at or after that hour on the
+// session's day are dropped, and the auto-stop cron force-closes the session at
+// that hour (re-start blocked until tomorrow). SEs can also end early with the
+// in-app "End day" button. Logistics have NO cutoff (`null`) — a run ends only
+// when the driver ends it, even across midnight.
+export function trackingCutoffHour(
+  role: string | null | undefined,
+  seStopHour: number,
+): number | null {
+  return role === "SALES_EXECUTIVE" ? seStopHour : null;
 }
 
 export function isAfterAllowedEndTime(input: {
@@ -205,24 +209,24 @@ export async function startTrackingSession(
     return { session: replay, existing: true };
   }
 
-  // An SE who has already ENDED their day (the in-app "End day" button, tagged
-  // ended_reason 'manual') cannot re-start until tomorrow. The midnight cap
-  // ('server_midnight_cap') is NOT a manual end, so a forgotten day that the cron
-  // closed does not block a fresh start. Logistics have no such block.
+  // An SE whose day has ENDED for today cannot re-start until tomorrow — whether
+  // they ended it themselves (in-app "End day", ended_reason 'manual') OR the
+  // auto-stop cron force-closed it at the configured hour ('server_auto_stop').
+  // Logistics have no such block.
   if (input.role === "SALES_EXECUTIVE") {
     const [endedToday] = await sql`
-      /* se_manual_ended_today */
+      /* se_ended_today */
       select 1 as "found"
       from gps_tracking_sessions
       where user_id = ${input.userId}::uuid
         and session_date = (now() at time zone 'Asia/Kolkata')::date
-        and ended_reason = 'manual'
+        and ended_reason in ('manual', 'server_auto_stop')
       limit 1
     ` as Row[];
     if (endedToday) {
       throw new ApiError(
         "DAY_ENDED",
-        "You've ended your day. Start again tomorrow.",
+        "Your day has ended. Start again tomorrow.",
         422,
       );
     }
@@ -338,7 +342,7 @@ export async function endTrackingSession(
   // A client end is always a MANUAL end (the SE's "End day" button, or a
   // Logistics "End run"). Attendance reports manual ends only, so stamping this
   // is what lets an SE's day show an "Ended" time. The only other reason,
-  // 'server_midnight_cap', is written by the cron — never here.
+  // 'server_auto_stop', is written by the auto-stop cron — never here.
   const [updated] = await sql`
     /* end_tracking_session */
     update gps_tracking_sessions
@@ -446,6 +450,8 @@ export async function insertTrackingPoints(
   if (!session) throw new ApiError("NOT_FOUND", "Tracking session not found.", 404);
   const sessionDate = str(session.sessionDate).slice(0, 10);
   const timezone = nullStr(session.timezone) ?? "Asia/Kolkata";
+  // The SE auto-stop hour drives which late points are dropped (Logistics: none).
+  const seStopHour = await getSeTrackingStopHour(sql);
 
   // Split into validation-rejected vs. insert candidates first, so all DB writes
   // for one batch travel in a SINGLE round-trip instead of one HTTP request per
@@ -458,7 +464,7 @@ export async function insertTrackingPoints(
   for (const point of input.points) {
     if (point.latitude < -90 || point.latitude > 90 || point.longitude < -180 || point.longitude > 180) {
       rejected.set(point.locationPointId, "INVALID_COORDINATES");
-    } else if (isAfterAllowedEndTime({ recordedAt: point.recordedAt, sessionDate, timezone, cutoffHour: trackingCutoffHour(input.role) })) {
+    } else if (isAfterAllowedEndTime({ recordedAt: point.recordedAt, sessionDate, timezone, cutoffHour: trackingCutoffHour(input.role, seStopHour) })) {
       rejected.set(point.locationPointId, "AFTER_ALLOWED_END_TIME");
     } else {
       candidates.push(point);

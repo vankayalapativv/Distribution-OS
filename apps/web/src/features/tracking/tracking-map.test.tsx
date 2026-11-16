@@ -22,6 +22,14 @@ vi.mock("./tracking-map-markers", () => ({
   checkinMarkers: (chks: any[]) => chks.map(() => ({ lat: 2, lng: 2, icon: "flag" })),
 }));
 vi.mock("./tracking-map-loading", () => ({ MapLoadingOverlay: () => <div data-testid="loading" /> }));
+// Geodata + geometry are exercised by their own unit tests; here we stub them so
+// the map's wiring (operating-state derivation → framing) is what's under test.
+vi.mock("@/features/dashboard/map/use-map-geodata", () => ({
+  useAllStates: () => [],
+}));
+vi.mock("./tracking-region", () => ({
+  operatingStatesOf: () => ["Andhra Pradesh"],
+}));
 
 import { TrackingMap } from "./tracking-map";
 
@@ -32,7 +40,7 @@ const base = {
   // c1 is un-visited (the checkin is for a different, unlisted customer) so it keeps its dot.
   customers: [{ id: "c1" }] as unknown as MapCustomer[],
   checkins: [{ customerId: "zzz" }] as unknown as TrackingCheckin[],
-  onSelectExecutive: vi.fn(), selectedUserId: "u1", customerDistricts: ["Nalgonda"],
+  onSelectExecutive: vi.fn(), selectedUserId: "u1",
 };
 
 beforeEach(() => { h.props = null; });
@@ -74,15 +82,17 @@ describe("TrackingMap", () => {
     expect(screen.queryByTestId("loading")).not.toBeInTheDocument();
   });
 
-  it("styles only customer districts with a border", () => {
-    render(<TrackingMap {...base} customerDistricts={["Nalgonda"]} />);
-    expect(h.props.districtFill("Nalgonda").fill).toBe(false); // customer district → visible border
-    expect(h.props.districtFill("Elsewhere").stroke).toBe(false); // no customers → hidden
+  it("draws only the operating-state outline — no district borders, no mask/clip, free pan", () => {
+    render(<TrackingMap {...base} />);
+    expect(h.props.level).toBe("state"); // district borders are NOT drawn on the live view
+    expect(h.props.districtFill).toBeUndefined();
+    expect(h.props.mask).toBe(false);
+    expect(h.props.lockBounds).toBeUndefined();
+    expect(h.props.stateNames).toEqual(["Andhra Pradesh"]); // from the operating-states derivation
   });
 
-  it("tolerates no selection and no customer districts", () => {
-    render(<TrackingMap {...base} selectedUserId={undefined} customerDistricts={undefined} />);
-    expect(h.props.dataKey).toBe(""); // empty district set
+  it("tolerates no selection", () => {
+    render(<TrackingMap {...base} selectedUserId={undefined} />);
     expect(h.props.fitKey).toBe("s:none"); // no selection
   });
 });

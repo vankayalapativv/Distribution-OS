@@ -23,11 +23,32 @@ export const HYDERABAD_DISTRICTS_ZOOM = 9;
 // sits within Telangana). The map is hard-locked to this box (maxBounds +
 // viscosity) with a minZoom that keeps the state filling the view, so it never
 // drifts out to the whole world.
+// NOTE: still consumed by the Live-Tracking map; the dashboard Customers Map has
+// moved to the dynamic, India-wide framing below.
 export const REGION_BOUNDS: [[number, number], [number, number]] = [
   [15.7, 77.1], // SW
   [19.95, 81.5], // NE
 ];
 export const REGION_MIN_ZOOM = 6;
+
+// India-wide framing for the dynamic, multi-state dashboard Customers Map. The
+// map opens fit to the states that ACTUALLY have customers (geometrically
+// derived — no hardcoded state), then pans freely within this generous India box
+// (soft maxBounds, so it can't drift to the open ocean / whole world, but there
+// is no hard regional lock).
+export const INDIA_BOUNDS: [[number, number], [number, number]] = [
+  [6.0, 67.0], // SW
+  [37.5, 98.5], // NE
+];
+export const INDIA_MIN_ZOOM = 4;
+
+// State heat-map (overview): the SAME blue fill as the district heat, with a
+// mid-grey state outline; a bold darker-blue border appears on hover.
+export const STATE_LINE = { color: "#64748b", weight: 1.2, opacity: 0.85 };
+// The selected state's own border in the state-detail view — a bold, dark outline
+// drawn on top of its districts so the state's extent reads clearly and stands
+// apart from the thinner district lines inside it.
+export const SELECTED_STATE_LINE = { color: "#334155", weight: 2, opacity: 1 };
 
 // District heat-map (overview): blue fill whose opacity scales with the customer
 // count; a bold darker-blue outline on hover.

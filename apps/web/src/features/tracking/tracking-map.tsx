@@ -7,17 +7,13 @@ import "leaflet/dist/leaflet.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { IndiaMap, type MapMarker } from "vardhan-maps/react";
 import { guardMaplibreLeaflet } from "@/lib/maplibre-leaflet-guard";
-import {
-  REGION_BOUNDS, HYDERABAD_DISTRICT_SET, HYDERABAD_DISTRICTS_CENTER, HYDERABAD_DISTRICTS_ZOOM,
-} from "@/features/dashboard/map/map-constants";
 import { bandMeta, type DuesBand, type MapCustomer } from "@/features/dashboard/map/map-helpers";
+import { useAllStates } from "@/features/dashboard/map/use-map-geodata";
 import type { RoutePoint, TrackedExecutive, TrackingCheckin } from "./tracking-api";
 import { MapLoadingOverlay } from "./tracking-map-loading";
 import { checkinMarkers, customerMarkers } from "./tracking-map-markers";
-import {
-  buildRoutes, CUSTOMER_DISTRICT, CUSTOMER_STATES, execForMarker, execMarkers, fitKeyOf,
-  HIDDEN_DISTRICT, READY_FALLBACK_MS, STATE_OUTLINE,
-} from "./tracking-map-model";
+import { buildRoutes, execForMarker, execMarkers, fitKeyOf, READY_FALLBACK_MS, STATE_OUTLINE } from "./tracking-map-model";
+import { operatingStatesOf } from "./tracking-region";
 
 interface TrackingMapProps {
   readonly executives: TrackedExecutive[];
@@ -28,10 +24,9 @@ interface TrackingMapProps {
   readonly checkins: TrackingCheckin[];
   readonly onSelectExecutive: (userId: string) => void;
   readonly selectedUserId?: string | null;
-  readonly customerDistricts?: string[];
 }
 
-export function TrackingMap({ executives, routePoints, routeStale, customers, bands, checkins, onSelectExecutive, selectedUserId, customerDistricts }: TrackingMapProps) {
+export function TrackingMap({ executives, routePoints, routeStale, customers, bands, checkins, onSelectExecutive, selectedUserId }: TrackingMapProps) {
   const meta = useMemo(() => bandMeta(bands), [bands]);
   const selectedExec = useMemo(
     () => executives.find((e) => e.userId === selectedUserId && e.lastLatitude != null && e.lastLongitude != null),
@@ -56,11 +51,16 @@ export function TrackingMap({ executives, routePoints, routeStale, customers, ba
   }, [customers, executives, checkins, routeStale, meta]);
   const routes = useMemo(() => buildRoutes(routePoints, routeReady, selectedExec), [routePoints, routeReady, selectedExec]);
 
-  const customerSet = useMemo(() => new Set(customerDistricts ?? []), [customerDistricts]);
-  // Always outline the four operating districts for context; hide the rest.
-  const districtFill = (name: string) => (HYDERABAD_DISTRICT_SET.has(name) ? CUSTOMER_DISTRICT : HIDDEN_DISTRICT);
-  // Auto-fit to the day's tracking data when there is any; otherwise open on the
-  // four-district Hyderabad view.
+  // The operating region, derived from the day's data (customers + executive
+  // positions + route points) — no hardcoded state. We outline these states only;
+  // district borders are deliberately NOT drawn here (too busy for the live view).
+  const states = useAllStates();
+  const operatingStates = useMemo(
+    () => operatingStatesOf(states, customers, executives, routePoints),
+    [states, customers, executives, routePoints],
+  );
+  // Auto-fit to the day's data when there is any (customer dots count, so this
+  // frames the operating region even with no SE activity yet); else show India.
   const hasData = markers.length > 0 || routes.length > 0;
   const fitKey = fitKeyOf(routeReady, routePoints, selectedUserId);
 
@@ -92,13 +92,12 @@ export function TrackingMap({ executives, routePoints, routeStale, customers, ba
   return (
     <div className="relative flex-1 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
       <IndiaMap
-        mode="leaflet" level="both" vector
+        mode="leaflet" level="state" vector
         workerUrl="/maplibre-gl-worker.mjs"
-        stateNames={CUSTOMER_STATES} lockBounds={REGION_BOUNDS}
-        center={HYDERABAD_DISTRICTS_CENTER} zoom={HYDERABAD_DISTRICTS_ZOOM}
-        clipToStates maskStates={CUSTOMER_STATES} attributionPrefix="" fitTo={hasData ? "data" : "none"} fitKey={fitKey}
-        boundaryTooltips={false} stateStyle={STATE_OUTLINE} districtFill={districtFill}
-        dataKey={[...customerSet].sort((a, b) => a.localeCompare(b)).join("|")}
+        stateNames={operatingStates}
+        mask={false} attributionPrefix="" fitTo={hasData ? "data" : "india"} fitKey={fitKey}
+        boundaryTooltips={false} stateStyle={STATE_OUTLINE}
+        dataKey={operatingStates.join(",")}
         markers={markers} routes={routes} onMarkerClick={onMarkerClick} onRenderComplete={() => setReady(true)}
         style={{ position: "absolute", inset: 0 }}
       />

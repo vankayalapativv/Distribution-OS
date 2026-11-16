@@ -6,12 +6,10 @@ import { isFresh } from "./tracking-helpers";
 // never fires (e.g. tiles fail), so the loader can't get stuck.
 export const READY_FALLBACK_MS = 10_000;
 
-// The customer base spans these states — draw their district borders for context.
-export const CUSTOMER_STATES = ["Telangana"];
-// State bold, district faint (per the map design).
+// The operating state outline. The operating states are derived from the day's
+// data, not hardcoded (see tracking-region); district borders are not drawn on
+// the live-tracking map (kept clean for the markers + route trail).
 export const STATE_OUTLINE = { color: "#475569", weight: 2, fillOpacity: 0 };
-export const CUSTOMER_DISTRICT = { color: "#94a3b8", weight: 0.8, opacity: 0.6, fill: false };
-export const HIDDEN_DISTRICT = { stroke: false, fill: false };
 
 const KOLKATA_TIME = new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
 

@@ -32,7 +32,7 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: (cfg: any) => { h.calls.push(cfg); return h.results[cfg.queryKey[0]] ?? {}; },
 }));
 vi.mock("./use-tracking-overlays", () => ({
-  useTrackingOverlays: () => ({ customers: [], customerDistricts: ["Nalgonda"], deviceHealth: [] }),
+  useTrackingOverlays: () => ({ customers: [], bands: undefined, deviceHealth: [] }),
 }));
 const apiGet = vi.fn();
 vi.mock("@/lib/api-client", () => ({ apiGet: (...a: unknown[]) => apiGet(...a) }));
@@ -64,7 +64,6 @@ describe("useTrackingData", () => {
     expect(result.current.routeStale).toBe(true);
     expect(result.current.checkins).toEqual([{ id: "c1" }]);
     expect(result.current.lastUpdated).toBeInstanceOf(Date);
-    expect(result.current.customerDistricts).toEqual(["Nalgonda"]);
   });
 
   it("polls every 60s for today", () => {

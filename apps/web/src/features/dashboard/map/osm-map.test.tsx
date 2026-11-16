@@ -5,9 +5,9 @@ import type L from "leaflet";
 
 const fitToPins = vi.fn();
 vi.mock("./use-osm-map-init", () => ({ useOsmMapInit: () => createRef<L.Map | null>() }));
-vi.mock("./use-district-layer", () => ({ useDistrictLayer: () => {} }));
+vi.mock("./use-district-layer", () => ({ useMapLayer: () => {} }));
 vi.mock("./use-fit-button", () => ({ useFitButton: () => fitToPins }));
-vi.mock("./use-telangana-districts", () => ({ useTelanganaDistricts: () => [] }));
+vi.mock("./use-map-geodata", () => ({ useAllStates: () => [], useStateDistricts: () => [] }));
 
 import { OsmMap } from "./osm-map";
 

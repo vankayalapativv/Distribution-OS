@@ -56,7 +56,6 @@ function TrackingViewInner({ initialExecutives, initialDate, role, actionConfig 
             customers={t.customers}
             bands={t.bands}
             checkins={t.checkins}
-            customerDistricts={t.customerDistricts}
             selectedUserId={t.effectiveSelectedUserId}
             onSelectExecutive={t.setSelectedUserId}
           />

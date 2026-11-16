@@ -53,7 +53,17 @@ function mapInvoice(row: Row) {
 }
 
 type ExpoTicket = { status?: string; id?: string; details?: { error?: string } };
-type ExpoResp = { data?: ExpoTicket[]; errors?: { code?: string }[] };
+type ExpoError = { code?: string; details?: Record<string, string[]> };
+type ExpoResp = { data?: ExpoTicket[]; errors?: ExpoError[] };
+
+// This app's Expo experienceId (owner/slug from apps/mobile/app.json). In a
+// PUSH_TOO_MANY_EXPERIENCE_IDS error Expo names which tokens belong to which
+// project; any attributed to a DIFFERENT project are stale leftovers from a
+// prior app (here: the old Sri-Aparajita Expo project) that can never deliver,
+// so they are pruned. Hardcoded on purpose — NOT derived from an FCM-credential
+// error — so a transient FCM-key problem on OUR project can never be mistaken
+// for "wrong project" and wipe live tokens.
+const OUR_EXPO_EXPERIENCE_ID = "@vardhansystems_support/distribution-os";
 
 /** POST one Expo push request (array of messages). Returns the parsed body, or
  *  null on a network/parse failure. */
@@ -80,9 +90,10 @@ async function postExpoPush(messages: unknown[]): Promise<ExpoResp | null> {
  * devices included. So on that error we retry each token on its own, so good
  * devices still receive it and only the stale tokens fail (in isolation).
  *
- * When a `sql` handle is passed, tokens Expo reports as `DeviceNotRegistered`
- * (app uninstalled, or token for a dead project) are deleted so they stop
- * poisoning future sends.
+ * When a `sql` handle is passed, stale tokens are pruned so they stop poisoning
+ * future sends: ones Expo attributes to a different Expo project (named in the
+ * PUSH_TOO_MANY_EXPERIENCE_IDS error) and ones it reports `DeviceNotRegistered`
+ * (app uninstalled).
  */
 export async function sendExpoPush(
   tokens: string[],
@@ -96,7 +107,20 @@ export async function sendExpoPush(
 
   const batch = await postExpoPush(tokens.map(msg));
   let tickets: { token: string; ticket: ExpoTicket }[];
-  if (batch?.errors?.some((e) => e.code === "PUSH_TOO_MANY_EXPERIENCE_IDS")) {
+  const mixedErr = batch?.errors?.find((e) => e.code === "PUSH_TOO_MANY_EXPERIENCE_IDS");
+  if (mixedErr) {
+    // Drop tokens Expo attributes to a project that isn't ours (dead
+    // cross-project leftovers), then retry per-token so our own devices still
+    // receive the push.
+    if (sql && mixedErr.details) {
+      const foreign = Object.entries(mixedErr.details)
+        .filter(([experienceId]) => experienceId !== OUR_EXPO_EXPERIENCE_ID)
+        .flatMap(([, toks]) => (Array.isArray(toks) ? toks : []))
+        .filter(Boolean);
+      if (foreign.length > 0) {
+        await sql`delete from push_tokens where token = any(${foreign}::text[])`.catch(() => undefined);
+      }
+    }
     const perToken = await Promise.all(
       tokens.map(async (t) => ({ token: t, res: await postExpoPush([msg(t)]) })),
     );
@@ -105,6 +129,7 @@ export async function sendExpoPush(
     tickets = (batch?.data ?? []).map((ticket, i) => ({ token: tokens[i] ?? "", ticket }));
   }
 
+  // Also prune devices Expo reports as gone (app uninstalled).
   if (sql) {
     const dead = tickets
       .filter((t) => t.ticket?.status === "error" && t.ticket?.details?.error === "DeviceNotRegistered")

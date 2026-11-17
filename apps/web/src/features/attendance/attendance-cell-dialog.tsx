@@ -53,6 +53,10 @@ function TrackedReadout({ cell }: Readonly<{ cell: AttendanceCell }>) {
             On field <span className="font-semibold text-foreground">{hoursLabel(hrs)}</span> ·{" "}
             <span className="font-semibold text-foreground">{dist != null ? km(dist) : "—"}</span>
           </p>
+          <p className="text-muted-foreground">
+            Odometer <span className="font-semibold text-foreground">{km(cell.startOdometer)}</span> →{" "}
+            <span className="font-semibold text-foreground">{km(cell.endOdometer)}</span>
+          </p>
         </>
       ) : (
         <p className="text-muted-foreground">No GPS tracking this day — set manually.</p>

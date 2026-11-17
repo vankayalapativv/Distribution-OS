@@ -40,6 +40,20 @@ describe("CellEditDialog", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows the start → end odometer readings (dash for a missing end, e.g. an auto-stopped day)", () => {
+    render(
+      <CellEditDialog
+        target={target({ startOdometer: 45200, endOdometer: null })}
+        {...handlers()}
+        saving={false}
+        error={null}
+      />,
+    );
+    expect(
+      screen.getByText((_, el) => el?.tagName === "P" && el.textContent === "Odometer 45,200 km → —"),
+    ).toBeInTheDocument();
+  });
+
   it("saves the chosen status + note", () => {
     const h = handlers();
     render(<CellEditDialog target={target()} {...h} saving={false} error={null} />);

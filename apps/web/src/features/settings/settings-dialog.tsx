@@ -89,7 +89,7 @@ export function SettingsDialog({
       role="button" tabIndex={0} aria-label="Close"
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " " || e.key === "Escape") close(); }}>
       <div
-        className="flex h-[min(90vh,680px)] w-full max-w-[920px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl sm:flex-row"
+        className="flex h-[min(90vh,820px)] w-full max-w-[1120px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl sm:flex-row"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
         role="dialog"

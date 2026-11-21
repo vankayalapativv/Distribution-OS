@@ -80,10 +80,12 @@ function InvoiceSettingsInner({ company, actionConfig }: Readonly<{ company: Com
               {prefix || "SA/"}{cfg?.finYear ?? ""}/{String(Number(nextNumber) || 0).padStart(cfg?.padWidth ?? 5, "0")}
             </span>
           </EditRow>
-          <EditRow label="Terms & Conditions" description="Printed in the invoice footer — one per line.">
-            <Textarea className="w-full sm:w-96" rows={8} value={terms} onChange={(e) => setTerms(e.target.value)} maxLength={5000}
+          <div className="border-b border-border/60 py-3.5 last:border-0">
+            <div className="text-sm font-medium text-foreground">Terms &amp; Conditions</div>
+            <p className="mt-1 text-xs text-muted-foreground">Printed in the invoice footer — one per line.</p>
+            <Textarea className="mt-2.5 w-full" rows={8} value={terms} onChange={(e) => setTerms(e.target.value)} maxLength={5000}
               placeholder={DEFAULT_TERMS} />
-          </EditRow>
+          </div>
           {saveError && <SaveError>{saveError}</SaveError>}
           <div className="mt-4 flex items-center gap-2">
             <Button size="sm" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button>
@@ -94,11 +96,12 @@ function InvoiceSettingsInner({ company, actionConfig }: Readonly<{ company: Com
         <>
           <ReadRow label="Number series">{q.isLoading ? "…" : <span className="font-mono">{cfg?.prefix}{cfg?.finYear}/…</span>}</ReadRow>
           <ReadRow label="Next invoice">{q.isLoading ? "…" : <span className="font-mono">{preview(cfg)}</span>}</ReadRow>
-          <ReadRow label="Terms & Conditions">
+          <div className="flex flex-col gap-1.5 py-2">
+            <span className="text-xs font-medium text-muted-foreground">Terms &amp; Conditions</span>
             {savedTerms.trim()
-              ? <span className="whitespace-pre-line text-[13px] leading-relaxed">{savedTerms}</span>
+              ? <span className="whitespace-pre-line text-[13px] leading-relaxed text-foreground">{savedTerms}</span>
               : <span className="whitespace-pre-line text-[13px] leading-relaxed text-muted-foreground">{DEFAULT_TERMS}<span className="mt-1 block text-xs italic">Default — edit to customise.</span></span>}
-          </ReadRow>
+          </div>
         </>
       )}
     </SectionCard>

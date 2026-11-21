@@ -36,15 +36,6 @@ function OrdersInner(props: Readonly<OrdersListProps>) {
           onNewOrder={onNewOrder}
           total={paged.total}
           isLoading={paged.isLoading}
-          actionConfig={actionConfig}
-          filterFulfillment={v.filterFulfillment}
-          downloadFilters={{
-            search: state.applied.search,
-            city: state.applied.city,
-            salesExecutiveId: state.applied.salesExecutiveId,
-            dateFrom: state.applied.dateFrom,
-            dateTo: state.applied.dateTo,
-          }}
         />
         <OrdersListControls
           state={state}

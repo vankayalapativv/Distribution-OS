@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 vi.mock("@/components/page-header", () => ({
@@ -10,27 +10,11 @@ vi.mock("@/components/page-header", () => ({
     </div>
   ),
 }));
-vi.mock("./orders-download", () => ({
-  OrdersDownload: (p: any) => (
-    <div data-testid="download" data-fulfillment={p.defaultFulfillment} data-search={p.filters.search} />
-  ),
-}));
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 import { OrdersListHeader } from "./orders-list-header";
 
-const cfg = { apiBaseUrl: "x", authToken: "t" };
-const base = {
-  canCreate: true,
-  onNewOrder: vi.fn(),
-  total: 3,
-  isLoading: false,
-  actionConfig: cfg,
-  filterFulfillment: "invoiced",
-  downloadFilters: { search: "abc", city: "", salesExecutiveId: "", dateFrom: "", dateTo: "" },
-};
-
-afterEach(() => vi.restoreAllMocks());
+const base = { canCreate: true, onNewOrder: vi.fn(), total: 3, isLoading: false };
 
 describe("OrdersListHeader", () => {
   it("shows a loading subtitle while loading", () => {
@@ -52,12 +36,5 @@ describe("OrdersListHeader", () => {
     expect(onNewOrder).toHaveBeenCalled();
     rerender(<OrdersListHeader {...base} canCreate={false} />);
     expect(screen.queryByRole("button", { name: "+ New Order" })).not.toBeInTheDocument();
-  });
-
-  it("passes the fulfillment + filters through to Download", () => {
-    render(<OrdersListHeader {...base} />);
-    const dl = screen.getByTestId("download");
-    expect(dl).toHaveAttribute("data-fulfillment", "invoiced");
-    expect(dl).toHaveAttribute("data-search", "abc");
   });
 });

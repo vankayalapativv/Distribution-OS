@@ -22,6 +22,7 @@ vi.mock("../services/stock", () => ({
   getInvoiceStockLots: vi.fn().mockResolvedValue({ kind: "sale", invoiceNumber: "SA/1", lines: [] }),
   listAdjustments: vi.fn().mockResolvedValue({ rows: [] }),
   listAvailableLots: vi.fn().mockResolvedValue([{ id: "lot-1", batchNumber: "B1", expiryDate: "2027-01-10", qtyUnits: 50, daysToExpiry: 60 }]),
+  listAvailableStock: vi.fn().mockResolvedValue({ godowns: [{ id: "l1", name: "Main" }], products: [{ productId: "p1", productName: "Oil", brand: "Fuchs", segment: "Car", unit: "litres", totalUnits: 5, packs: [{ packSizeLitres: 5, totalUnits: 5, byGodown: [{ locationId: "l1", qtyUnits: 5 }] }] }] }),
   listInvoiceStockActivity: vi.fn().mockResolvedValue([{ invoiceId: "inv-1", kind: "sale", invoiceNumber: "SA/1", units: 25, lineCount: 1, value: 17700 }]),
   listBalances: vi.fn().mockResolvedValue({ rows: [] }),
   listGrns: vi.fn().mockResolvedValue({ rows: [] }),
@@ -58,6 +59,16 @@ describe("stock routes — reads", () => {
     expect((await get("/movements?locationId=l1&productId=p1&kind=grn&page=1&pageSize=20")).status).toBe(200);
     for (const p of ["/grn", "/transfers", "/adjustments"]) expect((await get(p + "?locationId=l1&page=1&pageSize=5")).status).toBe(200);
     for (const p of ["/grn/g1", "/transfers/t1", "/adjustments/a1"]) expect((await get(p)).status).toBe(200);
+  });
+  it("available — SE + SUPER_ADMIN read it, LOGISTICS 403, shape is product→pack→godown", async () => {
+    expect((await get("/available", "superAdmin")).status).toBe(200);
+    const seRes = await get("/available", "se");
+    expect(seRes.status).toBe(200);
+    const body = await seRes.json();
+    expect(body.data.godowns[0].name).toBe("Main");
+    expect(body.data.products[0].packs[0].byGodown[0].qtyUnits).toBe(5);
+    expect((await get("/available", "logistics")).status).toBe(403);
+    expect((await get("/available", "accountant")).status).toBe(403);
   });
   it("balances/for-skus — 422 without godown, 200 with mixed sku list", async () => {
     expect((await get("/balances/for-skus")).status).toBe(422);

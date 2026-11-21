@@ -18,6 +18,7 @@ import {
   getTransfer,
   listAdjustments,
   listAvailableLots,
+  listAvailableStock,
   listBalances,
   listGrns,
   listInvoiceStockActivity,
@@ -117,6 +118,14 @@ export const stockRoutes = new Hono<ApiEnv>()
     requireRole(c, [...OFFICE]);
     const skus = await listSkus(getSqlClient(c), { search: c.req.query("search") ?? null, brand: c.req.query("brand") ?? null });
     return c.json(success(c, { skus }));
+  })
+
+  // ── Available stock (mobile Stock tab — SALES_EXECUTIVE + in-app SUPER_ADMIN).
+  //    Read-only: product → pack → per-godown on-hand. ──
+  .get("/available", async (c) => {
+    requireRole(c, ["SALES_EXECUTIVE", "SUPER_ADMIN", "MANAGER"]);
+    const data = await listAvailableStock(getSqlClient(c));
+    return c.json(success(c, data));
   })
 
   // ── Balances (the Balances tab) ──

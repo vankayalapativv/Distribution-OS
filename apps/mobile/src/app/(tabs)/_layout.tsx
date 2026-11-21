@@ -51,6 +51,9 @@ const AlertsTabIcon = ({ color, focused }: TabIconProps) => (
 const RemindersTabIcon = ({ color, focused }: TabIconProps) => (
   <Icon name={focused ? "alarm" : "alarm-outline"} color={color} size={22} />
 );
+const StockTabIcon = ({ color, focused }: TabIconProps) => (
+  <Icon name={focused ? "cube" : "cube-outline"} color={color} size={22} />
+);
 const SettingsTabIcon = ({ color, focused }: TabIconProps) => (
   <Icon name={focused ? "settings" : "settings-outline"} color={color} size={22} />
 );
@@ -118,6 +121,13 @@ export default function TabsLayout() {
           tabBarBadge: followupBadge,
           tabBarBadgeStyle: { backgroundColor: "#ef4444", fontSize: 10 },
           tabBarIcon: RemindersTabIcon,
+        }}
+      />
+      <Tabs.Screen
+        name="stock"
+        options={{
+          title: "Stock",
+          tabBarIcon: StockTabIcon,
         }}
       />
       <Tabs.Screen

@@ -219,6 +219,116 @@ export async function balancesSummary(sql: SqlClient, f: { locationId?: string |
   return { skuCount: num(r?.skuCount ?? 0), totalLitres: round2(num(r?.totalLitres ?? 0)), belowReorder: num(r?.belowReorder ?? 0) };
 }
 
+export interface AvailableStockPack {
+  packSizeLitres: number;
+  totalUnits: number;
+  byGodown: Array<{ locationId: string; qtyUnits: number }>;
+}
+export interface AvailableStockProduct {
+  productId: string;
+  productName: string;
+  brand: string | null;
+  segment: string | null;
+  unit: "litres" | "quantity";
+  totalUnits: number;
+  packs: AvailableStockPack[];
+}
+export interface AvailableStock {
+  godowns: Array<{ id: string; name: string }>;
+  products: AvailableStockProduct[];
+}
+
+/**
+ * Available-stock tree for the mobile Stock tab (SALES_EXECUTIVE + in-app
+ * SUPER_ADMIN). Read-only. Every active product that has stock on hand
+ * (qty_units > 0), grouped product → pack → godown. `byGodown` lists ALL active
+ * godowns (0 where the SKU isn't stocked there) so the UI shows where it is and
+ * isn't. Products/packs with no on-hand stock are omitted. One fetch; the client
+ * filters by name/brand and expands rows locally.
+ */
+export async function listAvailableStock(sql: SqlClient): Promise<AvailableStock> {
+  const godownRows = await sql`
+    /* available_stock_godowns */
+    select l.id as "locationId", l.name as "locationName"
+    from stock_locations l
+    where l.status = 'active'
+    order by l.name
+  `;
+  const rows = await sql`
+    /* available_stock_balances */
+    select p.id as "productId", p.product_name as "productName", p.brand, p.unit,
+           (select ps.segment from product_segments ps where ps.product_id = p.id order by ps.segment limit 1) as segment,
+           sb.pack_size_litres as "packSizeLitres", sb.location_id as "locationId",
+           sb.qty_units as "qtyUnits"
+    from stock_balances sb
+    join products p on p.id = sb.product_id and p.status = 'active'
+    where sb.qty_units > 0
+    order by p.product_name, sb.pack_size_litres
+  `;
+
+  const godowns = godownRows.map((g) => ({ id: str(g.locationId), name: str(g.locationName) }));
+  const godownOrder = godowns.map((g) => g.id);
+
+  interface PackAgg { packSizeLitres: number; totalUnits: number; byGodown: Map<string, number> }
+  interface ProdAgg {
+    productId: string; productName: string; brand: string | null; segment: string | null;
+    unit: "litres" | "quantity"; totalUnits: number; packs: Map<number, PackAgg>;
+  }
+  const prods = new Map<string, ProdAgg>();
+
+  for (const r of rows) {
+    const pid = str(r.productId);
+    const pack = num(r.packSizeLitres);
+    const loc = str(r.locationId);
+    const qty = num(r.qtyUnits);
+    let prod = prods.get(pid);
+    if (!prod) {
+      prod = {
+        productId: pid,
+        productName: str(r.productName),
+        brand: r.brand == null ? null : str(r.brand),
+        segment: r.segment == null ? null : str(r.segment),
+        unit: r.unit === "quantity" ? "quantity" : "litres",
+        totalUnits: 0,
+        packs: new Map(),
+      };
+      prods.set(pid, prod);
+    }
+    let pk = prod.packs.get(pack);
+    if (!pk) {
+      pk = { packSizeLitres: pack, totalUnits: 0, byGodown: new Map() };
+      prod.packs.set(pack, pk);
+    }
+    pk.byGodown.set(loc, (pk.byGodown.get(loc) ?? 0) + qty);
+    pk.totalUnits += qty;
+    prod.totalUnits += qty;
+  }
+
+  const products = [...prods.values()]
+    .sort((a, b) => a.productName.localeCompare(b.productName))
+    .map((p) => ({
+      productId: p.productId,
+      productName: p.productName,
+      brand: p.brand,
+      segment: p.segment,
+      unit: p.unit,
+      totalUnits: p.totalUnits,
+      packs: [...p.packs.values()]
+        .sort((a, b) => a.packSizeLitres - b.packSizeLitres)
+        .map((pk) => ({
+          packSizeLitres: pk.packSizeLitres,
+          totalUnits: pk.totalUnits,
+          // Only godowns that actually hold this pack (all > 0), in global godown
+          // order — avoids a wall of "0" rows when a business has many godowns.
+          byGodown: godownOrder
+            .filter((gid) => pk.byGodown.has(gid))
+            .map((gid) => ({ locationId: gid, qtyUnits: pk.byGodown.get(gid) ?? 0 })),
+        })),
+    }));
+
+  return { godowns, products };
+}
+
 /** Per-godown on-hand breakdown (drives the dashboard stat-card drill-downs):
  *  stocked SKU count, total units and total litres at each active godown. */
 export async function balancesByGodown(sql: SqlClient) {

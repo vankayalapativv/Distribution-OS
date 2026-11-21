@@ -52,12 +52,15 @@ const TrackingTabIcon = ({ color, focused }: TabIconProps) => (
 const AlertsTabIcon = ({ color, focused }: TabIconProps) => (
   <Icon name={focused ? "notifications" : "notifications-outline"} color={color} size={22} />
 );
+const StockTabIcon = ({ color, focused }: TabIconProps) => (
+  <Icon name={focused ? "cube" : "cube-outline"} color={color} size={22} />
+);
 const SettingsTabIcon = ({ color, focused }: TabIconProps) => (
   <Icon name={focused ? "settings" : "settings-outline"} color={color} size={22} />
 );
 const TabBarButton = (props: PressableProps) => <SpringTabButton {...props} />;
 
-/** Super Admin tab layout: Home (KPIs) · Customers · Tracking · Alerts · Settings. */
+/** Super Admin tab layout: Home (KPIs) · Customers · Tracking · Alerts · Stock · Settings. */
 export default function AdminLayout() {
   return (
     <Tabs
@@ -94,6 +97,13 @@ export default function AdminLayout() {
         options={{
           title: "Alerts",
           tabBarIcon: AlertsTabIcon,
+        }}
+      />
+      <Tabs.Screen
+        name="stock"
+        options={{
+          title: "Stock",
+          tabBarIcon: StockTabIcon,
         }}
       />
       <Tabs.Screen

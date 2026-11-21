@@ -4,6 +4,7 @@ import { success } from "../lib/api-response";
 import { ApiError } from "../lib/errors";
 import { ensureStatementToken } from "../services/customer-statement";
 import { requireCapability, requireRole } from "../lib/authz";
+import { assertUuidParam } from "../lib/validate";
 import { actorOf, logAudit } from "../services/audit";
 import { getSqlClient } from "../lib/db";
 import {
@@ -341,6 +342,9 @@ export const customersRoutes = new Hono<ApiEnv>()
   })
   .get("/:id", async (c) => {
     const auth = requireRole(c, ["SUPER_ADMIN", "MANAGER", "ACCOUNTANT", "SALES_EXECUTIVE"]);
+    // A non-UUID path segment (e.g. a stray "/customers/outstanding") is a
+    // not-found, not a 500 DB cast error — guard before the ::uuid query.
+    assertUuidParam(c.req.param("id"), "Customer");
 
     const customer = await getCustomerById(
       getSqlClient(c),

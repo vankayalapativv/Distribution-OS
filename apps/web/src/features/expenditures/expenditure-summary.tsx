@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiGet, type ActionConfig } from "@/lib/api-client";
 import type { ExpenditureSummary } from "./expenditures-api";
 import { ExpenditureSummaryCards } from "./expenditure-summary-cards";
+import { ExpenditureSummarySkeleton } from "./expenditure-summary-skeleton";
 
 /**
  * Recharts is heavy, so the donut only downloads when this page renders —
@@ -13,7 +14,7 @@ import { ExpenditureSummaryCards } from "./expenditure-summary-cards";
  */
 const BreakdownChart = dynamic(() => import("./expenditure-breakdown-chart"), {
   ssr: false,
-  loading: () => <Skeleton className="mx-auto aspect-square max-h-[320px] w-full rounded-lg" />,
+  loading: () => <Skeleton className="h-[300px] w-full rounded-lg" />,
 });
 
 /** Period totals, the compulsory/variable split, and a per-category breakdown. */
@@ -37,13 +38,7 @@ export function ExpenditureSummaryPanel({
   });
 
   if (query.isLoading) {
-    return (
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-[74px] w-full rounded-lg" />
-        ))}
-      </div>
-    );
+    return <ExpenditureSummarySkeleton />;
   }
 
   const data = query.data;

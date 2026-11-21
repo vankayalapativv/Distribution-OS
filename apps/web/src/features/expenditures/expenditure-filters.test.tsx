@@ -9,10 +9,17 @@ vi.mock("@/components/ui/search-select", () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   SearchSelect: ({ placeholder, items, getKey, getLabel, onSelect }: any) =>
     placeholder === "All categories" ? (
-      // items[1] is the first real category (index 0 is the injected "All categories").
-      <button onClick={() => onSelect(getKey(items[1]))}>cat:{getLabel(items[1])}</button>
+      <>
+        {/* items[1] is the first real category (index 0 is the injected "All categories"). */}
+        <button onClick={() => onSelect(getKey(items[1]))}>cat:{getLabel(items[1])}</button>
+        <button onClick={() => onSelect("")}>cat-clear</button>
+      </>
     ) : (
-      <button onClick={() => onSelect("variable")}>type-select</button>
+      <>
+        {/* items[1] of the type filter is "Compulsory"; exercise its getKey + getLabel. */}
+        <button onClick={() => onSelect(getKey(items[1]))}>type:{getLabel(items[1])}</button>
+        <button onClick={() => onSelect("")}>type-clear</button>
+      </>
     ),
 }));
 
@@ -32,10 +39,19 @@ describe("ExpenditureFilters", () => {
     render(<ExpenditureFilters s={s} categories={categories} />);
     fireEvent.change(screen.getByPlaceholderText(/Search code/), { target: { value: "fuel" } });
     expect(s.setSearch).toHaveBeenCalledWith("fuel");
-    fireEvent.click(screen.getByText("type-select"));
-    expect(s.setTypeFilter).toHaveBeenCalledWith("variable");
+    fireEvent.click(screen.getByText("type:Compulsory"));
+    expect(s.setTypeFilter).toHaveBeenCalledWith("compulsory");
     fireEvent.click(screen.getByText("cat:Rent")); // getKey/getLabel resolve the category
     expect(s.setCategoryFilter).toHaveBeenCalledWith("c1");
+  });
+
+  it("clearing a select maps the empty value back to 'all' (both selects)", () => {
+    const s = state({ typeFilter: "", categoryFilter: "" }); // exercise the `?? "all"` valueKey fallbacks
+    render(<ExpenditureFilters s={s} categories={categories} />);
+    fireEvent.click(screen.getByText("type-clear"));
+    expect(s.setTypeFilter).toHaveBeenCalledWith("all");
+    fireEvent.click(screen.getByText("cat-clear"));
+    expect(s.setCategoryFilter).toHaveBeenCalledWith("all");
   });
 
   it("shows a Clear button only when a filter is active", () => {

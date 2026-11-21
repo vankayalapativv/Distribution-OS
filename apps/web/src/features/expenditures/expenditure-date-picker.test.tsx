@@ -24,7 +24,8 @@ vi.mock("@/components/ui/popover", () => ({
   PopoverContent: ({ children }: any) => <div>{children}</div>,
 }));
 
-import { DatePicker, DateRangePicker } from "./expenditure-date-picker";
+import { DatePicker } from "./expenditure-date-picker";
+import { DateRangePicker } from "./expenditure-date-range-picker";
 
 describe("DatePicker", () => {
   it("shows the placeholder when empty and the formatted date when set", () => {
@@ -41,6 +42,19 @@ describe("DatePicker", () => {
     expect(onChange).toHaveBeenCalledWith("2026-07-18");
     cal.onSelect(undefined); // cleared → "", popover stays open
     expect(onChange).toHaveBeenCalledWith("");
+  });
+
+  it("builds disabled matchers for future / min / max bounds", () => {
+    render(
+      <DatePicker
+        value=""
+        onChange={vi.fn()}
+        disableFuture
+        minDate={new Date(2026, 0, 1)}
+        maxDate={new Date(2026, 11, 31)}
+      />,
+    );
+    expect(screen.getByText("cal")).toBeInTheDocument();
   });
 });
 

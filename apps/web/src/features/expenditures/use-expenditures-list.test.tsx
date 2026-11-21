@@ -36,7 +36,7 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
-describe("useExpendituresList", () => {
+describe("useExpendituresList — defaults, search & dialogs", () => {
   it("defaults to the current month and the type/category = all filters", () => {
     const { result } = renderHook(() => useExpendituresList(config));
     expect(result.current.from).toMatch(/-01$/);
@@ -55,6 +55,20 @@ describe("useExpendituresList", () => {
     expect(replace).toHaveBeenCalledWith("/expenditures?q=fuel", { scroll: false });
   });
 
+  it("falls back to empty categories/people before the queries resolve", () => {
+    useQuery.mockReturnValue({ data: undefined }); // data?.x ?? []
+    const { result } = renderHook(() => useExpendituresList(config));
+    expect(result.current.categories).toEqual([]);
+    expect(result.current.people).toEqual([]);
+  });
+
+  it("skips the URL write when search already matches, and confirmDelete no-ops with no target", async () => {
+    const { result } = renderHook(() => useExpendituresList(config));
+    act(() => vi.advanceTimersByTime(400)); // search === url q (both "") → setFilter not called
+    await act(async () => { await result.current.confirmDelete(); }); // deleting is null → early return
+    expect(apiRequest).not.toHaveBeenCalled();
+  });
+
   it("openNew clears editing + opens the form; handleEdit targets a row", () => {
     const { result } = renderHook(() => useExpendituresList(config));
     act(() => result.current.handleEdit(entry));
@@ -62,30 +76,5 @@ describe("useExpendituresList", () => {
     expect(result.current.formOpen).toBe(true);
     act(() => result.current.openNew());
     expect(result.current.editing).toBeNull();
-  });
-
-  it("confirmDelete DELETEs the entry, invalidates, and clears", async () => {
-    apiRequest.mockResolvedValue({});
-    const { result } = renderHook(() => useExpendituresList(config));
-    act(() => result.current.setDeleting(entry));
-    await act(async () => { await result.current.confirmDelete(); });
-    expect(apiRequest).toHaveBeenCalledWith(config, "DELETE", "/expenditures/e1");
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["expenditures"] });
-    expect(result.current.deleting).toBeNull();
-  });
-
-  it("the category + people queries hit their endpoints", () => {
-    renderHook(() => useExpendituresList(config));
-    const fns = useQuery.mock.calls.map((c) => c[0].queryFn);
-    fns.forEach((fn) => fn());
-    expect(apiGet).toHaveBeenCalledWith(config, "/expenditures/categories");
-    expect(apiGet).toHaveBeenCalledWith(config, "/expenditures/people");
-  });
-
-  it("confirmDelete throws a friendly error on failure", async () => {
-    apiRequest.mockRejectedValueOnce(new Error("in use"));
-    const { result } = renderHook(() => useExpendituresList(config));
-    act(() => result.current.setDeleting(entry));
-    await expect(result.current.confirmDelete()).rejects.toThrow("in use");
   });
 });

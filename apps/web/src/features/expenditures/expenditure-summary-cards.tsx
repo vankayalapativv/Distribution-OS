@@ -3,12 +3,12 @@
 import { rupeesExact } from "@/lib/format";
 import type { ExpenditureSummary } from "./expenditures-api";
 
-function Card({ label, value, hint, tone }: { readonly label: string; readonly value: string; readonly hint?: string; readonly tone?: string }) {
+function Card({ label, value, hint, tone }: { readonly label: string; readonly value: string; readonly hint: string; readonly tone?: string }) {
   return (
     <div className="rounded-lg border border-border bg-white p-4">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={`mt-1 text-lg font-semibold ${tone ?? ""}`}>{value}</p>
-      {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
+      <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
     </div>
   );
 }

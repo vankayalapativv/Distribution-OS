@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -12,15 +13,12 @@ const s = {
 };
 vi.mock("./use-expenditures-list", () => ({ useExpendituresList: () => s }));
 vi.mock("@/components/data-table/query-provider", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   withQueryClient: (C: any) => C,
 }));
 vi.mock("@/features/shell/dashboard-shell", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   DashboardShell: ({ children }: any) => <div>{children}</div>,
 }));
 vi.mock("@/components/page-header", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   PageHeader: ({ subtitle, action }: any) => <div>{subtitle}{action}</div>,
 }));
 vi.mock("./expenditure-summary", () => ({ ExpenditureSummaryPanel: () => <div>SUMMARY</div> }));
@@ -28,17 +26,14 @@ vi.mock("./expenditure-filters", () => ({ ExpenditureFilters: () => <div>FILTERS
 vi.mock("./expenditure-form-dialog", () => ({ ExpenditureFormDialog: () => <div>FORM</div> }));
 vi.mock("./expenditure-category-dialog", () => ({ ExpenditureCategoryDialog: () => <div>CATEGORY</div> }));
 vi.mock("./expenditure-bill-dialog", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ExpenditureBillDialog: ({ onClose, onEdit, onDelete }: any) => (
     <div>BILL<button onClick={onClose}>b-close</button><button onClick={() => onEdit({ id: "x" })}>b-edit</button><button onClick={() => onDelete({ id: "x" })}>b-del</button></div>
   ),
 }));
 vi.mock("./expenditure-delete-dialog", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ExpenditureDeleteDialog: ({ onOpenChange }: any) => <div>DELETE<button onClick={() => onOpenChange(false)}>d-close</button></div>,
 }));
 vi.mock("@/components/data-table/data-table", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   DataTable: ({ empty, onRowClick }: any) => <div><button onClick={() => onRowClick({ id: "e1", hasBill: true })}>row-bill</button><button onClick={() => onRowClick({ id: "e2", hasBill: false })}>row-edit</button>{empty}</div>,
 }));
 
@@ -80,6 +75,20 @@ describe("ExpendituresList", () => {
     expect(s.setDeleting).toHaveBeenCalledWith({ id: "x" });
     fireEvent.click(screen.getByText("d-close"));
     expect(s.setDeleting).toHaveBeenCalledWith(null);
+  });
+
+  it("shows the loading subtitle + filtered-empty text, then the singular entry word", () => {
+    s.isLoading = true;
+    s.hasFilters = true;
+    const { rerender } = render(<ExpendituresList role="MANAGER" actionConfig={config} />);
+    expect(screen.getByText("Loading…")).toBeInTheDocument();
+    expect(screen.getByText("No expenditures match your filters.")).toBeInTheDocument();
+    s.isLoading = false;
+    s.total = 1;
+    s.hasFilters = false;
+    rerender(<ExpendituresList role="MANAGER" actionConfig={config} />);
+    expect(screen.getByText("1 entry in this period")).toBeInTheDocument();
+    s.total = 3;
   });
 
   it("shows a table error", () => {

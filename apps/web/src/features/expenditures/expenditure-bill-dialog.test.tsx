@@ -48,6 +48,13 @@ describe("ExpenditureBillDialog", () => {
     expect(screen.getByText(/Couldn't load the bill/)).toBeInTheDocument();
   });
 
+  it("calls onClose when the dialog is dismissed", () => {
+    const onClose = vi.fn();
+    render(<ExpenditureBillDialog {...base} onClose={onClose} entry={entry()} />);
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it("wires Edit and Delete", () => {
     const onEdit = vi.fn();
     const onDelete = vi.fn();

@@ -298,13 +298,16 @@ function ChartLegendContent({
     >
       {payload
         .filter((item) => item.type !== "none")
-        .map((item) => {
+        .map((item, index) => {
           const key = `${nameKey ?? item.dataKey ?? "value"}`
           const itemConfig = getPayloadConfigFromPayload(config, item, key)
+          // `key` identifies the config entry (same for every item via nameKey);
+          // the React key must be unique per legend item — use its value + index.
+          const reactKey = `${item.value ?? key}-${index}`
 
           return (
             <div
-              key={key}
+              key={reactKey}
               className={cn(
                 "flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground"
               )}

@@ -44,6 +44,24 @@ describe("ExpenditureFormDialog", () => {
     f.busy = false;
   });
 
+  it("clears the bill to null when the file input is emptied", () => {
+    render(<ExpenditureFormDialog {...props} editing={null} />);
+    fireEvent.change(screen.getByLabelText(/Bill/), { target: { files: [] } }); // no file → null
+    expect(f.setBill).toHaveBeenCalledWith(null);
+  });
+
+  it("shows no attachment note for an editing entry that has no bill", () => {
+    render(<ExpenditureFormDialog {...props} editing={{ id: "e2", hasBill: false } as Expenditure} />);
+    expect(screen.queryByText(/A bill is already attached/)).not.toBeInTheDocument();
+  });
+
+  it("drops the 'already attached' note once a replacement bill is chosen", () => {
+    f.bill = new File(["x"], "b.png");
+    render(<ExpenditureFormDialog {...props} editing={{ id: "e1", hasBill: true } as Expenditure} />);
+    expect(screen.queryByText(/A bill is already attached/)).not.toBeInTheDocument();
+    f.bill = null;
+  });
+
   it("shows a save error", () => {
     f.error = "Failed to save";
     render(<ExpenditureFormDialog {...props} editing={null} />);

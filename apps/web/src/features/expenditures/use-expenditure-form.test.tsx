@@ -34,6 +34,21 @@ describe("useExpenditureForm", () => {
     expect(edit.result.current.form).toMatchObject({ categoryId: "c1", amount: "5000", paidTo: "Landlord", userId: "u1" });
   });
 
+  it("blanks an edit's null optional fields when seeding", () => {
+    const sparse: Expenditure = { ...editing, paymentMode: null, paidTo: null, userId: null, remarks: null };
+    const { result } = renderHook(() => useExpenditureForm(config, true, sparse, onOpenChange));
+    expect(result.current.form).toMatchObject({ paymentMode: "", paidTo: "", userId: "", remarks: "" });
+  });
+
+  it("stops seeding once the dialog is closed (open=false path)", () => {
+    const { rerender, result } = renderHook(({ open }) => useExpenditureForm(config, open, null, onOpenChange), {
+      initialProps: { open: true },
+    });
+    const seeded = result.current.form.expenditureDate;
+    rerender({ open: false }); // key → null: enters the change block but skips the seed because open is false
+    expect(result.current.form.expenditureDate).toBe(seeded);
+  });
+
   it("requires date + category + positive amount to submit", () => {
     const { result } = renderHook(() => useExpenditureForm(config, true, null, onOpenChange));
     expect(result.current.canSubmit).toBe(false);

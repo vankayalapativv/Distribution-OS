@@ -1,10 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Expenditure } from "./expenditures-api";
 
 vi.mock("@/components/confirm-dialog", () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ConfirmDialog: ({ open, details, title }: any) => (open ? <div>{title}{details}</div> : null),
+  ConfirmDialog: ({ open, details, title, onOpenChange, onConfirm }: any) =>
+    open ? (
+      <div>
+        {title}
+        {details}
+        <button onClick={() => onOpenChange(false)}>dismiss</button>
+        <button onClick={onConfirm}>do-delete</button>
+      </div>
+    ) : null,
 }));
 
 import { ExpenditureDeleteDialog } from "./expenditure-delete-dialog";
@@ -32,5 +40,15 @@ describe("ExpenditureDeleteDialog", () => {
   it("omits paid-to when absent", () => {
     render(<ExpenditureDeleteDialog deleting={entry({ paidTo: null })} onOpenChange={vi.fn()} onConfirm={vi.fn()} />);
     expect(screen.queryByText("Paid to")).not.toBeInTheDocument();
+  });
+
+  it("forwards dismiss → onOpenChange(false) and confirm → onConfirm", () => {
+    const onOpenChange = vi.fn();
+    const onConfirm = vi.fn();
+    render(<ExpenditureDeleteDialog deleting={entry()} onOpenChange={onOpenChange} onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByText("dismiss"));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    fireEvent.click(screen.getByText("do-delete"));
+    expect(onConfirm).toHaveBeenCalled();
   });
 });

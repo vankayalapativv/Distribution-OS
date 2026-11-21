@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { DashboardShell } from "@/features/shell/dashboard-shell";
 import type { ActionConfig } from "@/lib/api-client";
 import { expenditureSkeleton } from "./expenditures-skeleton";
-import { DateRangePicker } from "./expenditure-date-picker";
+import { DateRangePicker } from "./expenditure-date-range-picker";
 import { ExpenditureFilters } from "./expenditure-filters";
 import { ExpenditureSummaryPanel } from "./expenditure-summary";
 import { ExpenditureFormDialog } from "./expenditure-form-dialog";

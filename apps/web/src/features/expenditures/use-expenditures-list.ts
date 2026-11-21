@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import type { SortingState } from "@tanstack/react-table";
 import { usePagedTable } from "@/components/data-table/use-paged-table";
 import { useTableUrlState } from "@/components/data-table/use-table-url-state";
-import { apiGet, apiRequest, errorMessage, type ActionConfig } from "@/lib/api-client";
+import { apiRequest, errorMessage, type ActionConfig } from "@/lib/api-client";
 import { buildExpenditureColumns } from "./expenditures-columns";
-import type { Expenditure, ExpenditureCategory } from "./expenditures-api";
+import { useExpenditureLookups } from "./use-expenditure-lookups";
+import type { Expenditure } from "./expenditures-api";
 
 /** Default range: the current month, in IST-ish local terms. */
 function monthStart(): string {
@@ -45,17 +46,7 @@ export function useExpendituresList(actionConfig: ActionConfig) {
     return () => clearTimeout(t);
   }, [search, url]);
 
-  const categoriesQuery = useQuery({
-    queryKey: ["expenditure-categories"],
-    queryFn: () => apiGet<{ categories: ExpenditureCategory[] }>(actionConfig, "/expenditures/categories"),
-  });
-  const categories = categoriesQuery.data?.categories ?? [];
-
-  const peopleQuery = useQuery({
-    queryKey: ["expenditure-people"],
-    queryFn: () => apiGet<{ people: { id: string; name: string }[] }>(actionConfig, "/expenditures/people"),
-  });
-  const people = peopleQuery.data?.people ?? [];
+  const { categories, people } = useExpenditureLookups(actionConfig);
 
   const confirmDelete = useCallback(async () => {
     if (!deleting) return;

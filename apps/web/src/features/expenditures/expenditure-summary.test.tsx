@@ -9,7 +9,10 @@ vi.mock("@/lib/api-client", async () => {
 });
 const useQuery = vi.fn();
 vi.mock("@tanstack/react-query", () => ({ useQuery: (o: unknown) => useQuery(o) }));
-vi.mock("next/dynamic", () => ({ default: () => () => <div>CHART</div> }));
+// Invoke the dynamic-import `loading` fallback so it's exercised, then stand in
+// for the chart.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+vi.mock("next/dynamic", () => ({ default: (loader: () => unknown, opts: any) => { void loader?.(); opts?.loading?.(); return () => <div>CHART</div>; } }));
 vi.mock("./expenditure-summary-cards", () => ({ ExpenditureSummaryCards: () => <div>CARDS</div> }));
 
 import { ExpenditureSummaryPanel } from "./expenditure-summary";
@@ -27,7 +30,8 @@ describe("ExpenditureSummaryPanel", () => {
   it("shows a skeleton while loading (no cards yet)", () => {
     useQuery.mockReturnValue({ isLoading: true, data: undefined });
     const { container } = render(<ExpenditureSummaryPanel actionConfig={config} from="a" to="b" />);
-    expect(container.querySelectorAll(".rounded-lg").length).toBe(4);
+    // Context-aware skeleton: four stat-card frames + the breakdown card.
+    expect(container.querySelectorAll(".rounded-lg").length).toBe(5);
     expect(screen.queryByText("CARDS")).not.toBeInTheDocument();
   });
 
@@ -45,6 +49,14 @@ describe("ExpenditureSummaryPanel", () => {
     const { queryFn } = useQuery.mock.calls.at(-1)![0];
     queryFn();
     expect(apiGet).toHaveBeenCalledWith(config, expect.stringContaining("/expenditures/summary?from=2026-07-01"));
+  });
+
+  it("omits blank from/to from the summary query string", () => {
+    useQuery.mockReturnValue({ isLoading: false, data: undefined });
+    render(<ExpenditureSummaryPanel actionConfig={config} from="" to="" />);
+    const { queryFn } = useQuery.mock.calls.at(-1)![0];
+    queryFn();
+    expect(apiGet).toHaveBeenCalledWith(config, "/expenditures/summary?");
   });
 
   it("hides the chart when there are no categories", () => {

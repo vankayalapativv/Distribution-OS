@@ -22,7 +22,7 @@ vi.mock("@/features/orders/search-select", () => ({
   }) => (
     <div>
       {items.map((it) => (
-        <button key={getKey(it)} onClick={() => onSelect(getKey(it))}>
+        <button key={getKey(it)} title={getLabel(it)} onClick={() => onSelect(getKey(it))}>
           {renderOption ? renderOption(it) : getLabel(it)}
         </button>
       ))}
@@ -35,9 +35,12 @@ import { ExpenditureFormSpend } from "./expenditure-form-spend";
 const form = (over: Partial<FormState> = {}): FormState => ({
   expenditureDate: "2026-07-18", categoryId: "", amount: "", paymentMode: "", paidTo: "", userId: "", remarks: "", ...over,
 });
+// Order chosen so the sort comparator exercises all three paths: variable-vs-
+// compulsory (1), compulsory-vs-variable (-1) and same-type (0).
 const categories: ExpenditureCategory[] = [
   { id: "c1", name: "Rent", type: "compulsory", isSystem: true, isActive: true },
   { id: "v1", name: "Fuel", type: "variable", isSystem: true, isActive: true },
+  { id: "c2", name: "Salaries", type: "compulsory", isSystem: true, isActive: true },
 ];
 
 describe("ExpenditureFormSpend", () => {
@@ -45,7 +48,7 @@ describe("ExpenditureFormSpend", () => {
     const set = vi.fn();
     render(<ExpenditureFormSpend form={form()} set={set} categories={categories} />);
     // Each option carries a Compulsory/Variable tag (searchable flat list).
-    expect(screen.getByText("Compulsory")).toBeInTheDocument();
+    expect(screen.getAllByText("Compulsory").length).toBeGreaterThan(0);
     expect(screen.getByText("Variable")).toBeInTheDocument();
     fireEvent.click(screen.getByText("date"));
     expect(set).toHaveBeenCalledWith("expenditureDate", "2026-07-20");
@@ -56,7 +59,9 @@ describe("ExpenditureFormSpend", () => {
   });
 
   it("shows the compulsory/variable hint for the selected category", () => {
-    render(<ExpenditureFormSpend form={form({ categoryId: "c1" })} set={vi.fn()} categories={categories} />);
+    const { rerender } = render(<ExpenditureFormSpend form={form({ categoryId: "c1" })} set={vi.fn()} categories={categories} />);
     expect(screen.getByText("Compulsory expenditure")).toBeInTheDocument();
+    rerender(<ExpenditureFormSpend form={form({ categoryId: "v1" })} set={vi.fn()} categories={categories} />);
+    expect(screen.getByText("Variable expenditure")).toBeInTheDocument();
   });
 });

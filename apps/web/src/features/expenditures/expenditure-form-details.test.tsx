@@ -41,9 +41,10 @@ describe("ExpenditureFormDetails", () => {
     expect(set).toHaveBeenCalledWith("userId", "u1");
   });
 
-  it("shows the selected person's name in the trigger", () => {
+  it("shows the selected person's name and the selected payment mode's label", () => {
     sels.length = 0;
-    render(<ExpenditureFormDetails form={form({ userId: "u1" })} set={vi.fn()} people={people} />);
+    render(<ExpenditureFormDetails form={form({ userId: "u1", paymentMode: "cash" })} set={vi.fn()} people={people} />);
     expect(screen.getAllByText("Asha").length).toBeGreaterThan(0);
+    expect(screen.getByText("Cash")).toBeInTheDocument(); // payment-mode getLabel resolves the selected value
   });
 });

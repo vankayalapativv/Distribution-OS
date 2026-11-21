@@ -6,7 +6,6 @@ import { usePagedTable } from "@/components/data-table/use-paged-table";
 import { useTableUrlState } from "@/components/data-table/use-table-url-state";
 import { apiGet, type ActionConfig } from "@/lib/api-client";
 import { customerColumns } from "./customers-columns";
-import { useCustomersDownload } from "./use-customers-download";
 import { CUSTOMER_FILTER_KEYS, CUSTOMER_SORT } from "./customers-list-logic";
 import type { Customer } from "./customers-api";
 
@@ -16,7 +15,7 @@ interface FilterOptions {
 }
 
 /** All the list wiring: URL filter/sort state, the debounced search box, the
- *  filter-options query, the paged table, and the PDF download. */
+ *  filter-options query, and the paged table. */
 export function useCustomersList(actionConfig: ActionConfig) {
   const url = useTableUrlState({ filterKeys: CUSTOMER_FILTER_KEYS, defaultSort: CUSTOMER_SORT });
   const filters = {
@@ -56,7 +55,5 @@ export function useCustomersList(actionConfig: ActionConfig) {
     onPaginationChange: url.setPagination,
   });
 
-  const download = useCustomersDownload(actionConfig, filters, salesExecutives);
-
-  return { url, filters, search, setSearch, cities: options.data?.cities ?? [], salesExecutives, ...paged, ...download };
+  return { url, filters, search, setSearch, cities: options.data?.cities ?? [], salesExecutives, ...paged };
 }

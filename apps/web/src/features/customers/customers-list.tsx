@@ -43,9 +43,6 @@ function CustomersInner({ role, actionConfig }: { readonly role: CustomersRole; 
           filterSalesExec={c.filters.salesExecutiveId}
           filterDues={c.filters.dues}
           setFilter={c.url.setFilter}
-          onDownload={() => c.downloadPdf(c.table.getState().sorting[0])}
-          downloadDisabled={c.downloading || c.isLoading || c.total === 0}
-          downloading={c.downloading}
         />
 
         {c.error && (

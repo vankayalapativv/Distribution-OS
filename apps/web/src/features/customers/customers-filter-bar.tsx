@@ -1,15 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Download, MoreVertical } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SearchSelect } from "@/features/orders/search-select";
-import { cn } from "@/lib/utils";
 import { ALL, DUES_OPTIONS } from "./customers-list-logic";
 
-/** Search box + City / Sales Executive / Collection-dues filters + an actions
- *  kebab (⋮ → Download as PDF). */
+/** Search box + City / Sales Executive / Collection-dues filters. */
 export function CustomersFilterBar({
   search,
   setSearch,
@@ -19,9 +14,6 @@ export function CustomersFilterBar({
   filterSalesExec,
   filterDues,
   setFilter,
-  onDownload,
-  downloadDisabled,
-  downloading,
 }: Readonly<{
   search: string;
   setSearch: (v: string) => void;
@@ -31,11 +23,7 @@ export function CustomersFilterBar({
   filterSalesExec: string;
   filterDues: string;
   setFilter: (key: "city" | "salesExecutiveId" | "dues", value: string) => void;
-  onDownload: () => void;
-  downloadDisabled: boolean;
-  downloading: boolean;
 }>) {
-  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div className="flex flex-wrap items-center gap-2.5">
       <Input
@@ -83,31 +71,6 @@ export function CustomersFilterBar({
           contentClassName="w-[180px] p-0"
         />
       </div>
-      <Popover open={menuOpen} onOpenChange={setMenuOpen}>
-        <PopoverTrigger
-          title="Actions"
-          className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-md border border-input bg-white text-muted-foreground hover:bg-accent hover:text-foreground"
-        >
-          <MoreVertical className="size-4" />
-        </PopoverTrigger>
-        <PopoverContent align="end" side="bottom" className="w-48 p-1.5">
-          <button
-            type="button"
-            disabled={downloadDisabled || downloading}
-            onClick={() => {
-              // Keep the menu open so the "Preparing…" state is visible; it can be
-              // dismissed by clicking away while the PDF is being built.
-              onDownload();
-            }}
-            className={cn(
-              "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-accent disabled:pointer-events-none disabled:opacity-40",
-            )}
-          >
-            <Download className="size-4" />
-            {downloading ? "Preparing…" : "Download as PDF"}
-          </button>
-        </PopoverContent>
-      </Popover>
     </div>
   );
 }

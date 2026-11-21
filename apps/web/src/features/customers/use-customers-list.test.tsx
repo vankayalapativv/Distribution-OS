@@ -17,9 +17,6 @@ vi.mock("@/components/data-table/use-table-url-state", () => ({ useTableUrlState
 vi.mock("@/components/data-table/use-paged-table", () => ({
   usePagedTable: () => ({ table: { id: "t" }, total: 5, pageCount: 1, pageSize: 8, isLoading: false, showSkeleton: false, error: null }),
 }));
-vi.mock("./use-customers-download", () => ({
-  useCustomersDownload: () => ({ downloading: false, downloadPdf: vi.fn() }),
-}));
 const apiGet = vi.fn(async (..._a: unknown[]) => ({ cities: ["Hyd"], salesExecutives: [{ id: "u1", name: "Ravi" }] }));
 vi.mock("@/lib/api-client", () => ({ apiGet: (...a: unknown[]) => apiGet(...a) }));
 

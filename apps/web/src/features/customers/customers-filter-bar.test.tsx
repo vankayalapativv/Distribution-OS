@@ -29,17 +29,13 @@ const base = {
   filterSalesExec: "",
   filterDues: "",
   setFilter: vi.fn(),
-  onDownload: vi.fn(),
-  downloadDisabled: false,
-  downloading: false,
 };
 
 describe("CustomersFilterBar", () => {
-  it("edits search, sets filters, and downloads from the kebab menu", () => {
+  it("edits search and sets the city / executive / dues filters", () => {
     const setSearch = vi.fn();
     const setFilter = vi.fn();
-    const onDownload = vi.fn();
-    render(<CustomersFilterBar {...base} setSearch={setSearch} setFilter={setFilter} onDownload={onDownload} />);
+    render(<CustomersFilterBar {...base} setSearch={setSearch} setFilter={setFilter} />);
 
     fireEvent.change(screen.getByPlaceholderText(/Search by name/), { target: { value: "raj" } });
     expect(setSearch).toHaveBeenCalledWith("raj");
@@ -50,26 +46,12 @@ describe("CustomersFilterBar", () => {
     expect(setFilter).toHaveBeenCalledWith("salesExecutiveId", "u1");
     fireEvent.change(screen.getByLabelText("All dues"), { target: { value: "owes" } });
     expect(setFilter).toHaveBeenCalledWith("dues", "owes");
-
-    // Download is now behind the ⋮ kebab — no direct button.
-    expect(screen.queryByRole("button", { name: /Download/ })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTitle("Actions"));
-    fireEvent.click(screen.getByRole("button", { name: /Download as PDF/ }));
-    expect(onDownload).toHaveBeenCalled();
   });
 
-  it("maps the 'all dues' sentinel back to an empty filter, and shows a busy label in the menu", () => {
+  it("maps the 'all dues' sentinel back to an empty filter", () => {
     const setFilter = vi.fn();
-    render(<CustomersFilterBar {...base} filterDues="owes" downloading setFilter={setFilter} />);
+    render(<CustomersFilterBar {...base} filterDues="owes" setFilter={setFilter} />);
     fireEvent.change(screen.getByLabelText("All dues"), { target: { value: "__all" } });
     expect(setFilter).toHaveBeenCalledWith("dues", "");
-    fireEvent.click(screen.getByTitle("Actions"));
-    expect(screen.getByRole("button", { name: "Preparing…" })).toBeInTheDocument();
-  });
-
-  it("disables the download item when requested", () => {
-    render(<CustomersFilterBar {...base} downloadDisabled />);
-    fireEvent.click(screen.getByTitle("Actions"));
-    expect(screen.getByRole("button", { name: /Download as PDF/ })).toBeDisabled();
   });
 });

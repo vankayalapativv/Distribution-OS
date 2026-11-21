@@ -1,6 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-
 vi.mock("@/components/ui/lazy-calendar", () => ({
   LazyCalendar: (p: { onSelect: (r: unknown) => void }) => <button onClick={() => p.onSelect({})}>calendar</button>,
 }));
@@ -10,7 +9,6 @@ vi.mock("@/components/ui/popover", () => ({
   PopoverContent: (p: { children: React.ReactNode }) => <div>{p.children}</div>,
 }));
 vi.mock("./customer-visits-table", () => ({ CustomerVisitsTable: () => <div>visits-table</div> }));
-
 const hook = {
   preset: "all" as string,
   range: { from: null, to: null } as { from: string | null; to: string | null },
@@ -29,9 +27,7 @@ const hook = {
   feed: [],
 };
 vi.mock("./use-customer-visits", () => ({ useCustomerVisits: () => hook }));
-
 import { CustomerVisitsTab } from "./customer-visits-tab";
-
 const cfg = { apiBaseUrl: "x", authToken: "t" };
 const reset = (over: Partial<typeof hook> = {}) => {
   Object.assign(hook, {
@@ -41,7 +37,6 @@ const reset = (over: Partial<typeof hook> = {}) => {
   hook.applyPreset.mockClear();
   hook.setPage.mockClear();
 };
-
 describe("CustomerVisitsTab", () => {
   it("shows shimmer tiles before data and applies a preset on tile click", () => {
     reset();
@@ -50,7 +45,6 @@ describe("CustomerVisitsTab", () => {
     fireEvent.click(screen.getByRole("button", { name: /This week/ }));
     expect(hook.applyPreset).toHaveBeenCalledWith("week");
   });
-
   it("shows tile counts, the role-split chips, and the custom-range label when data is loaded", () => {
     reset({
       data: {
@@ -67,15 +61,12 @@ describe("CustomerVisitsTab", () => {
     });
     render(<CustomerVisitsTab customerId="c1" actionConfig={cfg} />);
     expect(screen.getByText("4")).toBeInTheDocument(); // all-time count
-    // Productivity split: executive 3/4 = 75%, admin 1/1 = 100%.
     expect(screen.getByText("Exec 75%")).toBeInTheDocument();
     expect(screen.getByText("Admin 100%")).toBeInTheDocument();
-    // Avg-time split.
     expect(screen.getByText("Exec 24 min")).toBeInTheDocument();
     expect(screen.getByText("Admin 31 min")).toBeInTheDocument();
     expect(screen.getByText("2026-06-01 – 2026-06-10")).toBeInTheDocument();
   });
-
   it("paginates when there are more than 8 visits", () => {
     reset({ data: { total: 20, page: 2, productive: 0 }, page: 2, pageCount: 3 });
     render(<CustomerVisitsTab customerId="c1" actionConfig={cfg} />);
@@ -83,17 +74,21 @@ describe("CustomerVisitsTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Prev" }));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(hook.setPage).toHaveBeenCalledTimes(2);
-    // the updaters step the page by ±1
     expect(hook.setPage.mock.calls[0][0](5)).toBe(4);
     expect(hook.setPage.mock.calls[1][0](5)).toBe(6);
   });
-
+  it("shows '—' productivity for a role with no visits (pctLabel null branch)", () => {
+    reset({
+      data: { total: 0, page: 1, productive: 0, byRole: { executive: { total: 0, productive: 0 }, admin: { total: 0, productive: 0 } } },
+    });
+    render(<CustomerVisitsTab customerId="c1" actionConfig={cfg} />);
+    expect(screen.getAllByText("Exec —").length).toBeGreaterThan(0);
+  });
   it("uses the singular 'visit' label for a single visit", () => {
     reset({ data: { total: 1, page: 1, productive: 0 } });
     render(<CustomerVisitsTab customerId="c1" actionConfig={cfg} />);
     expect(screen.getByText("1 visit")).toBeInTheDocument();
   });
-
   it("hides pagination for a single page", () => {
     reset({ data: { total: 4, page: 1, productive: 0 } });
     render(<CustomerVisitsTab customerId="c1" actionConfig={cfg} />);

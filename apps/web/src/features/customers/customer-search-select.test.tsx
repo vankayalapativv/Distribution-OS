@@ -62,6 +62,11 @@ describe("CustomerSearchSelect", () => {
     expect(onSelect).toHaveBeenCalledWith("c2");
   });
 
+  it("defaults to no seeded items when seedItems is omitted", () => {
+    render(<CustomerSearchSelect actionConfig={cfg} valueKey="" onSelect={vi.fn()} />); // seedItems = []
+    expect(screen.getByTestId("trigger")).toHaveTextContent("Select customer");
+  });
+
   it("marks the selected item and shows the chosen name in the trigger", () => {
     render(<CustomerSearchSelect actionConfig={cfg} valueKey="c1" onSelect={vi.fn()} seedItems={seed} />);
     expect(screen.getByTestId("trigger")).toHaveTextContent("Seed Co");

@@ -2,7 +2,6 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement, type FormEvent, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 const apiGet = vi.fn(async (..._a: unknown[]) => detailData);
 const apiRequest = vi.fn(async (..._a: unknown[]) => ({}));
 vi.mock("@/lib/api-client", () => ({
@@ -10,9 +9,7 @@ vi.mock("@/lib/api-client", () => ({
   apiRequest: (...a: unknown[]) => apiRequest(...a),
   errorMessage: (_e: unknown, f: string) => f,
 }));
-
 import { useLedgerCollectionEdit } from "./use-ledger-collection-edit";
-
 const detailData = {
   id: "col1",
   collectionCode: "COL-1",
@@ -47,7 +44,6 @@ describe("useLedgerCollectionEdit", () => {
     setup(null);
     expect(apiGet).not.toHaveBeenCalled();
   });
-
   it("clears the seed marker when the dialog closes", async () => {
     const { result, rerender } = renderHook(
       ({ id }: { id: string | null }) => useLedgerCollectionEdit({ collectionId: id, actionConfig: cfg, onSaved: vi.fn(), onOpenChange: vi.fn() }),
@@ -60,7 +56,6 @@ describe("useLedgerCollectionEdit", () => {
     act(() => rerender({ id: null })); // close → prevSeed reset (no throw)
     expect(result.current.open).toBe(false);
   });
-
   it("seeds the form from the loaded collection and flags verified", async () => {
     const { result } = setup();
     await waitFor(() => expect(result.current.amount).toBe("1500"));
@@ -68,7 +63,6 @@ describe("useLedgerCollectionEdit", () => {
     expect(result.current.reference).toBe("UTR9");
     expect(result.current.verified).toBe(true);
   });
-
   it("validates then PATCHes on submit, saving + closing", async () => {
     const { result, onSaved, onOpenChange } = setup();
     await waitFor(() => expect(result.current.amount).toBe("1500"));
@@ -85,7 +79,6 @@ describe("useLedgerCollectionEdit", () => {
     expect(onSaved).toHaveBeenCalled();
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
-
   it("blocks an invalid amount and surfaces a save error", async () => {
     const { result } = setup();
     await waitFor(() => expect(result.current.amount).toBe("1500"));

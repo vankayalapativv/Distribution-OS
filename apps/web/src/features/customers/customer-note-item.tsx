@@ -2,29 +2,12 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, errorMessage, type ActionConfig } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/format";
+import { NoteActions, NoteEditor } from "./customer-note-parts";
+import { isFieldNote, notesKey, type CustomerNote } from "./customer-note-types";
 
-export interface CustomerNote {
-  id: string;
-  body: string;
-  createdAt: string;
-  authorName: string;
-  /** Author's role code; field roles sit on the right of the thread. */
-  authorRole: string | null;
-  edited: boolean;
-  editedAt: string | null;
-  editorName: string | null;
-}
-
-export const notesKey = (customerId: string) => ["customer-notes", customerId];
-
-/** Field-written notes (Sales Executive / Logistics) align right; office left. */
-export function isFieldNote(note: CustomerNote): boolean {
-  return note.authorRole === "SALES_EXECUTIVE" || note.authorRole === "LOGISTICS";
-}
+export { notesKey, isFieldNote, type CustomerNote } from "./customer-note-types";
 
 /** One note, as a chat bubble. Super-Admins get inline edit / delete. */
 export function NoteItem({
@@ -56,19 +39,15 @@ export function NoteItem({
 
   if (editing) {
     return (
-      <li className={`flex flex-col ${field ? "items-end" : "items-start"}`}>
-        <div className="w-full max-w-[82%] rounded-2xl border border-border bg-white p-3 shadow-sm">
-          <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} autoFocus />
-          {err ? <p className="mt-2 text-sm text-destructive">{err}</p> : null}
-          <div className="mt-2 flex gap-2">
-            <Button size="sm" disabled={!text.trim() || saveMut.isPending}
-              onClick={() => saveMut.mutate(text.trim())}>
-              {saveMut.isPending ? "Saving…" : "Save"}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => { setEditing(false); setErr(null); }}>Cancel</Button>
-          </div>
-        </div>
-      </li>
+      <NoteEditor
+        field={field}
+        text={text}
+        setText={setText}
+        err={err}
+        saving={saveMut.isPending}
+        onSave={() => saveMut.mutate(text.trim())}
+        onCancel={() => { setEditing(false); setErr(null); }}
+      />
     );
   }
 
@@ -100,14 +79,12 @@ export function NoteItem({
       ) : null}
 
       {isAdmin ? (
-        <div className="flex items-center gap-3 px-1 text-xs font-medium opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-          <button type="button" onClick={() => { setText(note.body); setErr(null); setEditing(true); }}
-            className="text-primary hover:underline">Edit</button>
-          <button type="button" disabled={delMut.isPending}
-            onClick={() => { if (window.confirm("Delete this note permanently?")) delMut.mutate(); }}
-            className="text-destructive hover:underline disabled:opacity-40">Delete</button>
-          {err ? <span className="text-destructive">{err}</span> : null}
-        </div>
+        <NoteActions
+          onEdit={() => { setText(note.body); setErr(null); setEditing(true); }}
+          onDelete={() => { if (window.confirm("Delete this note permanently?")) delMut.mutate(); }}
+          deleting={delMut.isPending}
+          err={err}
+        />
       ) : null}
     </li>
   );

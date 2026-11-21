@@ -8,10 +8,8 @@ import { type ActionConfig } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { CustomerVisitsTable } from "./customer-visits-table";
 import { useCustomerVisits } from "./use-customer-visits";
-import { TILES, durationLabel, roleProductivityPct } from "./customer-visits-logic";
-
-/** "60%" or "—" for a role's productivity. */
-const pctLabel = (pct: number | null): string => (pct == null ? "—" : `${pct}%`);
+import { TILES } from "./customer-visits-logic";
+import { VisitRoleChips } from "./customer-visit-chips";
 
 export function CustomerVisitsTab({
   customerId,
@@ -57,28 +55,7 @@ export function CustomerVisitsTab({
           {v.preset === "custom" && v.range.from ? ` · ${v.range.from} to ${v.range.to}` : ""}
         </p>
         <div className="flex items-center gap-2">
-          {v.data?.byRole ? (
-            <span
-              className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600"
-              title="All-time average time spent per visit (manual check-outs only), by visitor role"
-            >
-              <span>Avg time</span>
-              <span className="ml-1 tabular-nums">Exec {durationLabel(v.data.byRole.executive.avgDurationMinutes)}</span>
-              <span className="mx-1 text-slate-400">·</span>
-              <span className="tabular-nums">Admin {durationLabel(v.data.byRole.admin.avgDurationMinutes)}</span>
-            </span>
-          ) : null}
-          {v.data?.byRole ? (
-            <span
-              className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
-              title="All-time productivity (visits that produced an order or collection), by visitor role"
-            >
-              <span>Productivity</span>
-              <span className="ml-1 tabular-nums">Exec {pctLabel(roleProductivityPct(v.data.byRole.executive))}</span>
-              <span className="mx-1 text-emerald-300">·</span>
-              <span className="tabular-nums">Admin {pctLabel(roleProductivityPct(v.data.byRole.admin))}</span>
-            </span>
-          ) : null}
+          {v.data?.byRole ? <VisitRoleChips byRole={v.data.byRole} /> : null}
           <Popover open={v.calOpen} onOpenChange={v.onCalOpenChange}>
             <PopoverTrigger className="inline-flex h-9 items-center gap-2 rounded-md border border-input bg-white px-3 text-sm font-medium transition-colors hover:bg-accent focus:outline-none">
               <CalendarIcon size={14} className="opacity-60" />

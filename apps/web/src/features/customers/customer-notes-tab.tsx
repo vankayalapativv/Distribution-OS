@@ -8,6 +8,7 @@ import { Shimmer } from "@/components/ui/shimmer";
 import { apiGet, apiRequest, errorMessage, type ActionConfig } from "@/lib/api-client";
 import type { CustomerDetailRole } from "./customer-detail";
 import { NoteItem, notesKey, type CustomerNote } from "./customer-note-item";
+import { stickToBottom } from "./customer-notes-scroll";
 
 /**
  * Notes as a chat thread: field notes (SE / Logistics) on the right, office on
@@ -39,10 +40,7 @@ export function CustomerNotesTab({
   );
 
   // Stick to the bottom as notes load / arrive.
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [notes.length, query.isLoading]);
+  useEffect(() => { stickToBottom(scrollRef.current); }, [notes.length, query.isLoading]);
 
   const addMut = useMutation({
     mutationFn: (body: string) =>

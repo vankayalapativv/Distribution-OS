@@ -45,9 +45,13 @@ describe("CustomerNotesTab", () => {
     await waitFor(() => expect(screen.getByText("No notes yet for this customer.")).toBeInTheDocument());
   });
 
-  it("lists notes returned by the query", async () => {
-    renderTab({ notes: [{ id: "n1", body: "Hello note" }] });
-    await waitFor(() => expect(screen.getByText("Hello note")).toBeInTheDocument());
+  it("lists notes oldest→newest (the sort comparator runs)", async () => {
+    renderTab({ notes: [
+      { id: "n2", body: "Newer", createdAt: "2026-07-02" },
+      { id: "n1", body: "Older", createdAt: "2026-07-01" },
+    ] });
+    await waitFor(() => expect(screen.getByText("Older")).toBeInTheDocument());
+    expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual(["Older", "Newer"]);
   });
 
   it("adds a note, posting the trimmed draft", async () => {

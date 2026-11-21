@@ -43,7 +43,6 @@ describe("useCreateCustomer", () => {
     const { result } = setup();
     await waitFor(() => expect(result.current.salesExecutives).toEqual([{ id: "u1", name: "Ravi" }]));
   });
-
   it("blocks submission with a validation error and does not POST", async () => {
     const { result } = setup();
     await act(async () => {
@@ -52,7 +51,6 @@ describe("useCreateCustomer", () => {
     expect(result.current.error).toBe("Select at least one segment.");
     expect(apiRequest).not.toHaveBeenCalled();
   });
-
   it("POSTs a valid customer then invalidates + closes + resets", async () => {
     const { result, onOpenChange, invalidate } = setup();
     act(() => {
@@ -73,7 +71,6 @@ describe("useCreateCustomer", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(result.current.segments).toEqual([]); // reset
   });
-
   it("surfaces a create error", async () => {
     apiRequest.mockRejectedValueOnce(new Error("no"));
     const { result } = setup();
@@ -87,7 +84,6 @@ describe("useCreateCustomer", () => {
     });
     expect(result.current.error).toBe("Failed to create customer.");
   });
-
   it("reset clears the controlled fields", () => {
     const { result } = setup();
     act(() => {

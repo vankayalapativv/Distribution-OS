@@ -1,10 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
-import Link from "next/link";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { durationLabel, isAdminRole, timeRange, visitorRoleLabel, whenParts, type MissedRow, type VisitRow } from "./customer-visits-logic";
+import { VisitOutcomeCell } from "./customer-visit-outcome";
 
 /** The visitor's name over a small role badge (Executive / Super Admin). */
 function VisitedByCell({ name, role }: Readonly<{ name: string; role: string }>) {
@@ -63,13 +62,6 @@ export function MissedBeatRow({ row }: Readonly<{ row: MissedRow }>) {
 
 /** A real check-in row: date/time · SE · planned/unplanned · outcome chips. */
 export function VisitTableRow({ row: v }: Readonly<{ row: VisitRow }>) {
-  const noOutcome = v.orders.length === 0 && v.collections.length === 0 && v.marketIntelCount === 0;
-  let outcomeFallback: ReactNode = null;
-  if (noOutcome && v.noOutcomeReason) {
-    outcomeFallback = <span className="text-xs italic text-amber-600">{v.noOutcomeReason}</span>;
-  } else if (noOutcome) {
-    outcomeFallback = <span className="text-xs text-slate-400">—</span>;
-  }
   return (
     <TableRow className="transition-colors hover:bg-accent/40">
       <TableCell className="whitespace-nowrap">
@@ -85,29 +77,7 @@ export function VisitTableRow({ row: v }: Readonly<{ row: VisitRow }>) {
           v.type === "planned" ? "bg-primary/10 text-primary" : "bg-amber-50 text-amber-700",
         )}>{v.type}</span>
       </TableCell>
-      <TableCell>
-        <div className="flex flex-wrap items-center gap-1">
-          {outcomeFallback}
-          {v.orders.map((o) => (
-            <Link key={o.id} href={`/orders/${o.id}`}
-              className="rounded-full bg-blue-50 px-2 py-0.5 font-mono text-[11px] font-medium text-blue-700 transition-colors hover:bg-blue-100 hover:underline">
-              {o.code}
-            </Link>
-          ))}
-          {v.collections.map((c) => (
-            <Link key={c.id} href={`/collections/${c.id}`}
-              className="rounded-full bg-emerald-50 px-2 py-0.5 font-mono text-[11px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100 hover:underline">
-              {c.code}
-            </Link>
-          ))}
-          {v.marketIntelCount > 0 ? (
-            <Link href="/market-intelligence"
-              className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700 transition-colors hover:bg-violet-100 hover:underline">
-              Market intel · {v.marketIntelCount}
-            </Link>
-          ) : null}
-        </div>
-      </TableCell>
+      <VisitOutcomeCell visit={v} />
     </TableRow>
   );
 }

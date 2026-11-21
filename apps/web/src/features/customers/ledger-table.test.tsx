@@ -42,4 +42,16 @@ describe("LedgerTable", () => {
     expect(screen.getByText("row:INV-1")).toBeInTheDocument();
     expect(screen.getByText("footer")).toBeInTheDocument();
   });
+
+  it("renders no body rows when data is missing but it isn't loading or empty", () => {
+    render(<LedgerTable {...base} data={undefined} showSkeleton={false} empty={false} />); // data?.rows → undefined
+    expect(screen.queryByText("skeleton")).not.toBeInTheDocument();
+    expect(screen.queryByText("No transactions in this period.")).not.toBeInTheDocument();
+  });
+
+  it("keys a voucher-less row by its type (vchNo ?? type)", () => {
+    const d = { ...data(0), rows: [{ vchNo: null, type: "payment", date: "d", balance: 0 } as never] };
+    render(<LedgerTable {...base} data={d} showSkeleton={false} empty={false} />);
+    expect(screen.getByText("footer")).toBeInTheDocument(); // the rows path rendered
+  });
 });

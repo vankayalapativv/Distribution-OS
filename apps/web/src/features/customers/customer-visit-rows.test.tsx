@@ -61,6 +61,15 @@ describe("VisitTableRow", () => {
     expect(screen.getByText("Owner away")).toBeInTheDocument();
   });
 
+  it("shows a Super-Admin role badge (admin branch), and none for an unknown role", () => {
+    const { unmount } = wrap(<VisitTableRow row={visit({ executiveRole: "SUPER_ADMIN" })} />);
+    expect(screen.getByText("Super Admin")).toBeInTheDocument(); // admin → violet badge
+    unmount();
+    wrap(<VisitTableRow row={visit({ executiveName: "Nobody", executiveRole: "" })} />);
+    expect(screen.getByText("Nobody")).toBeInTheDocument();
+    expect(screen.queryByText("Executive")).not.toBeInTheDocument(); // label "—" → no badge
+  });
+
   it("links orders, collections and market intel when present", () => {
     wrap(
       <VisitTableRow

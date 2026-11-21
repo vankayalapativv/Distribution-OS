@@ -76,6 +76,13 @@ describe("useDuesDrilldown", () => {
     expect(url).not.toContain("city");
   });
 
+  it("resolves bucket to null when the URL key matches no known bucket (and buckets defaults to [])", () => {
+    nav.state.search = "bucket=ghost";
+    // No buckets arg → the `buckets = []` default; 'ghost' isn't found → ?? null.
+    const { result } = renderHook(() => useDuesDrilldown(cfg), { wrapper });
+    expect(result.current.bucket).toBeNull();
+  });
+
   it("is closed (no fetch) when no bucket is in the URL", () => {
     const { result } = render();
     expect(result.current.bucket).toBeNull();

@@ -29,6 +29,11 @@ describe("agentRowContent", () => {
     expect(p.secondary).toBe("2 customers"); // plural
   });
 
+  it("visits appends the average-duration label when present", () => {
+    const v = agentRowContent("visits", A({ visits: 8, productiveVisits: 6, avgDurationMinutes: 12 }));
+    expect(v.sub).toBe("6 productive · avg 12 min");
+  });
+
   it("productivity renders a coloured pill, and handles zero visits", () => {
     const { container } = render(<>{agentRowContent("productivity", A({ visits: 10, productiveVisits: 5 })).value}</>);
     expect(container.textContent).toBe("50%");

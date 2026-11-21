@@ -35,6 +35,17 @@ describe("dashboard skeletons", () => {
     expect(container.querySelectorAll(".ml-auto").length).toBe(3);
   });
 
+  it("SkeletonRows defaults to six rows when rows is omitted", () => {
+    const { container } = render(
+      <table>
+        <tbody>
+          <SkeletonRows cols={[{ w: "w-24" }]} />
+        </tbody>
+      </table>,
+    );
+    expect(container.querySelectorAll("tr").length).toBe(6);
+  });
+
   it("SkeletonChart renders six staggered bars", () => {
     render(<SkeletonChart />);
     expect(screen.getByLabelText("Loading chart")).toBeInTheDocument();

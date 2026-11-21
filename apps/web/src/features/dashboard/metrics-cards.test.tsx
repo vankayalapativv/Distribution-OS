@@ -35,6 +35,11 @@ describe("MetricsCards", () => {
     expect(screen.getAllByRole("button")).toHaveLength(5);
   });
 
+  it("renders no brand tiles when oilsByBrand is absent", () => {
+    render(<MetricsCards metrics={{ ...metrics, oilsByBrand: undefined } as unknown as DashboardMetrics} loading={false} onOpen={vi.fn()} />); // ?? []
+    expect(screen.queryByText("Fuchs")).not.toBeInTheDocument();
+  });
+
   it("renders one non-interactive tile per oil brand (dynamic)", () => {
     render(<MetricsCards metrics={metrics} loading={false} onOpen={vi.fn()} />);
     expect(screen.getByText("Fuchs")).toBeInTheDocument();

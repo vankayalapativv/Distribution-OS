@@ -42,4 +42,8 @@ describe("SortTh", () => {
     expect(screen.getByText("⇅")).toBeInTheDocument();
     expect(screen.getByRole("columnheader").className).toContain("text-left");
   });
+  it("defaults to a numeric (right-aligned) header when numeric is omitted", () => {
+    renderTh({ key: "orders", dir: "asc" }, "litres"); // numeric default = true
+    expect(screen.getByRole("columnheader").className).toContain("text-right");
+  });
 });

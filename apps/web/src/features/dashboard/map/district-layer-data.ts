@@ -1,6 +1,9 @@
 import { districtOf } from "./district-helpers";
 import type { MapCustomer } from "./map-helpers";
 
+/** Customers grouped by region name (state or district). */
+export type RegionGroups = Map<string, MapCustomer[]>;
+
 /** Group customers by the named region (within `features`) they fall in, dropping
  *  any that land outside every feature. Pure and geometry-agnostic — `features`
  *  may be states (overview tier) OR one state's districts (detail tier); the key

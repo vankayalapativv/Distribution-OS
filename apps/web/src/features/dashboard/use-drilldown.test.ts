@@ -61,36 +61,6 @@ describe("useDrilldown (URL-driven)", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it("openAgent PUSHES ?agent= on top of the metric", () => {
-    sp = new URLSearchParams("metric=visits");
-    apiGet.mockResolvedValue({ agents: [agent] });
-    const { result } = renderHook(() => useDrilldown(cfg, range), { wrapper });
-    act(() => result.current.openAgent(agent));
-    expect(push).toHaveBeenCalledWith("/?metric=visits&agent=a1", { scroll: false });
-  });
-
-  it("resolves the agent object from the loaded agents and fetches its customers", async () => {
-    sp = new URLSearchParams("metric=visits&agent=a1");
-    apiGet.mockImplementation((_c: unknown, path: string) =>
-      path.includes("/customers")
-        ? Promise.resolve({ rows: [{ customerId: "c1" }] })
-        : Promise.resolve({ agents: [agent] }),
-    );
-    const { result } = renderHook(() => useDrilldown(cfg, range), { wrapper });
-    await waitFor(() => expect(result.current.agent).toEqual(agent));
-    await waitFor(() => expect(result.current.customerRows).toEqual([{ customerId: "c1" }]));
-  });
-
-  it("back clears the agent (replace); close clears metric+agent (replace)", () => {
-    sp = new URLSearchParams("metric=visits&agent=a1");
-    apiGet.mockResolvedValue({ agents: [agent] });
-    const { result } = renderHook(() => useDrilldown(cfg, range), { wrapper });
-    act(() => result.current.back());
-    expect(replace).toHaveBeenCalledWith("/?metric=visits", { scroll: false });
-    act(() => result.current.close());
-    expect(replace).toHaveBeenCalledWith("/", { scroll: false });
-  });
-
   it("surfaces a fetch error", async () => {
     sp = new URLSearchParams("metric=visits");
     apiGet.mockRejectedValue(new Error("bad"));

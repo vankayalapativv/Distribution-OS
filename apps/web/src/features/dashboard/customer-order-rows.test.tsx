@@ -19,6 +19,10 @@ describe("OrderRow", () => {
     render(<OrderRow metric="ordered" row={row({ ...base, litres: 10, oilLines: 1, orderStatus: "cancelled" })} />);
     expect(screen.getByText("Cancelled")).toBeInTheDocument();
   });
+  it("ordered: defaults missing litres + oilLines to zero", () => {
+    render(<OrderRow metric="ordered" row={row({ ...base })} />); // litres ?? 0, oilLines ?? 0
+    expect(screen.getByText("0 items")).toBeInTheDocument();
+  });
   it("ordered: oil item count (singular + plural)", () => {
     const { unmount } = render(<OrderRow metric="ordered" row={row({ ...base, litres: 10, oilLines: 1 })} />);
     expect(screen.getByText("1 item")).toBeInTheDocument();

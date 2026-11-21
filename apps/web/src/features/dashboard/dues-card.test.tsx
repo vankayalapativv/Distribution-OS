@@ -1,21 +1,15 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const summaryState = {
-  isPending: false,
-  isError: false,
-  error: null as unknown,
-  data: {
-    buckets: [{ key: "0_30", label: "0–30d", customers: 2, outstanding: 1000 }],
-    totalOutstanding: 1000,
-    totalCustomers: 2,
-  } as { buckets: { key: string; label: string; customers: number; outstanding: number }[]; totalOutstanding: number; totalCustomers: number } | undefined,
+const fullData = {
+  buckets: [{ key: "0_30", label: "0–30d", customers: 2, outstanding: 1000 }],
+  totalOutstanding: 1000,
+  totalCustomers: 2,
 };
+const summaryState = { isPending: false, isError: false, error: null as unknown, data: fullData as typeof fullData | undefined };
 const open = vi.fn();
 const close = vi.fn();
-// Drill-down state is mutable so a test can open a bucket (which mounts the now
-// lazily-loaded dialog). The hook lives in its own module (./use-dues-drilldown)
-// — mocked here so the real one's useRouter() doesn't run in jsdom.
+// Mutable drill-down state so a test can open a bucket (mounts the lazy dialog).
 const drillState = { bucket: null as string | null, rows: null, error: null, open, close };
 
 vi.mock("./use-dues-data", () => ({
@@ -32,17 +26,14 @@ vi.mock("./dues-drilldown", () => ({
     </>
   ),
 }));
-vi.mock("@/features/orders/search-select", () => ({
-  // Exercise every arrow the card passes in: getKey/getLabel over the items + onSelect.
-  SearchSelect: <T,>(p: {
-    items: T[];
-    getKey: (x: T) => string;
-    getLabel: (x: T) => string;
-    onSelect: (v: string) => void;
-  }) => (
-    <button onClick={() => p.onSelect("e1")} data-count={p.items.map(p.getKey).length}>
-      {p.items.map(p.getLabel)[0]}
-    </button>
+// DuesFilters is tested on its own (dues-card-filters.test); here the stub just
+// surfaces the card's onExec/onCity callbacks so those arrows get exercised.
+vi.mock("./dues-card-filters", () => ({
+  DuesFilters: (p: { onExec: (v: string) => void; onCity: (v: string) => void }) => (
+    <div>
+      <button onClick={() => p.onExec("e1")}>pick-exec</button>
+      <button onClick={() => p.onCity("Guntur")}>pick-city</button>
+    </div>
   ),
 }));
 
@@ -53,28 +44,27 @@ afterEach(() => {
   summaryState.isPending = false;
   summaryState.isError = false;
   summaryState.error = null;
-  summaryState.data = { buckets: [{ key: "0_30", label: "0–30d", customers: 2, outstanding: 1000 }], totalOutstanding: 1000, totalCustomers: 2 };
+  summaryState.data = fullData;
   drillState.bucket = null;
   open.mockClear();
   close.mockClear();
 });
 
 describe("DuesCard", () => {
-  it("renders the bucket cross and total when data is loaded", () => {
+  it("renders the bucket cross + total, and forwards exec/city picks", () => {
     render(<DuesCard actionConfig={cfg} />);
     expect(screen.getByText("0–30d")).toBeInTheDocument();
     expect(screen.getByText("Total dues")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("pick-exec")); // onExec → setExecutiveId + setCity("")
+    fireEvent.click(screen.getByText("pick-city")); // onCity → setCity
   });
 
   it("shimmers only the numbers while pending — labels stay constant", () => {
     summaryState.isPending = true;
     const { container } = render(<DuesCard actionConfig={cfg} />);
-    // Shimmers are present (the amount + count)…
-    expect(container.querySelector('[aria-hidden="true"]')).toBeTruthy();
-    // …but the fixed labels stay put (they never change with the filter)…
-    expect(screen.getByText("Total dues")).toBeInTheDocument();
-    // …and the actual numbers are hidden behind the shimmers.
-    expect(screen.queryByText("2 owe")).not.toBeInTheDocument();
+    expect(container.querySelector('[aria-hidden="true"]')).toBeTruthy(); // shimmers present
+    expect(screen.getByText("Total dues")).toBeInTheDocument(); // fixed labels stay
+    expect(screen.queryByText("2 owe")).not.toBeInTheDocument(); // numbers hidden
   });
 
   it("shows an error when the summary fails", () => {
@@ -91,13 +81,6 @@ describe("DuesCard", () => {
     summaryState.data = undefined;
     render(<DuesCard actionConfig={cfg} />);
     expect(screen.getByText("Could not load collection dues.")).toBeInTheDocument();
-  });
-
-  it("wires the executive and city filters", () => {
-    render(<DuesCard actionConfig={cfg} />);
-    fireEvent.click(screen.getByText("All executives")); // → setExecutiveId + reset city
-    fireEvent.click(screen.getByText("All cities")); // → setCity
-    expect(screen.getByText("Collection Dues")).toBeInTheDocument();
   });
 
   it("closes the drilldown on dialog close", async () => {

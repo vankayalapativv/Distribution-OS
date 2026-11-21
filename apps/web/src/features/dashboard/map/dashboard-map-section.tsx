@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiGet, errorMessage, type ActionConfig } from "@/lib/api-client";
 import { type DuesBand, type MapCustomer } from "./map-helpers";
 import { MapLoadingOverlay } from "@/features/tracking/tracking-map-loading";
+import { MapLoadingFade } from "./map-loading-fade";
 import { useInViewport } from "./use-in-viewport";
 
 const OsmMap = dynamic(() => import("./osm-map").then((m) => m.OsmMap), {
@@ -82,21 +83,7 @@ export function DashboardMapSection({ actionConfig }: { readonly actionConfig: A
                 <OsmMap customers={customers} bands={bands} onRenderComplete={() => setMapRendered(true)} />
               </div>
             )}
-            {!overlayGone && (
-              <div
-                className={`absolute inset-0 transition-opacity duration-[350ms] ease-out ${
-                  ready ? "pointer-events-none opacity-0" : "opacity-100"
-                }`}
-                onTransitionEnd={(e) => {
-                  // Only the overlay's own opacity fade-out drops it (ignore bubbled transitions).
-                  if (ready && e.target === e.currentTarget && e.propertyName === "opacity") {
-                    setOverlayGone(true);
-                  }
-                }}
-              >
-                <MapLoadingOverlay />
-              </div>
-            )}
+            {!overlayGone && <MapLoadingFade ready={ready} onGone={() => setOverlayGone(true)} />}
           </>
         )}
       </div>

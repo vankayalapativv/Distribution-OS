@@ -1,23 +1,9 @@
-import { useEffect, useRef, type Dispatch, type RefObject, type SetStateAction } from "react";
-import L from "leaflet";
+import { useEffect, useRef, type RefObject } from "react";
+import type L from "leaflet";
 import { ensureTooltipStyles } from "./map-tooltip";
-import { createRegionMap, indiaBounds } from "./create-region-map";
-import { isClickOutsideSelection } from "./osm-map-geometry";
-
-/** What the map-init needs to drive two-tier back-navigation + framing. */
-export interface OsmMapInitOptions {
-  selectedState: string | null;
-  selectedDistrict: string | null;
-  setSelectedState: Dispatch<SetStateAction<string | null>>;
-  setSelectedDistrict: Dispatch<SetStateAction<string | null>>;
-  /** All Indian states (for the state-detail → overview step-out check). */
-  states: readonly GeoJSON.Feature[];
-  /** The selected state's districts (for the district-detail → state step-out). */
-  districts: readonly GeoJSON.Feature[];
-  /** Bounds of the states that have customers — the initial frame + the target
-   *  when stepping back out to the overview. Null until customers/states load. */
-  overviewBounds: L.LatLngBounds | null;
-}
+import { createRegionMap } from "./create-region-map";
+import { stepBackOnClick } from "./osm-map-back-nav";
+import type { OsmMapInitOptions } from "./osm-map-init-options";
 
 /** Creates the Leaflet map once (via {@link createRegionMap}), frames it to the
  *  states that actually have customers on first load, and wires background clicks
@@ -50,35 +36,13 @@ export function useOsmMapInit(
     }
 
     if (!mapRef.current) {
-      const map = createRegionMap(container, () => {
-        const cb = onReadyRef.current;
-        if (typeof cb === "function") cb();
-      });
+      const map = createRegionMap(container, () => onReadyRef.current?.());
       mapRef.current = map;
       roRef.current = new ResizeObserver(() => map.invalidateSize());
       roRef.current.observe(container);
-
-      // A background click steps back ONE tier (same framing as drilling in,
-      // reversed): in a district → fly back to its state; in a state → fly back to
-      // the states overview. Clicks inside the current selection are ignored.
       map.on("click", (e) => {
-        const o = optsRef.current;
-        const { lng, lat } = e.latlng;
-        if (o.selectedDistrict) {
-          if (!isClickOutsideSelection(o.districts, o.selectedDistrict, lng, lat)) return;
-          o.setSelectedDistrict(null);
-          const sf = o.states.find((f) => (f.properties?.name as string) === o.selectedState);
-          if (sf) {
-            map.flyToBounds(L.geoJSON(sf).getBounds(), { padding: [30, 30], maxZoom: 8, duration: 0.85, easeLinearity: 0.25 });
-          }
-          return;
-        }
-        if (o.selectedState) {
-          if (!isClickOutsideSelection(o.states, o.selectedState, lng, lat)) return;
-          o.setSelectedState(null);
-          o.setSelectedDistrict(null);
-          map.flyToBounds(o.overviewBounds ?? indiaBounds(), { padding: [20, 20], duration: 0.85, easeLinearity: 0.25 });
-        }
+        const { lng, lat } = (e as L.LeafletMouseEvent).latlng;
+        stepBackOnClick(map, optsRef.current, lng, lat);
       });
     }
 
@@ -94,8 +58,8 @@ export function useOsmMapInit(
 
   // Frame to the states-with-customers ONCE, after the container has its final
   // size and that bounds is known (so the view centres on the real operating
-  // area, whatever state it is). Falls back to the whole-India frame from
-  // createRegionMap when there are no customers yet.
+  // area). Falls back to the whole-India frame from createRegionMap when there
+  // are no customers yet.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || hasFittedRef.current || !opts.overviewBounds) return;

@@ -25,6 +25,16 @@ describe("getTimeGreeting", () => {
     expect(getTimeGreeting()).toBe("Good evening");
   });
 
+  it("falls back to hour 0 when the formatter yields no hour part", () => {
+    const spy = vi.spyOn(Intl, "DateTimeFormat").mockImplementation(
+      function () {
+        return { formatToParts: () => [{ type: "literal", value: "x" }] } as unknown as Intl.DateTimeFormat;
+      } as unknown as typeof Intl.DateTimeFormat,
+    );
+    expect(getTimeGreeting()).toBe("Good morning"); // Number(?? "0") → 0 < 12
+    spy.mockRestore();
+  });
+
   // Regression: just after IST midnight the greeting/date must reflect IST,
   // not the server's UTC (which would be the previous evening). Reported bug:
   // 00:14 IST on Tue 22 Sep showed "Good evening" / "Monday, 21 September".

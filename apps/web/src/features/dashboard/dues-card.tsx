@@ -7,7 +7,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { errorMessage, type ActionConfig } from "@/lib/api-client";
 import { useDelayedTrue } from "@/lib/use-delayed-true";
-import { SearchSelect } from "@/features/orders/search-select";
+import { DuesFilters } from "./dues-card-filters";
 import { useDuesDrilldown } from "./use-dues-drilldown";
 import { useDuesData } from "./use-dues-data";
 import { BucketTile, DuesTotalTile, PLACEHOLDER_BUCKETS, POS } from "./dues-card-parts";
@@ -31,48 +31,21 @@ export function DuesCard({ actionConfig }: Readonly<{ actionConfig: ActionConfig
   // transition). Latch via set-state-during-render — no effect, no extra commit.
   const [drilldownMounted, setDrilldownMounted] = useState(false);
   if (drill.bucket && !drilldownMounted) setDrilldownMounted(true);
-  // On an executive/city change the summary refetches with `keepPreviousData`, so
-  // `isPending` is false and the OLD numbers linger. Show the skeleton on the
-  // first load OR when a refetch runs past ~200ms — a fast swap stays instant.
+  // On an exec/city change the summary refetches with keepPreviousData (isPending
+  // false, old numbers linger), so also skeleton on a refetch past ~200ms.
   const slowRefetch = useDelayedTrue(summary.isFetching && !summary.isPending, 200);
   const showSkeleton = summary.isPending || slowRefetch;
 
   return (
     <section className="mb-7 rounded-xl border border-border bg-white p-5 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-foreground">Collection Dues</h3>
-        <div className="flex items-center gap-2">
-          <div className="w-[180px]">
-            <SearchSelect
-              items={[{ id: "", name: "All executives" }, ...salesExecutives]}
-              valueKey={executiveId}
-              getKey={(x) => x.id}
-              getLabel={(x) => x.name}
-              onSelect={(v) => {
-                setExecutiveId(v);
-                setCity(""); // reset city — the old one may not belong to the new SE
-              }}
-              placeholder="All executives"
-              searchPlaceholder="Search executive…"
-              emptyText="No executives found"
-              contentClassName="w-[220px] p-0"
-            />
-          </div>
-          <div className="w-[170px]">
-            <SearchSelect
-              items={[{ id: "", name: "All cities" }, ...cities.map((c) => ({ id: c, name: c }))]}
-              valueKey={city}
-              getKey={(x) => x.id}
-              getLabel={(x) => x.name}
-              onSelect={setCity}
-              placeholder="All cities"
-              searchPlaceholder="Search city…"
-              emptyText="No cities found"
-              contentClassName="w-[220px] p-0"
-            />
-          </div>
-        </div>
-      </div>
+      <DuesFilters
+        executiveId={executiveId}
+        city={city}
+        salesExecutives={salesExecutives}
+        cities={cities}
+        onExec={(v) => { setExecutiveId(v); setCity(""); }} // reset city — may not belong to the new SE
+        onCity={setCity}
+      />
 
       {!showSkeleton && (summary.isError || !data) ? (
         <p className="py-8 text-center text-sm text-destructive">
@@ -91,7 +64,7 @@ export function DuesCard({ actionConfig }: Readonly<{ actionConfig: ActionConfig
                 key={b.key}
                 bucket={b}
                 accent={accentForIndex(i, list.length)}
-                posClass={POS[i] ?? ""}
+                posClass={POS[i]}
                 onOpen={drill.open}
                 loading={showSkeleton}
               />

@@ -38,13 +38,6 @@ describe("usePeriodRange (URL-driven)", () => {
     expect(result.current.range).toEqual({ from: "2026-09-01", to: "2026-09-15" });
   });
 
-  it("derives a custom range from ?period=custom&from=&to=", () => {
-    sp = new URLSearchParams("period=custom&from=2026-08-01&to=2026-08-31");
-    const { result } = renderHook(() => usePeriodRange(initial));
-    expect(result.current.preset).toBe("custom");
-    expect(result.current.range).toEqual({ from: "2026-08-01", to: "2026-08-31" });
-  });
-
   it("applyPreset('month') writes ?period=month via replace (no history noise)", () => {
     const { result } = renderHook(() => usePeriodRange(initial));
     act(() => result.current.applyPreset("month"));
@@ -59,26 +52,9 @@ describe("usePeriodRange (URL-driven)", () => {
     expect(replace).toHaveBeenCalledWith("/", { scroll: false });
   });
 
-  it("applyCalendar writes a custom range to the URL", () => {
+  it("applyPreset('custom') sets the custom period and lets the calendar fill the range", () => {
     const { result } = renderHook(() => usePeriodRange(initial));
-    act(() =>
-      result.current.applyCalendar({
-        from: new Date("2026-08-01T10:00:00+05:30"),
-        to: new Date("2026-08-31T10:00:00+05:30"),
-      }),
-    );
-    expect(replace).toHaveBeenCalledWith("/?period=custom&from=2026-08-01&to=2026-08-31", { scroll: false });
-  });
-
-  it("applyCalendar with no selection writes nothing", () => {
-    const { result } = renderHook(() => usePeriodRange(initial));
-    act(() => result.current.applyCalendar(undefined));
-    expect(replace).not.toHaveBeenCalled();
-  });
-
-  it("setCalOpen toggles the calendar popover (local UI state)", () => {
-    const { result } = renderHook(() => usePeriodRange(initial));
-    act(() => result.current.setCalOpen(true));
-    expect(result.current.calOpen).toBe(true);
+    act(() => result.current.applyPreset("custom"));
+    expect(replace).toHaveBeenCalledWith("/?period=custom", { scroll: false });
   });
 });

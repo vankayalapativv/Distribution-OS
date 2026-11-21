@@ -2,7 +2,7 @@ import { rupees, type BandMeta, type DuesBucketKey, type MapCustomer } from "./m
 
 const HTML_ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 export function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch] ?? ch);
+  return s.replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
 }
 
 // Custom look for the district hover tooltip — replaces Leaflet's default cramped

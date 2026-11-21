@@ -23,6 +23,7 @@ describe("bandMeta", () => {
     ]);
     expect(meta.order).toEqual(["0", "1", "2", "3"]);
     expect(meta.label("1")).toBe("Watch");
+    expect(meta.label("99")).toBe("99"); // unknown key → the key itself (?? key)
     expect(meta.label(null)).toBe("No dues");
     expect(meta.color("3")).toBe(BAND_RAMP[3]);
   });

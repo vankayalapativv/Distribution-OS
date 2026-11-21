@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -36,6 +36,10 @@ describe("DashboardMapSection", () => {
     await waitFor(() => expect(screen.getByText("osm-map")).toBeInTheDocument());
     act(() => onRender?.()); // OsmMap signals it finished painting → reveal
     expect(screen.getByText("osm-map")).toBeInTheDocument();
+    // The overlay then fades out; its opacity transition-end drops it for good.
+    const fade = screen.getByText("loading-overlay").parentElement as HTMLElement;
+    act(() => { fireEvent.transitionEnd(fade, { propertyName: "opacity" }); });
+    expect(screen.queryByText("loading-overlay")).not.toBeInTheDocument();
   });
 
   it("reveals the map via the safety timeout if render-complete never fires", async () => {

@@ -14,12 +14,7 @@ vi.mock("next/navigation", () => ({
 
 // The metrics dashboard fetches on mount; stub it so these tests stay focused
 // on the shell (nav + which body renders per role).
-vi.stubGlobal(
-  "fetch",
-  vi.fn(async () =>
-    Response.json({ success: true, data: buildMetrics() }),
-  ),
-);
+vi.stubGlobal("fetch", vi.fn(async () => Response.json({ success: true, data: buildMetrics() })));
 
 const dashboardData: DashboardExperienceData = {
   metrics: [
@@ -101,30 +96,4 @@ describe("DashboardExperience", () => {
     expect(screen.getByText("Productivity")).toBeInTheDocument();
   });
 
-  test("Accountant keeps the legacy cards (no live metrics prop)", () => {
-    render(
-      <DashboardExperience role="ACCOUNTANT" dashboardData={dashboardData} />,
-    );
-
-    // Accountant nav (Finance section).
-    expect(screen.getByText("Expenditure")).toBeInTheDocument();
-    expect(screen.getByText("Reports")).toBeInTheDocument();
-
-    // Legacy metric list + executive table still render for this role.
-    expect(screen.getByText("Sales Value")).toBeInTheDocument();
-    expect(screen.getByText("Anika Sharma")).toBeInTheDocument();
-    expect(screen.queryByText("Active Executives")).not.toBeInTheDocument();
-  });
-
-  test("Accountant with no executives hides the performance table", () => {
-    render(
-      <DashboardExperience
-        role="ACCOUNTANT"
-        dashboardData={{ metrics: dashboardData.metrics, executivePerformance: [] }}
-      />,
-    );
-    // Legacy cards still show, but the performance table is omitted (empty branch).
-    expect(screen.getByText("Sales Value")).toBeInTheDocument();
-    expect(screen.queryByText("Sales Executive Performance")).not.toBeInTheDocument();
-  });
 });

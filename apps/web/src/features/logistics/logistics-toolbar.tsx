@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LazyCalendar } from "@/components/ui/lazy-calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useRangeAutoClose } from "@/components/ui/use-range-auto-close";
 import { VIEW_CONFIG, VIEW_ORDER, type View } from "./logistics-views";
 
 function toolbarRangeLabel(from?: Date, to?: Date): string {
@@ -41,6 +42,7 @@ export function LogisticsToolbar({
   readonly isLoading: boolean;
   readonly total: number;
 }) {
+  const cal = useRangeAutoClose(setDateRange);
   return (
     <div className="flex flex-wrap items-center gap-2.5">
       <div className="inline-flex rounded-lg border border-border bg-slate-100 p-0.5">
@@ -56,7 +58,7 @@ export function LogisticsToolbar({
         <Input value={qInput} onChange={(e) => setQInput(e.target.value)}
           placeholder={VIEW_CONFIG[view].searchPlaceholder} className="h-9 w-56 pl-8" />
       </div>
-      <Popover>
+      <Popover open={cal.open} onOpenChange={cal.onOpenChange}>
         <PopoverTrigger className="flex h-9 w-56 items-center justify-between gap-2 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus:outline-none">
           <span className={dateRange?.from ? "text-foreground" : ""}>
             {toolbarRangeLabel(dateRange?.from, dateRange?.to)}
@@ -64,7 +66,7 @@ export function LogisticsToolbar({
           <CalendarIcon size={14} className="shrink-0 opacity-50" />
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
-          <LazyCalendar mode="range" selected={dateRange} onSelect={setDateRange} numberOfMonths={2} autoFocus />
+          <LazyCalendar mode="range" selected={dateRange} onSelect={cal.onSelect} numberOfMonths={2} autoFocus />
         </PopoverContent>
       </Popover>
       <Button variant="outline" onClick={onClear} className="h-9">Clear</Button>

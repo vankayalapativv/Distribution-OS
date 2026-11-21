@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LazyCalendar } from "@/components/ui/lazy-calendar";
+import { useRangeAutoClose } from "@/components/ui/use-range-auto-close";
 import { SearchSelect } from "@/features/orders/search-select";
 import { AuditSelect } from "./audit-select";
 import type { AuditFilterOptions } from "./audit-logs-api";
@@ -23,6 +24,7 @@ export function AuditLogsFilters({
   readonly isLoading: boolean;
   readonly total: number;
 }) {
+  const cal = useRangeAutoClose(f.setDateRange);
   return (
     <div className="flex flex-wrap items-center gap-2.5">
       <Input
@@ -46,13 +48,13 @@ export function AuditLogsFilters({
       </div>
       <AuditSelect value={f.entityType} onChange={f.setEntityType} options={opts?.entityTypes ?? []} allLabel="All records" width="w-[150px]" />
       <AuditSelect value={f.action} onChange={f.setAction} options={opts?.actions ?? []} allLabel="All actions" width="w-[190px]" />
-      <Popover>
+      <Popover open={cal.open} onOpenChange={cal.onOpenChange}>
         <PopoverTrigger className="flex h-9 items-center gap-2 rounded-md border border-input bg-white px-3 text-sm transition-colors hover:bg-accent focus:outline-none">
           <CalendarIcon size={14} className="shrink-0 opacity-50" />
           <span className={f.dateRange?.from ? "text-foreground" : "text-muted-foreground"}>{f.dateLabel}</span>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
-          <LazyCalendar mode="range" selected={f.dateRange} onSelect={f.setDateRange} numberOfMonths={2} />
+          <LazyCalendar mode="range" selected={f.dateRange} onSelect={cal.onSelect} numberOfMonths={2} />
         </PopoverContent>
       </Popover>
       {f.hasFilters ? (

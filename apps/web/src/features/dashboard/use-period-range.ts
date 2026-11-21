@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { useUrlState } from "@/lib/use-url-state";
+import { useRangeAutoClose } from "@/components/ui/use-range-auto-close";
 import { isoDate, presetRange, type Preset } from "./metrics-helpers";
 
 const PRESETS = new Set<Preset>(["today", "week", "month", "custom"]);
@@ -24,7 +24,6 @@ function toCalRange(r: { from: string; to: string }): DateRange {
  */
 export function usePeriodRange(initialRange: { from: string; to: string }) {
   const { get, set } = useUrlState();
-  const [calOpen, setCalOpen] = useState(false);
 
   const rawPreset = get("period");
   const preset: Preset = PRESETS.has(rawPreset as Preset) ? (rawPreset as Preset) : "today";
@@ -51,9 +50,10 @@ export function usePeriodRange(initialRange: { from: string; to: string }) {
     set({ period: next === "today" ? null : next, from: null, to: null });
   }
 
-  function applyCalendar(sel: DateRange | undefined) {
+  // The custom-range calendar auto-closes once both ends are picked.
+  const cal = useRangeAutoClose((sel) => {
     if (sel?.from) set({ period: "custom", from: isoDate(sel.from), to: isoDate(sel.to ?? sel.from) });
-  }
+  });
 
-  return { preset, range, calOpen, setCalOpen, calRange, applyPreset, applyCalendar };
+  return { preset, range, calOpen: cal.open, setCalOpen: cal.onOpenChange, calRange, applyPreset, applyCalendar: cal.onSelect };
 }

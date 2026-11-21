@@ -42,9 +42,9 @@ export function useCustomerDetailData(customerId: string, actionConfig: ActionCo
     orders: ordersQuery.data?.orders ?? [],
     ordersTotal: ordersQuery.data?.total ?? 0,
     ordersLoading: ordersQuery.isLoading,
-    visitsCount: visitsCountQuery.data?.summary.all ?? 0,
+    visitsCount: visitsCountQuery.data?.summary?.all ?? 0,
     visitsLoading: visitsCountQuery.isLoading,
-    notesCount: notesQuery.data?.notes.length ?? 0,
+    notesCount: notesQuery.data?.notes?.length ?? 0,
     notesLoading: notesQuery.isLoading,
   };
 }

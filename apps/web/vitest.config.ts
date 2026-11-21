@@ -2,6 +2,13 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // Override the project's file-based PostCSS config with an empty inline one.
+  // Components (e.g. tracking-map) import vendor CSS (leaflet / maplibre-gl);
+  // processing it would make Vite load postcss.config.mjs, whose string
+  // "@tailwindcss/postcss" plugin the bare PostCSS loader can't resolve
+  // ("Invalid PostCSS Plugin"). jsdom never applies styles, so an empty
+  // pipeline is correct for tests.
+  css: { postcss: { plugins: [] } },
   resolve: {
     // Mirror the tsconfig "@/*" -> "./src/*" path alias so component imports
     // (e.g. "@/components/ui/breadcrumb") resolve under vitest too.

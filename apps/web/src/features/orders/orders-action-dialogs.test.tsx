@@ -1,6 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 vi.mock("@/components/confirm-dialog", () => ({
   ConfirmDialog: (p: any) =>
@@ -16,11 +15,9 @@ vi.mock("@/components/confirm-dialog", () => ({
     ) : null,
 }));
 /* eslint-enable @typescript-eslint/no-explicit-any */
-
 import { OrdersActionDialogs } from "./orders-action-dialogs";
 import type { OrdersDialogs } from "./use-orders-dialogs";
 import type { Order } from "./orders-api";
-
 const ord = (over: Partial<Order> = {}): Order =>
   ({ id: "o1", orderCode: "ORD-1", customerName: "Raj", invoices: [], ...over }) as Order;
 

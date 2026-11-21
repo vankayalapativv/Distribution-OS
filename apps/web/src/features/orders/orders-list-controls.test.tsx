@@ -1,6 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 vi.mock("./orders-fulfillment-summary", () => ({
   OrdersFulfillmentSummary: (p: any) => (
@@ -20,13 +19,10 @@ vi.mock("@/features/shell/new-items-banner", () => ({
   NewItemsBanner: (p: any) => <button data-testid="banner" data-count={p.count} onClick={p.onLoad} />,
 }));
 /* eslint-enable @typescript-eslint/no-explicit-any */
-
 import { OrdersListControls } from "./orders-list-controls";
-
 const cfg = { apiBaseUrl: "x", authToken: "t" };
 const setFilter = vi.fn();
 const clearFilters = vi.fn();
-
 const makeState = (applied: Record<string, string>) =>
   ({
     applied,
@@ -41,7 +37,6 @@ const makeState = (applied: Record<string, string>) =>
     url: { setFilter },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }) as any;
-
 const setup = (over: { applied?: Record<string, string>; errorText?: string | null } = {}) => {
   const props = {
     state: makeState(over.applied ?? {}),
@@ -56,13 +51,11 @@ const setup = (over: { applied?: Record<string, string>; errorText?: string | nu
   render(<OrdersListControls {...props} />);
   return props;
 };
-
 afterEach(() => {
   vi.restoreAllMocks();
   setFilter.mockReset();
   clearFilters.mockReset();
 });
-
 describe("OrdersListControls", () => {
   it("passes the active fulfillment to the summary and selects through it", () => {
     const p = setup();
@@ -70,7 +63,6 @@ describe("OrdersListControls", () => {
     fireEvent.click(screen.getByTestId("summary"));
     expect(p.setFilterFulfillment).toHaveBeenCalledWith("invoiced");
   });
-
   it("wires filter changes to the URL and clear to the state", () => {
     setup();
     fireEvent.click(screen.getByRole("button", { name: "city" }));

@@ -54,6 +54,11 @@ describe("orderColumns", () => {
     expect(screen.getByText("ORD-1").className).not.toContain("line-through");
   });
 
+  it("Code cell flags an invoice-origin order", () => {
+    renderCell(col("orderCode"), order({ origin: "invoice" }), "ORD-5");
+    expect(screen.getByText("From invoice")).toBeTruthy();
+  });
+
   it("Customer cell renders the stacked identity", () => {
     renderCell(col("customerName"), order({ customerName: "Raj Motors" }));
     expect(screen.getByText("Raj Motors")).toBeInTheDocument();

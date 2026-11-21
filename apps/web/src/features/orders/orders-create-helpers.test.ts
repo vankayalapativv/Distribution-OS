@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   SEGMENT_OPTIONS,
+  brandOptions,
   emptyLineItem,
   oilLineView,
+  segmentOptionsForBrand,
 } from "./orders-create-helpers";
 
 describe("create helpers factories", () => {
@@ -10,6 +12,22 @@ describe("create helpers factories", () => {
     expect(SEGMENT_OPTIONS.map((s) => s.value)).toContain("Gear Oil");
     expect(emptyLineItem()).toMatchObject({ segment: "", productId: "", packSizeLitres: 0, quantityUnits: 1 });
     expect(typeof emptyLineItem().uid).toBe("string");
+  });
+});
+
+describe("brandOptions", () => {
+  it("returns distinct, non-empty brands sorted alphabetically", () => {
+    const products = [{ brand: "Savsol", segments: [] }, { brand: "Fuchs", segments: [] }, { brand: "Fuchs", segments: [] }, { brand: null, segments: [] }];
+    expect(brandOptions(products)).toEqual(["Fuchs", "Savsol"]);
+  });
+});
+
+describe("segmentOptionsForBrand", () => {
+  it("returns every segment with no brand, else only the chosen brand's available ones", () => {
+    expect(segmentOptionsForBrand([], "")).toBe(SEGMENT_OPTIONS); // no brand → all
+    const forFuchs = segmentOptionsForBrand([{ brand: "Fuchs", segments: ["Car"] }, { brand: "Savsol", segments: ["2W"] }], "Fuchs");
+    expect(forFuchs.map((o) => o.value)).toEqual(["Car"]);
+    expect(forFuchs.length).toBeLessThan(SEGMENT_OPTIONS.length);
   });
 });
 

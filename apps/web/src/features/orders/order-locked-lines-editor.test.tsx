@@ -17,6 +17,13 @@ describe("OrderLockedLinesEditor", () => {
     expect(screen.getAllByText("GEAR 90").length).toBeGreaterThan(0);
   });
 
+  it("omits the brand·segment·pack meta when the locked line has none", () => {
+    const bare = { ...lines[0], brand: null, segment: null, packSizeLitres: 0 } as unknown as LockedLine;
+    render(<OrderLockedLinesEditor lockedLines={[bare]} onSetQty={() => {}} />);
+    expect(screen.getAllByText("TITAN 5W-30").length).toBeGreaterThan(0); // label renders; meta returns null
+    expect(screen.queryByText(/Fuchs/)).toBeNull();
+  });
+
   it("shows the un-invoiced remainder as a prefilled quantity field (ordered − billed)", () => {
     render(<OrderLockedLinesEditor lockedLines={[lines[0]]} onSetQty={() => {}} />);
     // 5 ordered − 2 billed → remainder of 3, editable down to 0.

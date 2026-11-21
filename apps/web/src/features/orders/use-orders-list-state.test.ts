@@ -1,12 +1,10 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CustomerOption } from "@/features/customers/customer-search-select";
-
 const setFilter = vi.fn();
 const setFilters = vi.fn();
 const clearFilters = vi.fn();
 let filters: Record<string, string> = {};
-
 vi.mock("@/components/data-table/use-table-url-state", () => ({
   useTableUrlState: () => ({
     filters,
@@ -19,15 +17,12 @@ vi.mock("@/components/data-table/use-table-url-state", () => ({
     setPagination: vi.fn(),
   }),
 }));
-
 import { useOrdersListState } from "./use-orders-list-state";
-
 const customers = [
   { id: "c1", legalName: "Raj Motors", addressCity: "Bengaluru" },
   { id: "c2", legalName: "AB Traders", addressCity: null },
   { id: "c3", legalName: "Zeta", addressCity: "Ambala" },
 ] as CustomerOption[];
-
 beforeEach(() => {
   filters = {};
   vi.useFakeTimers();

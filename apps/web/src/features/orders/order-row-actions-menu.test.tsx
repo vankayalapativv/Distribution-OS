@@ -21,6 +21,13 @@ function open() {
 }
 
 describe("RowActionsMenu", () => {
+  it("stops keydown events from bubbling past its wrapper", () => {
+    const outer = vi.fn();
+    render(<div onKeyDown={outer}><RowActionsMenu {...baseProps} /></div>);
+    fireEvent.keyDown(screen.getByTitle("Actions"));
+    expect(outer).not.toHaveBeenCalled();
+  });
+
   it("shows only the enabled actions", () => {
     render(<RowActionsMenu {...baseProps} canGenerate canEdit />);
     open();

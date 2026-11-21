@@ -29,6 +29,11 @@ describe("ShipmentCard", () => {
     expect(screen.getByText("Not delivered")).toBeInTheDocument();
   });
 
+  it("lists the contents on a cancelled shipment that had oils", () => {
+    render(<ShipmentCard s={ship({ cancelled: true, oilLitres: 5 })} />);
+    expect(screen.getByText(/5 L oils/)).toBeInTheDocument();
+  });
+
   it("renders a cancelled invoice as cancelled (no delivery badge)", () => {
     render(<ShipmentCard s={ship({ cancelled: true, code: "SA/2026-27/00003" })} />);
     expect(screen.getByText("Cancelled")).toBeInTheDocument();

@@ -1,6 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let draftReturn: any;
 vi.mock("./use-order-draft", () => ({ useOrderDraft: () => draftReturn }));
@@ -8,7 +7,6 @@ vi.mock("./order-header-fields", () => ({ OrderHeaderFields: () => <div data-tes
 vi.mock("./order-locked-lines-editor", () => ({ OrderLockedLinesEditor: () => <div data-testid="locked" /> }));
 vi.mock("./order-line-items-tabs", () => ({ OrderLineItemsTabs: () => <div data-testid="tabs" /> }));
 /* eslint-enable @typescript-eslint/no-explicit-any */
-
 import { OrdersCreateDialog } from "./orders-create-dialog";
 
 const cfg = { apiBaseUrl: "x", authToken: "t" };

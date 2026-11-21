@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { emptyLineItem, type LineItemDraft } from "./orders-create-helpers";
+import { cascadeLineItem } from "./oil-line-cascade";
 
 /** Owns the oil line-item draft state + handlers. Resets when the dialog opens
  *  — seeded from `initial` in edit mode, or one empty row for a new order. */
@@ -38,24 +39,7 @@ export function useOilLines(open: boolean, initial?: LineItemDraft[]) {
   }
 
   function updateLineItem(index: number, field: keyof LineItemDraft, value: string | number) {
-    setLineItems((prev) =>
-      prev.map((item, i) => {
-        if (i !== index) return item;
-        // Company is the top of the cascade — changing it clears segment/product/pack.
-        if (field === "brand") {
-          return { ...item, brand: value as string, segment: "", productId: "", packSizeLitres: 0 };
-        }
-        // When segment changes, reset product selection
-        if (field === "segment") {
-          return { ...item, segment: value as string, productId: "", packSizeLitres: 0 };
-        }
-        // Packs are product-specific — clear a stale pack when the product changes
-        if (field === "productId") {
-          return { ...item, productId: value as string, packSizeLitres: 0 };
-        }
-        return { ...item, [field]: value };
-      }),
-    );
+    setLineItems((prev) => prev.map((item, i) => (i === index ? cascadeLineItem(item, field, value) : item)));
     if (field === "brand" || field === "segment") {
       setProductSearches((prev) => prev.map((s, i) => (i === index ? "" : s)));
     }

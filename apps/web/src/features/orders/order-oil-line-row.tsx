@@ -1,10 +1,10 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import { SearchSelect } from "@/components/ui/search-select";
 import type { Product } from "./orders-api";
 import { brandOptions, oilLineView, segmentOptionsForBrand, type LineItemDraft } from "./orders-create-helpers";
 import { OrderOilProductCombobox } from "./order-oil-product-combobox";
+import { OrderOilPackCell, OrderOilQtyCell } from "./order-oil-line-cells";
 import { OrderRowDelete } from "./order-row-delete";
 
 interface OrderOilLineRowProps {
@@ -44,7 +44,6 @@ export function OrderOilLineRow({
 
   return (
     <div className="grid grid-cols-[1.6fr_1.6fr_3fr_1.6fr_112px_32px] gap-2 items-center rounded-lg border border-border bg-muted/20 px-3 py-2.5">
-      {/* Company (brand) — first cascade step: Company → Segment → SKU → Pack */}
       <SearchSelect
         items={[{ value: "", label: "Company" }, ...brands.map((b) => ({ value: b, label: b }))]}
         valueKey={item.brand}
@@ -58,7 +57,6 @@ export function OrderOilLineRow({
         contentClassName="w-[180px] p-0"
       />
 
-      {/* Segment — filtered to the chosen company's segments */}
       <SearchSelect
         items={[{ value: "", label: "Segment" }, ...segmentItems]}
         valueKey={item.segment}
@@ -72,7 +70,6 @@ export function OrderOilLineRow({
         contentClassName="w-[180px] p-0"
       />
 
-      {/* Product — searchable combobox (segment + query filtered) */}
       <OrderOilProductCombobox
         index={index}
         item={item}
@@ -86,46 +83,15 @@ export function OrderOilLineRow({
         onProductSearchChange={onProductSearchChange}
       />
 
-      {/* Pack Size — app's searchable select, limited to the selected product's packs.
-          Quantity products have no pack size; show a static "By quantity" cell. */}
-      {isQuantity ? (
-        <div className="flex h-8 items-center rounded-md border border-input bg-muted/40 px-2.5 text-sm text-muted-foreground">
-          By quantity
-        </div>
-      ) : (
-        <SearchSelect
-          items={
-            item.productId
-              ? [{ value: "", label: "Size" }, ...packOptions.map((s) => ({ value: String(s), label: `${s} L` }))]
-              : [{ value: "", label: "Pick product" }]
-          }
-          valueKey={item.packSizeLitres > 0 ? String(item.packSizeLitres) : ""}
-          getKey={(o) => o.value}
-          getLabel={(o) => o.label}
-          onSelect={(v) => onUpdateLineItem(index, "packSizeLitres", v ? Number(v) : 0)}
-          disabled={!item.productId}
-          placeholder="Size"
-          searchPlaceholder="Search…"
-          emptyText="No match"
-          triggerClassName="!h-8"
-          contentClassName="w-[160px] p-0"
-        />
-      )}
+      {/* Pack Size — product's packs, or a static "By quantity" cell for qty SKUs. */}
+      <OrderOilPackCell
+        item={item}
+        packOptions={packOptions}
+        isQuantity={isQuantity}
+        onPack={(v) => onUpdateLineItem(index, "packSizeLitres", v ? Number(v) : 0)}
+      />
 
-      {/* Qty + live total — litres sit inline to the LEFT of the input so the row
-          height matches the dropdowns (no dangling line below the box). */}
-      <div className="flex items-center justify-end gap-1.5">
-        {lineLitres !== null && (
-          <span className="whitespace-nowrap text-[10px] text-muted-foreground">{lineLitres} L</span>
-        )}
-        <Input
-          type="number"
-          min={1}
-          className="h-8 w-14 text-sm bg-background text-right"
-          value={item.quantityUnits}
-          onChange={(e) => onUpdateLineItem(index, "quantityUnits", Number(e.target.value))}
-        />
-      </div>
+      <OrderOilQtyCell item={item} lineLitres={lineLitres} onQty={(v) => onUpdateLineItem(index, "quantityUnits", v)} />
 
       <OrderRowDelete canRemove={canRemove} onRemove={() => onRemoveLineItem(index)} />
     </div>

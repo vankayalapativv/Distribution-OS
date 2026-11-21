@@ -14,8 +14,10 @@ export function CustomerLevel({ metric, rows }: Readonly<{ metric: MetricKey; ro
   }
   return (
     <div>
-      {rows.map((r) => {
-        const key = rowKey(r);
+      {rows.map((r, i) => {
+        // Index tie-breaks rows that share an id — e.g. two orders of the same
+        // customer in the "ordered"/"litres" drill-down (same customerId).
+        const key = `${rowKey(r)}-${i}`;
         if (metric === "executives") return <ExecutiveDayRow key={key} row={r} />;
         if (metric === "visits" || metric === "productive" || metric === "productivity") {
           return <VisitRow key={key} row={r} />;

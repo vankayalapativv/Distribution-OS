@@ -3606,3 +3606,21 @@ Kept as the single operational day-view (SE live positions, GPS route trail, che
 - The two maps **share** `map-constants` + `district-helpers`; the legacy Telangana/Hyderabad exports (`REGION_BOUNDS`, `HYDERABAD_*`, `TELANGANA_DISTRICTS`, `telangana-boundary`) were **left intact** (now largely unused here) rather than deleted.
 - **⚠️ Pre-existing test flake:** `features/tracking/tracking-map.test.tsx` fails to LOAD with `Invalid PostCSS Plugin found at: plugins[0]` (via its `leaflet.css` import → `postcss.config.mjs`) — confirmed on the `main` baseline by stashing, **not caused by this work**. All other dashboard-map + tracking tests pass; `tsc` + ESLint clean on web.
 - Verified live (local dev = prod DB): dashboard shows **Andhra Pradesh highlighted, 26 customers, Krishna cluster**; tracking shows SE **"Murali"**'s real route (146 pts, 35.7 km, Vijayawada) on the clean district-less map. The pre-commit hook (import-cycle check on `apps/api/src`) passed; `main` pushed to origin.
+
+---
+
+## MCP connect = Error 1101 → missing prod secrets (2026-11-21)
+
+Connecting Claude to the MCP (`distribution-os-mcp.vardhansystems.workers.dev`) failed with Cloudflare **Error 1101 "Worker threw exception"** on `/authorize`.
+
+**Root cause:** the MCP worker was renamed `sri-aparajita-mcp` → `distribution-os-mcp` in the rebrand (commit `409d821`); **Worker secrets are per-worker-name and do NOT survive a rename**, so `wrangler secret list` on the new name returned `[]`. `env.REPLICA_DATABASE_URL` was `undefined`, and the passphrase **POST** `/authorize` (`resolveEnterpriseByPassphrase` → `neon(undefined)`) threw. `GET /authorize` (login page, no DB) was fine — the 1101 only showed on passphrase submit, at the same URL.
+
+**Fix (no code, no redeploy — secrets are runtime):**
+- `distribution-os-mcp`: `wrangler secret put` **REPLICA_DATABASE_URL**, **MAP_SIGNING_SECRET**, **MCP_ADMIN_SECRET** (values from `apps/mcp/.dev.vars`; that file wraps values in single quotes — pipe the UNQUOTED value or `neon()` rejects it).
+- `distribution-os-api`: **MCP_ADMIN_SECRET** was also missing — set to the SAME value (api = sender, mcp = verifier; both must match or Settings → MCP 503s).
+
+**Now a TRUE read replica.** User swapped `apps/mcp/.dev.vars` `REPLICA_DATABASE_URL` from the old primary/owner string (`pg_is_in_recovery=false`, read-only enforced only by the in-txn `set local role app_readonly`) to a real replica (`ep-super-water-b35cqbcf-pooler…`, `pg_is_in_recovery=true`) whose writes are **physically rejected** ("cannot execute CREATE TABLE in a read-only transaction"). `app_readonly` role + `public.mcp_resolve_enterprise` both present.
+
+**Verified (auth-free):** `/health`→200; `/register`→201; `POST /authorize` + PKCE + wrong passphrase → **401 "Incorrect passphrase"** (was 500); `/admin/status` + bearer → 200 `{enabled:true, replicaConfigured:true}`, 2 enabled enterprises. A correct passphrase now completes the OAuth connect.
+
+**⚠️ Follow-up:** the old `neondb_owner` primary credential leaked to a debug screen during triage (nothing left the machine) — rotate it in Neon.

@@ -109,7 +109,7 @@ Current nav (canonical, in `dashboard-nav.tsx`):
 
 (Settings is reached via the avatar, not the sidebar.)
 
-**Users & Teams** (`/dashboard/super-admin/setup`, SUPER_ADMIN only) moved INTO the
+**Users** (`/settings/users`, SUPER_ADMIN only; historically `/dashboard/super-admin/setup`) moved INTO the
 sidebar under Configure on 2026-07-24 — it used to be reachable only from a shortcut
 card on the Settings page, which has been removed. It manages users (add / edit /
 set password), teams and territories. The route path was left unchanged.

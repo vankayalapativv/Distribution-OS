@@ -31,10 +31,17 @@ export function SessionsDialog({
   const [deviceModel, setDeviceModel] = useState<string | null>(null);
   const userId = user?.id ?? null;
 
+  // Clear a stale label when the user changes — in render, not in the effect, so
+  // there's no synchronous setState inside the effect body (cascading-render lint).
+  const [prevUserId, setPrevUserId] = useState(userId);
+  if (userId !== prevUserId) {
+    setPrevUserId(userId);
+    setDeviceModel(null);
+  }
+
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    setDeviceModel(null);
     apiRequest<{ device: { label?: string } | null }>(actionConfig, "GET", `/super-admin/users/${userId}/device`)
       .then((r) => {
         if (!cancelled) setDeviceModel(r.device?.label ?? null);

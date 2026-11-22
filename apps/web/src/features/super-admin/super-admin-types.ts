@@ -16,10 +16,6 @@ export interface SuperAdminSetupUser {
   roles: SuperAdminSetupRole[];
 }
 
-export interface SuperAdminSetupData {
-  users: SuperAdminSetupUser[];
-}
-
 export interface SuperAdminActionConfig {
   apiBaseUrl: string;
   authToken: string;
@@ -61,13 +57,3 @@ export const ROLE_LABELS: Record<SuperAdminSetupRole, string> = {
   SALES_EXECUTIVE: "Sales Executive",
   LOGISTICS: "Logistics",
 };
-
-export function statusClass(status: string): string {
-  return status === "active"
-    ? "bg-secondary text-secondary-foreground"
-    : "bg-muted text-muted-foreground";
-}
-
-export function contactLine(user: SuperAdminSetupUser): string {
-  return [user.email, user.phone].filter(Boolean).join(" | ");
-}

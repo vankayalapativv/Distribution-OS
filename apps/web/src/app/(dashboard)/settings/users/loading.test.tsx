@@ -11,18 +11,20 @@ vi.mock("@/components/ui/skeleton", () => ({ Skeleton: () => <span data-testid="
 import Loading from "./loading";
 
 describe("Users Loading", () => {
-  it("renders the shell as SUPER_ADMIN with the Users column headers", () => {
+  it("renders the real chrome (Add User + search + filters), not a shimmer", () => {
     const { container } = render(<Loading />);
     expect(container.querySelector("[data-role]")).toHaveAttribute("data-role", "SUPER_ADMIN");
-    for (const header of ["User", "Contact", "Role", "Status", "Actions"]) {
-      expect(screen.getByText(header)).toBeInTheDocument();
-    }
+    expect(screen.getByRole("button", { name: "+ Add User" })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Search name/)).toBeInTheDocument();
   });
 
-  it("renders a context-aware 8-row table shimmer", () => {
+  it("shimmers only the 8 table rows (the chrome stays real)", () => {
     const { container } = render(<Loading />);
+    for (const header of ["User", "Contact", "Role", "Status"]) {
+      expect(screen.getByText(header)).toBeInTheDocument();
+    }
     expect(container.querySelectorAll("tbody tr")).toHaveLength(8);
-    // Plenty of shimmer bars: 8 rows × 7 cells-worth + header/filter bars.
+    // The row cells still carry plenty of shimmer bars.
     expect(screen.getAllByTestId("sk").length).toBeGreaterThan(40);
   });
 });

@@ -51,7 +51,19 @@ Register routes in `src/index.ts` via `v1.route("/path", myRoutes)`.
 
 ## Service Layer Pattern
 
-Services live in `src/services/<name>.ts`. They receive `sql: SqlClient` and a context object. This is a **single-client deployment** — there is no `organization_id` column (removed in migrations `0034`/`0035`); never filter by or insert one.
+Services live in `src/services/<name>.ts`. They receive `sql: SqlClient` and a context object.
+
+> ⚠️ **This is a multi-enterprise deployment (corrected 2026-11-23).** Despite older
+> notes elsewhere calling it "single-client / no org column", this repo's schema has an
+> `enterprise_id` column on tenant tables with Postgres **RLS** policies. `getSqlClient(c)`
+> returns an **enterprise-scoped** client (`SET LOCAL ROLE app_tenant` + `app.enterprise_id`),
+> so every ordinary query is auto-filtered to the caller's enterprise — do **not** add a
+> manual `enterprise_id` filter in service queries (RLS handles it), and don't insert one by
+> hand (defaults/policies do). The legacy `organization_id` / `organizations` scaffolding was
+> a *different*, earlier model that was removed; don't reintroduce that. The migration
+> numbers in these docs (e.g. `0034`/`0041`/`0081`) predate a re-baseline and no longer match
+> `packages/db/migrations` (now `0001_init` + incremental). Verify against the live schema
+> rather than trusting a migration number in prose.
 
 ```typescript
 interface MyContext {

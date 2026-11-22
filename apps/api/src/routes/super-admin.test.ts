@@ -109,6 +109,13 @@ vi.mock("@neondatabase/serverless", () => {
     return Promise.all(queries as Array<Promise<unknown>>);
   };
 
+  // Positional sql.query(text, params) path — used by the server-paged user list.
+  handler.query = async (text: string) => {
+    if (text.includes("super_admin_users_paged_count")) return [{ total: 2 }];
+    if (text.includes("super_admin_users_paged")) return setupRows.users;
+    return [];
+  };
+
   return { neon: () => handler };
 });
 
@@ -175,6 +182,37 @@ describe("super admin setup routes", () => {
           ...authHeaders("neon-manager"),
         },
       },
+      env,
+    );
+
+    expect(response.status).toBe(403);
+  });
+
+  test("Super Admin can load the paged user list", async () => {
+    const { default: app } = await import("../index");
+
+    const response = await app.request(
+      "/api/v1/super-admin/users/paged?search=anika&role=SALES_EXECUTIVE&status=active&sort=name&dir=asc&page=1&pageSize=8",
+      { headers: superAdminHeaders },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      success: true,
+      data: { total: 2, page: 1, pageSize: 8 },
+    });
+    expect(body.data.users).toHaveLength(2);
+    expect(body.data.users[1]).toMatchObject({ name: "Anika Sharma", roles: ["SALES_EXECUTIVE"] });
+  });
+
+  test("Manager cannot access the paged user list", async () => {
+    const { default: app } = await import("../index");
+
+    const response = await app.request(
+      "/api/v1/super-admin/users/paged",
+      { headers: { ...superAdminHeaders, ...authHeaders("neon-manager") } },
       env,
     );
 

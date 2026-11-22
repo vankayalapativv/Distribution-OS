@@ -42,4 +42,11 @@ describe("saveSuperAdminUser", () => {
     );
     await expect(saveSuperAdminUser(user({ appLoginId: "neon-1" }), payload, cfg)).rejects.toThrow("Neon said no");
   });
+
+  it("falls back to a generic message when the BFF error body has no `error`", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ id: "u1" }), { status: 500 }),
+    );
+    await expect(saveSuperAdminUser(user({ appLoginId: "neon-1" }), payload, cfg)).rejects.toThrow("Could not save the user.");
+  });
 });

@@ -36,17 +36,16 @@ export function StatusDialog({
   const nextStatus = active ? "inactive" : "active";
   const verb = active ? "Deactivate" : "Activate";
 
-  async function apply() {
-    if (!user) return;
+  async function apply(u: SuperAdminSetupUser) {
     setBusy(true);
     setError(null);
     try {
       const saved = await saveSuperAdminUser(
-        user,
-        { name: user.name, email: user.email, phone: user.phone, status: nextStatus },
+        u,
+        { name: u.name, email: u.email, phone: u.phone, status: nextStatus },
         actionConfig,
       );
-      onUpdated({ ...user, ...saved });
+      onUpdated({ ...u, ...saved });
       onClose();
     } catch (err) {
       setError(errorMessage(err, `Could not ${verb.toLowerCase()} the user.`));
@@ -78,7 +77,7 @@ export function StatusDialog({
           <Button
             type="button"
             variant={active ? "destructive" : "default"}
-            onClick={apply}
+            onClick={() => apply(user)}
             disabled={busy}
           >
             {busy ? `${verb.slice(0, -1)}ing…` : verb}

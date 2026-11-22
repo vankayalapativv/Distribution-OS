@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { describeDevice, sessionLabel } from "./super-admin-user-sessions";
+import { describeDevice, fmt, sessionLabel } from "./super-admin-user-sessions";
+
+describe("fmt", () => {
+  it("returns empty for a missing or invalid date, and formats a valid one", () => {
+    expect(fmt(null)).toBe("");
+    expect(fmt("not-a-date")).toBe("");
+    expect(fmt("2026-11-20T10:00:00Z")).not.toBe("");
+  });
+});
 
 describe("describeDevice", () => {
   it("returns a fallback for a missing user-agent", () => {
@@ -59,6 +67,10 @@ describe("describeDevice", () => {
     expect(describeDevice("DistributionOS/1.1.2 (Android 14; Google; Pixel 8)")).toBe("Google Pixel 8");
     // unknown manufacturer → model alone
     expect(describeDevice("DistributionOS/1.1.2 (Android 12; Unknown; Redmi Note 10)")).toBe("Redmi Note 10");
+    // unknown manufacturer AND blank model → the generic mobile fallback
+    expect(describeDevice("DistributionOS/1.1.2 (Android 12; unknown;  )")).toBe("Mobile app (Android)");
+    // model already starts with the brand → brand not prepended again
+    expect(describeDevice("DistributionOS/1.1.2 (Android 13; Samsung; Samsung Galaxy S21)")).toBe("Samsung Galaxy S21");
   });
 
   it("returns a generic Browser label when nothing matches", () => {

@@ -15,6 +15,7 @@ import {
   getUserLatestDevice,
   updateSuperAdminUser,
 } from "../services/super-admin";
+import { listSuperAdminUsersPaged } from "../services/super-admin-users-paged";
 import type { ApiEnv, Role } from "../types";
 
 export const superAdminRoutes = new Hono<ApiEnv>()
@@ -25,6 +26,22 @@ export const superAdminRoutes = new Hono<ApiEnv>()
     });
 
     return c.json(success(c, setup));
+  })
+  // Server-paged user list for the Users table (search + role + status + sort).
+  // Registered before /users/:id so "paged" is never read as a user id.
+  .get("/users/paged", async (c) => {
+    requireRole(c, ["SUPER_ADMIN"]);
+    const q = c.req.query();
+    const result = await listSuperAdminUsersPaged(getSqlClient(c), {
+      search: q.search ?? null,
+      role: q.role ?? null,
+      status: q.status ?? null,
+      sort: q.sort ?? null,
+      dir: q.dir ?? null,
+      page: q.page ? Number(q.page) : null,
+      pageSize: q.pageSize ? Number(q.pageSize) : null,
+    });
+    return c.json(success(c, result));
   })
   .post("/users", async (c) => {
     const auth = requireRole(c, ["SUPER_ADMIN"]);

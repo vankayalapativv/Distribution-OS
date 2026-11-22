@@ -1,127 +1,91 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/data-table/data-table";
+import { withQueryClient } from "@/components/data-table/query-provider";
+import { PageHeader } from "@/components/page-header";
 import { DashboardShell } from "@/features/shell/dashboard-shell";
-import { AddUserDialog } from "./super-admin-add-user-dialog";
-import { UsersSection } from "./super-admin-sections";
-import { EditUserDialog } from "./super-admin-edit-user-dialog";
-import { SetPasswordDialog } from "./super-admin-password-dialog";
-import { StatusDialog } from "./super-admin-status-dialog";
-import { SessionsDialog } from "./super-admin-sessions-dialog";
-import {
-  defaultActionConfig,
-  type SuperAdminActionConfig,
-  type SuperAdminSetupData,
-  type SuperAdminSetupUser,
-} from "./super-admin-types";
-
-export type {
-  CreatedCredentials,
-  CreatedUser,
-  CreateUserPayload,
-  SuperAdminActionConfig,
-  SuperAdminSetupData,
-  SuperAdminSetupRole,
-  SuperAdminSetupUser,
-} from "./super-admin-types";
+import { plural } from "@/lib/format";
+import { buildUserColumns, userColumns, userSkeleton } from "./users-columns";
+import { UsersFilterBar } from "./users-filter-bar";
+import { UsersDialogs } from "./users-dialogs";
+import { useSuperAdminUsers } from "./use-super-admin-users";
+import { useUserDialogs } from "./use-user-dialogs";
+import { defaultActionConfig, type SuperAdminActionConfig } from "./super-admin-types";
 
 interface SuperAdminSetupProps {
-  readonly setupData: SuperAdminSetupData;
   readonly actionConfig?: SuperAdminActionConfig;
   /** The signed-in admin's user id — used to block deactivating your own row. */
   readonly currentUserId?: string | null;
 }
 
-export function SuperAdminSetup({
-  setupData,
+function SuperAdminSetupInner({
   actionConfig = defaultActionConfig,
   currentUserId = null,
 }: SuperAdminSetupProps) {
-  const [users, setUsers] = useState(setupData.users);
+  const d = useUserDialogs();
 
-  // No user cap — billing is seat-based (₹708 per active user), so the team can
-  // grow freely and each active user is billed.
-
-  // The Add dialog resets on open via a remount key (matches the prior open* reset).
-  const [addUserOpen, setAddUserOpen] = useState(false);
-  const [addUserKey, setAddUserKey] = useState(0);
-  const [editingUser, setEditingUser] = useState<SuperAdminSetupUser | null>(null);
-  const [passwordUser, setPasswordUser] = useState<SuperAdminSetupUser | null>(null);
-  const [statusUser, setStatusUser] = useState<SuperAdminSetupUser | null>(null);
-  const [sessionsUser, setSessionsUser] = useState<SuperAdminSetupUser | null>(null);
-
-  const applyUpdate = (updated: SuperAdminSetupUser) =>
-    setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
-
-  function openAddUser() {
-    setAddUserKey((k) => k + 1);
-    setAddUserOpen(true);
-  }
+  const columns = useMemo(
+    () =>
+      buildUserColumns({
+        currentUserId,
+        onEdit: d.setEditingUser,
+        onSetPassword: d.setPasswordUser,
+        onToggleStatus: d.setStatusUser,
+        onManageSessions: d.setSessionsUser,
+      }),
+    [currentUserId, d.setEditingUser, d.setPasswordUser, d.setStatusUser, d.setSessionsUser],
+  );
+  const list = useSuperAdminUsers(actionConfig, columns);
 
   return (
     <>
-      <DashboardShell
-        role="SUPER_ADMIN"
-        active="users-teams"
-        contentClassName="min-w-0 flex-1 overflow-y-auto px-8 py-7"
-      >
-        <header className="mb-8 flex flex-wrap items-start justify-between gap-4 pb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Users</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Add and edit users, and set their passwords.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={openAddUser}>
-              Add User
-            </Button>
-          </div>
-        </header>
+      <DashboardShell role="SUPER_ADMIN" active="users-teams">
+        <PageHeader
+          crumbs={[{ label: "Configure" }, { label: "Users" }]}
+          title="Users"
+          subtitle={list.isLoading ? "Loading…" : `${list.total} user${plural(list.total)}`}
+          action={<Button onClick={d.openAddUser}>+ Add User</Button>}
+        />
 
-        <UsersSection
-          users={users}
-          currentUserId={currentUserId}
-          onEdit={setEditingUser}
-          onSetPassword={setPasswordUser}
-          onToggleStatus={setStatusUser}
-          onManageSessions={setSessionsUser}
+        <UsersFilterBar
+          search={list.search}
+          setSearch={list.setSearch}
+          filterRole={list.filters.role}
+          filterStatus={list.filters.status}
+          setFilter={list.url.setFilter}
+        />
+
+        {list.error && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+            {list.error.message}
+          </div>
+        )}
+
+        <DataTable
+          table={list.table}
+          columnCount={userColumns.length}
+          isLoading={list.showSkeleton}
+          skeleton={userSkeleton}
+          pageSize={list.pageSize}
+          pageCount={list.pageCount}
+          empty={list.url.hasFilters ? "No users match your filters." : "No users yet. Click “Add User” to create one."}
         />
       </DashboardShell>
 
-      <AddUserDialog
-        key={`user-${addUserKey}`}
-        open={addUserOpen}
-        onOpenChange={setAddUserOpen}
+      <UsersDialogs
+        state={d.state}
         actionConfig={actionConfig}
-        onUserCreated={(user) => setUsers((prev) => [...prev, user])}
-      />
-
-      <EditUserDialog
-        user={editingUser}
-        onClose={() => setEditingUser(null)}
-        onSaved={applyUpdate}
-        actionConfig={actionConfig}
-      />
-
-      <SetPasswordDialog
-        user={passwordUser}
-        onClose={() => setPasswordUser(null)}
-      />
-
-      <StatusDialog
-        user={statusUser}
-        actionConfig={actionConfig}
-        onClose={() => setStatusUser(null)}
-        onUpdated={applyUpdate}
-      />
-
-      <SessionsDialog
-        user={sessionsUser}
-        actionConfig={actionConfig}
-        onClose={() => setSessionsUser(null)}
+        setAddOpen={d.setAddOpen}
+        setEditingUser={d.setEditingUser}
+        setPasswordUser={d.setPasswordUser}
+        setStatusUser={d.setStatusUser}
+        setSessionsUser={d.setSessionsUser}
+        onChanged={list.refresh}
       />
     </>
   );
 }
+
+export const SuperAdminSetup = withQueryClient(SuperAdminSetupInner);

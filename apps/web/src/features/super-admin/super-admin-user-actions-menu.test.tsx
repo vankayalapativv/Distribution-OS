@@ -33,6 +33,9 @@ describe("UserActionsMenu", () => {
     for (const name of [/Edit/, /Set password/, /Manage sessions/, /Deactivate/]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
+    fireEvent.click(screen.getByRole("button", { name: /Edit/ }));
+    expect(h.onEdit).toHaveBeenCalled();
+    open();
     fireEvent.click(screen.getByRole("button", { name: /Set password/ }));
     expect(h.onSetPassword).toHaveBeenCalled();
     open();
@@ -54,6 +57,16 @@ describe("UserActionsMenu", () => {
     const btn = screen.getByRole("button", { name: /Deactivate/ });
     expect(btn).toBeDisabled();
     expect(btn).toHaveAttribute("title", "A Super Admin can't be deactivated.");
+  });
+
+  it("handles click + keydown on its wrapper (row-propagation guards) without breaking", () => {
+    setup();
+    const wrapper = screen.getByTitle("Actions").closest("div.flex.justify-end")!;
+    fireEvent.click(wrapper);
+    fireEvent.keyDown(wrapper, { key: "Enter" });
+    // The kebab trigger still works afterwards.
+    fireEvent.click(screen.getByTitle("Actions"));
+    expect(screen.getByRole("button", { name: /Edit/ })).toBeInTheDocument();
   });
 
   it("shows Activate (enabled) for an inactive user and fires the toggle", () => {

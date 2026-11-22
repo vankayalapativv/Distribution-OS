@@ -65,7 +65,14 @@ The web app tries ports 8787, 8788, 8789 in sequence when `DISTRIBUTION_OS_API_B
 
 ## Key Database Tables
 
-This is a **single-client deployment**. The `organization_id` multi-tenant scaffolding (column on every table + `(select id from organizations limit 1)` INSERT subquery) was removed in migrations `0034`/`0035` (2026-07-23) along with 27 unused tables — do not reintroduce either.
+> ⚠️ **Architecture note (corrected 2026-11-23): this is a MULTI-ENTERPRISE deployment, not single-client.**
+> The schema has an `enterprise_id` column on tenant tables with Postgres **RLS**; `getSqlClient(c)`
+> returns an enterprise-scoped client (`app_tenant` role + `app.enterprise_id`) that auto-filters
+> every query by enterprise — services never add a manual `enterprise_id` filter. The *old*
+> `organization_id` / `organizations` scaffolding (a different, earlier model) was indeed removed and
+> should not be reintroduced. The migration numbers quoted throughout these docs predate a re-baseline
+> and don't match `packages/db/migrations` (now `0001_init` + incremental); verify against the live
+> schema, not a number in prose. See `apps/api/src/lib/db.ts`.
 
 | Table | Purpose |
 |-------|---------|
@@ -97,7 +104,7 @@ This is a **single-client deployment**. The `organization_id` multi-tenant scaff
 3. **Never skip git hooks** (`--no-verify`) — fix lint/type errors instead
 4. **Never build web UI for SALES_EXECUTIVE or LOGISTICS** — those roles belong to the live mobile app (`apps/mobile`); do not add their screens to the web app without explicit instruction
 5. **Never use Node.js-only packages in `apps/api`** — Cloudflare Workers runtime only
-6. **Never reintroduce `organization_id` / multi-tenant scaffolding** — it was removed in migrations `0034`/`0035`; single-client deployment, all data belongs to one org
+6. **Never reintroduce the old `organization_id` / `organizations` scaffolding** — that specific earlier model was removed. (Note: the system IS multi-enterprise today via `enterprise_id` + RLS — see the Architecture note above; that is the current tenancy model, not the removed one.)
 
 ## Best Practices & Known Gaps
 
@@ -129,7 +136,7 @@ Suggest these to the user at the right moment:
 **Web pages:**
 - `/login` — authentication
 - `/dashboard/super-admin` — Super Admin dashboard
-- `/dashboard/super-admin/setup` — org/user setup
+- `/settings/users` (route group `(dashboard)`) — user management (SUPER_ADMIN). Historically `/dashboard/super-admin/setup`; the component is still `SuperAdminSetup`
 - `/dashboard/manager` — Manager dashboard
 - `/dashboard/accountant` — Accountant dashboard (placeholder)
 - `/dashboard/customers` — Customer list + detail
@@ -195,7 +202,7 @@ Suggest these to the user at the right moment:
 
 ## Recent Changes (2026-10 / 2026-11)
 
-- **Users page (`/dashboard/super-admin/setup`, SUPER_ADMIN)** — row actions moved into a **kebab menu**: Edit, Set password, **Manage sessions**, Activate/Deactivate (guarded — can't deactivate or lock out another SUPER_ADMIN). CONTACT column split into email + phone; the Users stat card was removed; context-aware table shimmer added.
+- **Users page (`/settings/users`, SUPER_ADMIN)** — rebuilt onto the standard DataTable stack (TanStack Query + `usePagedTable` + `DataTable`, 8/page, server-side search/role/status filters via `GET /super-admin/users/paged`); the page server-component passes only `actionConfig` (no server data fetch). Shared `PageHeader` + `StatusBadge`; row actions are a single ⋮ kebab (Edit, Set password, **Manage sessions**, Activate/Deactivate — guarded so you can't deactivate or lock out another SUPER_ADMIN). The whole `features/super-admin` folder is at 100% coverage with every file <100 lines. Context-aware shimmer: the route `loading.tsx` renders the **real** chrome (Add User + search + filters) and shimmers only the table rows.
 - **Manage sessions dialog** (`features/super-admin/super-admin-sessions-dialog.tsx` + `super-admin-user-sessions.tsx`) — lists a Neon-Auth-linked user's active sign-ins via the BFF `/api/admin/sessions`, with **Sign out / Sign out all** (session revocation). The admin's own current session is flagged and, when revoked, the tab self-redirects to `/api/auth/logout`; `middleware.ts` enforces revocation on the next server render. The web login route forwards the browser User-Agent to Neon so web sessions read as e.g. "Chrome on macOS".
 - **Mobile session device labels** — the app sends a device string `DistributionOS/<ver> (Android <os>; <manufacturer>; <model>)` (from `expo-device`) in the **`/auth/login` body**; the API (`routes/auth.ts` → `services/mobile-auth.ts`) forwards it as the session **user-agent** to Neon (mirrors the web login BFF), and web `describeDevice` parses it → a phone reads as its real model ("Samsung SM-G991B"). Fallback source: `push_tokens.manufacturer/model` via `GET /super-admin/users/:id/device`.
 - **Notification permission on login** — `registerPushToken()` (mobile `invoice-notifications.ts`) now **requests** notification permission on login instead of silently returning when it isn't granted. SEs/Logistics are also prompted at Start day/run; admins hit neither, so without this they were never prompted and registered no push token. NOTE: push SENDING still targets SALES_EXECUTIVE only.

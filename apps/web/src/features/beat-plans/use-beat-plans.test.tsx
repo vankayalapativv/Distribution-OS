@@ -45,6 +45,16 @@ describe("useBeatPlans", () => {
     expect(result.current.switching).toBe(true);
   });
 
+  it("drops the shimmer and flags no-executives when the roster is empty", async () => {
+    apiGet.mockImplementation((_c: unknown, path: string) =>
+      Promise.resolve(path.includes("executives") ? { executives: [] } : plan),
+    );
+    const { result } = setup();
+    await waitFor(() => expect(result.current.switching).toBe(false));
+    expect(result.current.executiveId).toBe("");
+    expect(result.current.noExecutives).toBe(true);
+  });
+
   it("reorder / remove / assign hit the right endpoints", async () => {
     const { result } = setup();
     await waitFor(() => expect(result.current.executiveId).toBe("u1"));

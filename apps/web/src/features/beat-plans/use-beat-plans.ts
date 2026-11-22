@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiRequest, type ActionConfig } from "@/lib/api-client";
 import type { BeatPlanResponse, ExecutivesResponse } from "./beat-plans-api";
@@ -31,21 +31,17 @@ export function useBeatPlans(actionConfig: ActionConfig) {
   const customers = plan.data?.customers ?? [];
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["beat-plans", executiveId] });
 
-  // Board shimmer, driven by an explicit flag set the moment an SE is (re)selected —
-  // NOT by isPending, which stays false for a cached SE's background refetch.
+  // Board shimmer, raised the moment an SE is (re)selected (and on first load), then
+  // cleared IN RENDER — not in an effect — once the thing we're waiting on has settled:
+  // the plan fetch for the selected SE, or the exec list when there's no SE to plan.
+  // Clearing here, guarded by `switching`, converges in one pass and keeps background
+  // refetches (window refocus, post-mutation invalidate) from re-flashing the skeleton
+  // the way a plain `isFetching` derivation would.
   const [switching, setSwitching] = useState(true);
-  const wasFetching = useRef(false);
-  useEffect(() => {
-    // No executive to load a plan for (empty roster, or none selected yet): there
-    // is no plan fetch to wait on, so once the executive LIST has resolved, drop
-    // the board shimmer — otherwise it sticks forever and hides the empty state.
-    if (!executiveId) {
-      if (!execQuery.isLoading && switching) setSwitching(false);
-      return;
-    }
-    if (wasFetching.current && !plan.isFetching && switching) setSwitching(false);
-    wasFetching.current = plan.isFetching;
-  }, [executiveId, execQuery.isLoading, plan.isFetching, switching]);
+  if (switching) {
+    const settled = executiveId ? plan.isFetched && !plan.isFetching : !execQuery.isLoading;
+    if (settled) setSwitching(false);
+  }
 
   // The roster has loaded and there is no executive to plan for at all.
   const noExecutives = !execQuery.isLoading && executives.length === 0;

@@ -43,4 +43,11 @@ describe("BeatColumnCards", () => {
     expect(screen.getByText("Pune")).toBeInTheDocument();
     expect(screen.getByText("Mumbai")).toBeInTheDocument();
   });
+
+  it("handles a stop with no city (null city key) without labelling it", () => {
+    render(<BeatColumnCards customers={[cust("a", null), cust("b", "Pune"), cust("c", "Mumbai")]} onRemove={vi.fn()} />);
+    expect(screen.getByText("Pune")).toBeInTheDocument();
+    expect(screen.getByText("Mumbai")).toBeInTheDocument();
+    expect(screen.getByText("card:a:1")).toBeInTheDocument(); // the null-city stop renders, no city label of its own
+  });
 });

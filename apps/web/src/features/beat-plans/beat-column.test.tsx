@@ -1,8 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BeatCustomer } from "./beat-plans-api";
 
-vi.mock("@dnd-kit/core", () => ({ useDroppable: () => ({ setNodeRef: vi.fn(), isOver: false }) }));
+const dnd = vi.hoisted(() => ({ isOver: false }));
+vi.mock("@dnd-kit/core", () => ({ useDroppable: () => ({ setNodeRef: vi.fn(), isOver: dnd.isOver }) }));
+afterEach(() => { dnd.isOver = false; });
 vi.mock("./beat-column-cards", () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   BeatColumnCards: ({ customers }: any) => <div>cards:{customers.length}</div>,
@@ -38,6 +40,12 @@ describe("BeatColumn", () => {
   it("disables the add button when disabled", () => {
     render(<BeatColumn {...base} disabled />);
     expect(screen.getByRole("button", { name: "Add customer" })).toBeDisabled();
+  });
+
+  it("rings when a dragged card hovers over it", () => {
+    dnd.isOver = true;
+    const { container } = render(<BeatColumn {...base} />);
+    expect(container.firstChild).toHaveClass("ring-2");
   });
 
   it("closes the add dialog on its onClose", () => {

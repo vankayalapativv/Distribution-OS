@@ -36,8 +36,7 @@ describe("useBeatBoard", () => {
     act(() => result.current.onDragOver(over("a", "2")));
     expect(result.current.items["1"]).toEqual([]);
     expect(result.current.items["2"]).toEqual(["x", "a"]);
-    // Over nothing is a no-op.
-    act(() => result.current.onDragOver(over("a", null)));
+    act(() => result.current.onDragOver(over("a", null))); // over nothing is a no-op
     expect(result.current.items["2"]).toEqual(["x", "a"]);
   });
 
@@ -61,13 +60,20 @@ describe("useBeatBoard", () => {
     expect(onUnassign).toHaveBeenCalledWith("a");
   });
 
+  it("reorders within a column on drop and persists the new order", () => {
+    const { result, onReorderDay } = setup([cust("a", 1), cust("b", 1)]);
+    act(() => result.current.onDragStart(start("a")));
+    act(() => result.current.onDragEnd(end("a", "b"))); // a dropped onto b → real reorder (next !== items)
+    expect(result.current.items["1"]).toEqual(["b", "a"]);
+    expect(onReorderDay).toHaveBeenCalledWith(1, ["b", "a"]);
+  });
+
   it("drag end with no drop target persists nothing", () => {
     const { result, onReorderDay } = setup([cust("a", 1)]);
     act(() => result.current.onDragStart(start("a")));
     act(() => result.current.onDragEnd(end("a", null)));
     expect(onReorderDay).not.toHaveBeenCalled();
   });
-
   it("drag over within the same column is a no-op; a same-spot drop still persists the day", () => {
     const { result, onReorderDay } = setup([cust("a", 1), cust("b", 1)]);
     act(() => result.current.onDragStart(start("a")));
@@ -80,16 +86,13 @@ describe("useBeatBoard", () => {
 
   it("resyncs from new server data, but not mid-drag; cancel reverts", () => {
     const { result, rerender } = setup([cust("a", 1)]);
-    // New server data while idle → rebuilds.
-    rerender({ list: [cust("a", 2)] });
+    rerender({ list: [cust("a", 2)] }); // new server data while idle → rebuilds
     expect(result.current.items["2"]).toEqual(["a"]);
-    // Mid-drag, incoming server data must NOT snap the board back.
-    act(() => result.current.onDragStart(start("a")));
+    act(() => result.current.onDragStart(start("a"))); // mid-drag, server data must NOT snap back
     act(() => result.current.onDragOver(over("a", "3")));
     rerender({ list: [cust("a", 2)] });
     expect(result.current.items["3"]).toEqual(["a"]);
-    // Cancel reverts to the (new) server truth.
-    act(() => result.current.onDragCancel());
+    act(() => result.current.onDragCancel()); // cancel reverts to the (new) server truth
     expect(result.current.items["2"]).toEqual(["a"]);
     expect(result.current.activeId).toBeNull();
   });

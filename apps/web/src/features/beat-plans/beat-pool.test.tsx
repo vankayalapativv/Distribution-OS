@@ -1,8 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BeatCustomer } from "./beat-plans-api";
 
-vi.mock("@dnd-kit/core", () => ({ useDroppable: () => ({ setNodeRef: vi.fn(), isOver: false }) }));
+const dnd = vi.hoisted(() => ({ isOver: false }));
+vi.mock("@dnd-kit/core", () => ({ useDroppable: () => ({ setNodeRef: vi.fn(), isOver: dnd.isOver }) }));
+afterEach(() => { dnd.isOver = false; });
 vi.mock("@dnd-kit/sortable", () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   SortableContext: ({ children }: any) => <div>{children}</div>,
@@ -40,5 +42,11 @@ describe("BeatPool", () => {
   it("shows the all-assigned message when empty", () => {
     render(<BeatPool customers={[]} />);
     expect(screen.getByText("All customers assigned")).toBeInTheDocument();
+  });
+
+  it("rings when a dragged card hovers over it", () => {
+    dnd.isOver = true;
+    const { container } = render(<BeatPool customers={[]} />);
+    expect(container.firstChild).toHaveClass("ring-2");
   });
 });

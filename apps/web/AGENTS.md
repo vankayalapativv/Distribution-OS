@@ -153,6 +153,13 @@ Skeleton cell arrays hold render functions (`Array<() => ReactNode>`) — see th
   `LazyCalendar`, not the raw `Calendar`, in new date-filter popovers.
 - **Data views use TanStack Query, never `fetch`-in-`useEffect`** (see Data Tables below).
   This also keeps the `react-hooks/set-state-in-effect` lint clean.
+- **Clear a one-shot "waiting on a fetch" flag in render, not in an effect.** A shimmer
+  flag you raise on an event (e.g. a `switching` board-shimmer set true when an SE is
+  re-selected) should be *cleared* with a guarded render-phase `setState`, not a
+  `useEffect` — `if (switching) { const settled = …query flags…; if (settled) setSwitching(false); }`.
+  It converges in one pass, trips no `set-state-in-effect` warning, and stays
+  selection-scoped (a plain `isFetching` derivation re-flashes on every background
+  refetch — window refocus, post-mutation invalidate). See `features/beat-plans/use-beat-plans.ts`.
 - **Don't define components inside another component's render** (remount + focus loss) —
   hoist to module scope and pass props.
 

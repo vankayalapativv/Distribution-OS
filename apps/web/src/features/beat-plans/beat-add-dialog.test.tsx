@@ -2,6 +2,28 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { BeatCustomer } from "./beat-plans-api";
 
+// Mock the Dialog so the test can drive onOpenChange with both values (Radix only
+// ever fires it with `false` for this controlled, trigger-less dialog).
+vi.mock("@/components/ui/dialog", () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Dialog: ({ open, onOpenChange, children }: any) =>
+    open ? (
+      <div>
+        {children}
+        <button onClick={() => onOpenChange(false)}>dlg-close</button>
+        <button onClick={() => onOpenChange(true)}>dlg-open</button>
+      </div>
+    ) : null,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  DialogContent: ({ children }: any) => <div>{children}</div>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  DialogHeader: ({ children }: any) => <div>{children}</div>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  DialogTitle: ({ children }: any) => <h2>{children}</h2>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  DialogBody: ({ children }: any) => <div>{children}</div>,
+}));
+
 import { BeatAddDialog } from "./beat-add-dialog";
 
 const cust = (id: string, name: string): BeatCustomer => ({
@@ -34,10 +56,12 @@ describe("BeatAddDialog", () => {
     expect(screen.getByText("No matching customers")).toBeInTheDocument();
   });
 
-  it("dismissing (Escape) clears the search and closes", () => {
+  it("closes on onOpenChange(false), but an onOpenChange(true) does not close it", () => {
     const onClose = vi.fn();
     render(<BeatAddDialog {...base} open onClose={onClose} />);
-    fireEvent.keyDown(document.body, { key: "Escape" });
+    fireEvent.click(screen.getByRole("button", { name: "dlg-open" })); // o = true → guard skips
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "dlg-close" })); // o = false → clear + close
     expect(onClose).toHaveBeenCalled();
   });
 });

@@ -5,7 +5,7 @@ import type { BeatCustomer } from "./beat-plans-api";
 const state = {
   executiveId: "u1", selectExecutive: vi.fn(), executives: [{ id: "u1", name: "Asha" }],
   customers: [{ customerId: "c1", legalName: "Acme" }] as unknown as BeatCustomer[],
-  isError: false, switching: false,
+  isError: false, switching: false, noExecutives: false,
   reorderMut: { mutate: vi.fn() }, removeMut: { mutate: vi.fn() }, assignMut: { mutate: vi.fn(), isPending: false },
 };
 vi.mock("./use-beat-plans", () => ({ useBeatPlans: () => state }));
@@ -38,7 +38,7 @@ import { BeatPlansPanel } from "./beat-plans-panel";
 const config = { apiBaseUrl: "", authToken: "" };
 
 beforeEach(() => vi.clearAllMocks());
-afterEach(() => { state.isError = false; state.switching = false; });
+afterEach(() => { state.isError = false; state.switching = false; state.noExecutives = false; });
 
 describe("BeatPlansPanel", () => {
   it("renders stats + kanban and wires all four board actions", () => {
@@ -65,5 +65,11 @@ describe("BeatPlansPanel", () => {
     state.isError = true;
     rerender(<BeatPlansPanel actionConfig={config} />);
     expect(screen.getByText(/Couldn't load this beat plan/)).toBeInTheDocument();
+  });
+
+  it("shows the empty state when there are no executives", () => {
+    state.noExecutives = true;
+    render(<BeatPlansPanel actionConfig={config} />);
+    expect(screen.getByText("No beat plans yet")).toBeInTheDocument();
   });
 });

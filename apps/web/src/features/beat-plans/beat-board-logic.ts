@@ -32,8 +32,9 @@ export function computeDragOver(prev: Items, activeId: string, overId: string): 
   if (!activeC || !overC || activeC === overC) return null;
   const from = prev[activeC].filter((i) => i !== activeId);
   const overItems = prev[overC];
-  const overIndex = overId in prev ? overItems.length : overItems.indexOf(overId);
-  const insertAt = overIndex < 0 ? overItems.length : overIndex;
+  // overId resolved to overC via findCol, so it's either a column key (append at
+  // the end) or a card that column holds (indexOf >= 0) — never < 0.
+  const insertAt = overId in prev ? overItems.length : overItems.indexOf(overId);
   const to = [...overItems.slice(0, insertAt), activeId, ...overItems.slice(insertAt)];
   return { ...prev, [activeC]: from, [overC]: to };
 }

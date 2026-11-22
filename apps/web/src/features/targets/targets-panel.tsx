@@ -10,7 +10,6 @@ import { type ActionConfig } from "@/lib/api-client";
 import { TargetEditDialog } from "./target-edit-dialog";
 import { TargetsPanelHeader } from "./targets-panel-header";
 import { TargetsExecList } from "./targets-exec-list";
-import { PasteAllDialog } from "./paste-all-dialog";
 import { useTargetsPanel } from "./use-targets-panel";
 
 function TargetsPanelInner({ actionConfig }: { readonly actionConfig: ActionConfig }) {
@@ -27,14 +26,9 @@ function TargetsPanelInner({ actionConfig }: { readonly actionConfig: ActionConf
           executive={p.editing}
           period={p.period}
           periodStart={p.startStr}
-          isFuture={p.isFuture}
-          clipboard={p.clipboard}
-          onCopy={p.setClipboard}
           onClose={() => p.setEditing(null)}
         />
       ) : null}
-
-      <PasteAllDialog p={p} />
     </section>
   );
 }

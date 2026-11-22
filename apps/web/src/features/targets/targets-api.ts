@@ -27,6 +27,9 @@ export interface PeriodProgress {
   periodStart: string;
   oilActual: SegmentLitres[];
   oilTarget: SegmentLitres[] | null;
+  /** True when `oilTarget` was carried forward from an earlier period (set then,
+   *  not for this exact period). Targets stay effective until a newer one is set. */
+  oilTargetInherited: boolean;
 }
 
 /** Which period the Targets page is showing, and whether it's editable. */
@@ -55,13 +58,6 @@ export interface TargetsResponse {
 /** Whether a period has any target set (oil segments). */
 export function hasTarget(p: PeriodProgress): boolean {
   return p.oilTarget !== null;
-}
-
-/** A copied set of target values — held in an in-app clipboard so it can be
- *  pasted into any other executive and/or the other period (week↔month), or
- *  applied to all executives at once. Oil keyed by segment. */
-export interface TargetValues {
-  oil: Record<string, number>;
 }
 
 /** Sum litres across the segment array (the overall oil figure). */

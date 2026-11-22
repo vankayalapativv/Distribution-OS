@@ -17,10 +17,10 @@ describe("getMyPerformance", () => {
         { todayTotal: "1000", todayVerified: "800", weekTotal: "5000", weekVerified: "4000", monthTotal: "9000", monthVerified: "7000" },
       ],
       targets_current_periods: PERIODS,
-      get_current_targets: [
-        { periodType: "week", segment: "Car", litres: "25" },
-        { periodType: "month", segment: "Car", litres: "100" },
-        { periodType: "month", segment: "", litres: "5" }, // blank segment skipped
+      get_effective_targets: [
+        { periodType: "week", inherited: true, segment: "Car", litres: "25" }, // carried forward
+        { periodType: "month", inherited: false, segment: "Car", litres: "100" },
+        { periodType: "month", inherited: false, segment: "", litres: "5" }, // blank segment skipped
       ],
     });
     const perf = await getMyPerformance(sql, { userId: SE });
@@ -29,7 +29,9 @@ describe("getMyPerformance", () => {
     expect(perf.today.collections).toEqual({ total: 1000, verified: 800 });
     expect(perf.week.periodStart).toBe("2026-06-15");
     expect(perf.week.oilTarget!.find((s) => s.segment === "Car")!.litres).toBe(25);
+    expect(perf.week.oilTargetInherited).toBe(true);
     expect(perf.month.oilTarget!.find((s) => s.segment === "Car")!.litres).toBe(100);
+    expect(perf.month.oilTargetInherited).toBe(false);
   });
 
   it("returns null targets when none are saved and zeroes a missing collection row", async () => {
@@ -37,10 +39,11 @@ describe("getMyPerformance", () => {
       targets_oil_actuals_by_segment: [],
       targets_collection_actuals: [],
       targets_current_periods: PERIODS,
-      get_current_targets: [],
+      get_effective_targets: [],
     });
     const perf = await getMyPerformance(sql, { userId: SE });
     expect(perf.week.oilTarget).toBeNull();
+    expect(perf.week.oilTargetInherited).toBe(false);
     expect(perf.month.oilTarget).toBeNull();
     expect(perf.today.collections).toEqual({ total: 0, verified: 0 });
     expect(perf.today.oilActual).toHaveLength(8); // all canonical segments, zeroed
@@ -52,7 +55,7 @@ describe("listExecutiveTargets", () => {
     const sql = makeSql({
       targets_current_periods: PERIODS,
       list_target_ses: [{ id: SE, name: "Asha" }, { id: "se-2", name: "Ravi" }],
-      targets_all_for_period: [{ userId: SE, name: "Asha", segment: "Car", litres: "30" }],
+      targets_effective_for_period: [{ userId: SE, name: "Asha", inherited: false, segment: "Car", litres: "30" }],
       targets_period_oil_by_user: [{ userId: SE, segment: "Car", litres: "12" }],
     });
     const res = await listExecutiveTargets(sql, { periodType: "month" });
@@ -61,14 +64,19 @@ describe("listExecutiveTargets", () => {
     const asha = res.executives.find((e) => e.userId === SE)!;
     expect(asha.perf.oilActual.find((s) => s.segment === "Car")!.litres).toBe(12);
     expect(asha.perf.oilTarget!.find((s) => s.segment === "Car")!.litres).toBe(30);
+    expect(asha.perf.oilTargetInherited).toBe(false);
     expect(asha.currentTarget).not.toBeNull();
+    // SE with no effective target → null target, not inherited.
+    const ravi = res.executives.find((e) => e.userId === "se-2")!;
+    expect(ravi.perf.oilTarget).toBeNull();
+    expect(ravi.perf.oilTargetInherited).toBe(false);
   });
 
   it("handles a current WEEK period (week end-date branch) and a null SE name", async () => {
     const sql = makeSql({
       targets_current_periods: PERIODS,
       list_target_ses: [{ id: SE, name: null }], // null name → str() "" fallback
-      targets_all_for_period: [],
+      targets_effective_for_period: [],
       targets_period_oil_by_user: [],
     });
     const res = await listExecutiveTargets(sql, { periodType: "week" });
@@ -81,13 +89,15 @@ describe("listExecutiveTargets", () => {
       targets_current_periods: PERIODS,
       list_target_ses: [{ id: SE, name: "Asha" }],
       target_period_start: [{ s: "2026-12-01" }],
-      targets_all_for_period: [{ userId: SE, name: "Asha", segment: "Car", litres: "40" }],
+      targets_effective_for_period: [{ userId: SE, name: "Asha", inherited: true, segment: "Car", litres: "40" }], // carried forward into the future period
       targets_period_oil_by_user: [{ userId: SE, segment: "Car", litres: "999" }], // must be ignored (future)
     });
     const res = await listExecutiveTargets(sql, { periodType: "month", periodStart: "2026-12-10" });
     expect(res.period).toMatchObject({ isFuture: true, canEdit: true, periodStart: "2026-12-01" });
     // Future → actuals are empty regardless of what the query would return.
     expect(res.executives[0].perf.oilActual.every((s) => s.litres === 0)).toBe(true);
+    expect(res.executives[0].perf.oilTargetInherited).toBe(true); // carried-forward target
+    expect(res.executives[0].currentTarget).not.toBeNull(); // Copy-from-current uses the effective current target
   });
 
   it("rosters a past period from its targets only (read-only)", async () => {
@@ -95,12 +105,12 @@ describe("listExecutiveTargets", () => {
       targets_current_periods: PERIODS,
       list_target_ses: [{ id: "unused", name: "Unused" }],
       target_period_start: [{ s: "2026-01-01" }],
-      targets_all_for_period: [{ userId: SE, name: "Asha", segment: "Car", litres: "15" }],
+      targets_effective_for_period: [{ userId: SE, name: "Asha", inherited: false, segment: "Car", litres: "15" }],
       targets_period_oil_by_user: [{ userId: SE, segment: "Car", litres: "10" }],
     });
     const res = await listExecutiveTargets(sql, { periodType: "month", periodStart: "2026-01-15" });
     expect(res.period).toMatchObject({ isCurrent: false, isFuture: false, canEdit: false });
-    // Only SEs that had a target appear — not the active roster.
+    // Only SEs with an effective target by then appear — not the active roster.
     expect(res.executives.map((e) => e.userId)).toEqual([SE]);
   });
 });

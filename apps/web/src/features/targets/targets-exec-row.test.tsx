@@ -9,37 +9,41 @@ vi.mock("./target-progress", () => ({
 
 import { TargetsExecRow } from "./targets-exec-row";
 
-const exec = (set: boolean): ExecutiveTargets => ({
+const exec = (set: boolean, inherited = false): ExecutiveTargets => ({
   userId: "u1", name: "Asha",
-  perf: { periodStart: "2026-07-01", oilActual: [], oilTarget: set ? [{ segment: "Car", litres: 5 }] : null},
+  perf: { periodStart: "2026-07-01", oilActual: [], oilTarget: set ? [{ segment: "Car", litres: 5 }] : null, oilTargetInherited: inherited },
   currentTarget: null,
 });
-const handlers = () => ({ onEdit: vi.fn(), onCopy: vi.fn() });
 
 describe("TargetsExecRow", () => {
-  it("shows Edit + Copy for a set target and wires them", () => {
-    const h = handlers();
-    render(<TargetsExecRow exec={exec(true)} canEdit isFuture={false} copied={false} {...h} />);
+  it("shows the Edit button for a set target and wires it (no Copy control)", () => {
+    const onEdit = vi.fn();
+    render(<TargetsExecRow exec={exec(true)} canEdit isFuture={false} onEdit={onEdit} />);
     expect(screen.getByText("Asha")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Edit target" }));
-    expect(h.onEdit).toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
-    expect(h.onCopy).toHaveBeenCalled();
+    expect(onEdit).toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Copy" })).not.toBeInTheDocument();
     expect(screen.getByText("progress targetOnly=false")).toBeInTheDocument();
   });
 
-  it("labels the button 'Set upcoming' for a future unset target and hides Copy", () => {
-    render(<TargetsExecRow exec={exec(false)} canEdit isFuture={true} copied={false} {...handlers()} />);
+  it("labels the button 'Set upcoming' for a future unset target", () => {
+    render(<TargetsExecRow exec={exec(false)} canEdit isFuture={true} onEdit={vi.fn()} />);
     expect(screen.getByRole("button", { name: "Set upcoming" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Copy" })).not.toBeInTheDocument();
     expect(screen.getByText("progress targetOnly=true")).toBeInTheDocument();
   });
 
+  it("shows an 'Inherited' chip for a carried-forward target, and not for an explicit one", () => {
+    const { rerender } = render(<TargetsExecRow exec={exec(true, true)} canEdit isFuture={false} onEdit={vi.fn()} />);
+    expect(screen.getByText("Inherited")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit target" })).toBeInTheDocument(); // still editable → sets an explicit target
+    rerender(<TargetsExecRow exec={exec(true, false)} canEdit isFuture={false} onEdit={vi.fn()} />);
+    expect(screen.queryByText("Inherited")).not.toBeInTheDocument();
+  });
+
   it("labels 'Set target' for a current unset target, and hides Edit when read-only", () => {
-    const { rerender } = render(<TargetsExecRow exec={exec(false)} canEdit isFuture={false} copied={false} {...handlers()} />);
+    const { rerender } = render(<TargetsExecRow exec={exec(false)} canEdit isFuture={false} onEdit={vi.fn()} />);
     expect(screen.getByRole("button", { name: "Set target" })).toBeInTheDocument();
-    rerender(<TargetsExecRow exec={exec(true)} canEdit={false} isFuture={false} copied={true} {...handlers()} />);
+    rerender(<TargetsExecRow exec={exec(true)} canEdit={false} isFuture={false} onEdit={vi.fn()} />);
     expect(screen.queryByRole("button", { name: "Edit target" })).not.toBeInTheDocument();
-    expect(screen.getByText("Copied ✓")).toBeInTheDocument();
   });
 });

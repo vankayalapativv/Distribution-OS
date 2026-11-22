@@ -4,7 +4,7 @@ import { TargetOnly } from "./target-progress-only";
 import type { PeriodProgress } from "./targets-api";
 
 const progress = (over: Partial<PeriodProgress> = {}): PeriodProgress => ({
-  periodStart: "2026-07-01", oilActual: [], oilTarget: null, ...over,
+  periodStart: "2026-07-01", oilActual: [], oilTarget: null, oilTargetInherited: false, ...over,
 });
 
 describe("TargetOnly", () => {

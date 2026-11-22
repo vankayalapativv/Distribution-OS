@@ -26,13 +26,12 @@ import { useTargetForm } from "./use-target-form";
 
 const exec: ExecutiveTargets = {
   userId: "u1", name: "Asha",
-  perf: { periodStart: "2026-07-01", oilActual: [], oilTarget: [{ segment: "Car", litres: 20 }]},
+  perf: { periodStart: "2026-07-01", oilActual: [], oilTarget: [{ segment: "Car", litres: 20 }], oilTargetInherited: false },
   currentTarget: { oil: [{ segment: "2W", litres: 9 }]},
 };
 const config = { apiBaseUrl: "", authToken: "" };
-const onCopy = vi.fn();
 const onClose = vi.fn();
-const setup = () => renderHook(() => useTargetForm(config, exec, "week", "2026-07-06", onCopy, onClose));
+const setup = () => renderHook(() => useTargetForm(config, exec, "week", "2026-07-06", onClose));
 
 beforeEach(() => { vi.clearAllMocks(); vi.useFakeTimers(); apiRequest.mockResolvedValue({}); });
 afterEach(() => { vi.runOnlyPendingTimers(); vi.useRealTimers(); vi.restoreAllMocks(); });
@@ -44,30 +43,10 @@ describe("useTargetForm", () => {
     expect(result.current.segments["2W"]).toBe(""); // unset → blank
   });
 
-  it("edits a segment and copies form values to the clipboard", () => {
+  it("edits a segment", () => {
     const { result } = setup();
     act(() => result.current.setSegment("Car", "44"));
     expect(result.current.segments.Car).toBe("44");
-    act(() => result.current.handleCopy());
-    expect(onCopy).toHaveBeenCalledWith({ oil: expect.objectContaining({ Car: 44 })});
-    expect(result.current.copied).toBe(true);
-    act(() => vi.advanceTimersByTime(1500));
-    expect(result.current.copied).toBe(false);
-  });
-
-  it("copyFromCurrent + fillFrom overwrite the fields", () => {
-    const { result } = setup();
-    act(() => result.current.copyFromCurrent());
-    expect(result.current.segments["2W"]).toBe("9");
-    act(() => result.current.fillFrom({ oil: { Car: 7 }}));
-    expect(result.current.segments.Car).toBe("7");
-  });
-
-  it("copyFromCurrent is a no-op when the SE has no current target", () => {
-    const noCurrent = { ...exec, currentTarget: null };
-    const { result } = renderHook(() => useTargetForm(config, noCurrent, "week", "2026-07-06", onCopy, onClose));
-    act(() => result.current.copyFromCurrent());
-    expect(result.current.segments.Car).toBe("20"); // unchanged from the seed
   });
 
   it("save() PUTs the numeric payload and closes", async () => {

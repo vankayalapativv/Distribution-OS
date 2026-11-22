@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ExecutiveTargets, TargetValues } from "./targets-api";
+import type { ExecutiveTargets } from "./targets-api";
 import type { TargetsPanelState } from "./use-targets-panel";
 
 vi.mock("@/components/ui/popover", () => ({
@@ -22,14 +22,12 @@ vi.mock("./period-toggle", () => ({
 
 import { TargetsPanelHeader } from "./targets-panel-header";
 
-const clip: TargetValues = { oil: {}};
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const state = (over: any): TargetsPanelState => ({
   period: "week", selectedStart: new Date(2026, 6, 6), label: "Week of 06 Jul 2026",
   isFuture: false, isPast: false, isCurrent: true, canEdit: true,
-  clipboard: null, executives: [{ userId: "u1" }] as ExecutiveTargets[],
+  executives: [{ userId: "u1" }] as ExecutiveTargets[],
   step: vi.fn(), jumpTo: vi.fn(), goToCurrent: vi.fn(), changePeriod: vi.fn(),
-  setBulkError: vi.fn(), setConfirmAll: vi.fn(),
   ...over,
 }) as TargetsPanelState;
 
@@ -56,17 +54,9 @@ describe("TargetsPanelHeader", () => {
     expect(p.goToCurrent).toHaveBeenCalled();
   });
 
-  it("shows the Past badge; hides Paste-to-all without a clipboard", () => {
+  it("shows the Past badge for a past period", () => {
     render(<TargetsPanelHeader p={state({ isPast: true, isCurrent: false, canEdit: false })} />);
     expect(screen.getByText("Past")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Paste to all/ })).not.toBeInTheDocument();
-  });
-
-  it("Paste-to-all opens the confirm when a clipboard is set", () => {
-    const p = state({ clipboard: clip });
-    render(<TargetsPanelHeader p={p} />);
-    fireEvent.click(screen.getByRole("button", { name: /Paste to all/ }));
-    expect(p.setConfirmAll).toHaveBeenCalledWith(true);
-    expect(p.setBulkError).toHaveBeenCalledWith(null);
   });
 });

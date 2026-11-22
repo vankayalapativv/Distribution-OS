@@ -1,19 +1,13 @@
 "use client";
 
-import { Skeleton } from "@/components/ui/skeleton";
 import { TargetsExecRow } from "./targets-exec-row";
+import { TargetsExecSkeleton } from "./targets-exec-skeleton";
 import type { TargetsPanelState } from "./use-targets-panel";
 
 /** The panel body: loading / error / empty states, else one row per executive. */
 export function TargetsExecList({ p }: { readonly p: TargetsPanelState }) {
   if (p.query.isLoading) {
-    return (
-      <div className="space-y-4 p-5">
-        {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-16 w-full rounded-lg" />
-        ))}
-      </div>
-    );
+    return <TargetsExecSkeleton />;
   }
   if (p.query.isError) {
     return (
@@ -40,9 +34,7 @@ export function TargetsExecList({ p }: { readonly p: TargetsPanelState }) {
           exec={exec}
           canEdit={p.canEdit}
           isFuture={p.isFuture}
-          copied={p.copiedId === exec.userId}
           onEdit={() => p.setEditing(exec)}
-          onCopy={() => p.copyRow(exec)}
         />
       ))}
     </div>

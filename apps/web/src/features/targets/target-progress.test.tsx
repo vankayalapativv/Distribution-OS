@@ -10,6 +10,7 @@ const progress = (over: Partial<PeriodProgress> = {}): PeriodProgress => ({
   periodStart: "2026-07-01",
   oilActual: [{ segment: "Car", litres: 30 }],
   oilTarget: [{ segment: "Car", litres: 60 }],
+  oilTargetInherited: false,
       ...over,
 });
 

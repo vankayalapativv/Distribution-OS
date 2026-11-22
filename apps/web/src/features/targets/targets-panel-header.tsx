@@ -1,17 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarIcon, ChevronLeft, ChevronRight, ClipboardPaste } from "lucide-react";
+import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LazyCalendar } from "@/components/ui/lazy-calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PeriodToggle } from "./period-toggle";
 import type { TargetsPanelState } from "./use-targets-panel";
 
-/** The panel's top bar: period nav + jump calendar + status badge + paste-to-all + toggle. */
+/** The panel's top bar: period nav + jump calendar + status badge + toggle. */
 export function TargetsPanelHeader({ p }: { readonly p: TargetsPanelState }) {
   const [jumpOpen, setJumpOpen] = useState(false);
-  const showPasteAll = p.canEdit && !!p.clipboard && p.executives.length > 0;
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3.5">
@@ -45,11 +44,6 @@ export function TargetsPanelHeader({ p }: { readonly p: TargetsPanelState }) {
         ) : null}
       </div>
       <div className="flex items-center gap-2">
-        {showPasteAll ? (
-          <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => { p.setBulkError(null); p.setConfirmAll(true); }}>
-            <ClipboardPaste className="size-3.5" /> Paste to all
-          </Button>
-        ) : null}
         <PeriodToggle period={p.period} onChange={p.changePeriod} />
       </div>
     </div>

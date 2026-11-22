@@ -49,6 +49,9 @@ export interface PeriodPerformance {
   periodStart: string;
   oilActual: SegmentLitres[];
   oilTarget: SegmentLitres[] | null;
+  /** True when `oilTarget` was carried forward from an earlier period (the latest
+   *  non-zero target set at or before this period), not set for this exact one. */
+  oilTargetInherited: boolean;
 }
 
 export interface TargetUpsertInput {
@@ -134,22 +137,43 @@ async function currentPeriods(sql: SqlClient) {
   };
 }
 
-/** This SE's saved segment oil targets for the current periods. */
+/**
+ * This SE's EFFECTIVE segment oil targets for the current week + month — the most
+ * recent target set at or before the current period (so a target carries forward
+ * until a newer one supersedes it). A fully-zero target is skipped (0 = "no
+ * target", and it does not block an earlier non-zero target from carrying). Flags
+ * `inherited` when the effective target was set for an earlier period.
+ */
 async function getTargetsFor(sql: SqlClient, userId: string) {
   const rows = (await sql`
-    /* get_current_targets */
-    select
-      t.period_type as "periodType",
-      st.segment as "segment",
-      st.target_litres as "litres"
-    from se_targets t
-    left join se_segment_targets st on st.se_target_id = t.id
-    where t.user_id = ${userId}::uuid
-      and (
-        (t.period_type = 'week'  and t.period_start = date_trunc('week',  (now() at time zone 'Asia/Kolkata')::date)::date)
-        or
-        (t.period_type = 'month' and t.period_start = date_trunc('month', (now() at time zone 'Asia/Kolkata')::date)::date)
-      )
+    /* get_effective_targets */
+    with periods as (
+      select
+        date_trunc('week',  (now() at time zone 'Asia/Kolkata')::date)::date as wstart,
+        date_trunc('month', (now() at time zone 'Asia/Kolkata')::date)::date as mstart
+    ),
+    eff as (
+      select distinct on (t.period_type)
+        t.id, t.period_type,
+        (t.period_type = 'week'  and t.period_start < p.wstart)
+          or (t.period_type = 'month' and t.period_start < p.mstart) as inherited
+      from se_targets t
+      cross join periods p
+      where t.user_id = ${userId}::uuid
+        and (
+          (t.period_type = 'week'  and t.period_start <= p.wstart)
+          or (t.period_type = 'month' and t.period_start <= p.mstart)
+        )
+        and exists (
+          select 1 from se_segment_targets st
+          where st.se_target_id = t.id and st.target_litres > 0
+        )
+      order by t.period_type, t.period_start desc
+    )
+    select eff.period_type as "periodType", eff.inherited as "inherited",
+      st.segment as "segment", st.target_litres as "litres"
+    from eff
+    join se_segment_targets st on st.se_target_id = eff.id
   `) as Row[];
 
   function build(periodType: "week" | "month") {
@@ -160,9 +184,7 @@ async function getTargetsFor(sql: SqlClient, userId: string) {
       const seg = str(r.segment);
       if (seg) map.set(seg, num(r.litres));
     }
-    return {
-      oil: fillSegments(map),
-    };
+    return { oil: fillSegments(map), inherited: forPeriod[0].inherited === true };
   }
   return { week: build("week"), month: build("month") };
 }
@@ -218,11 +240,13 @@ export async function getMyPerformance(sql: SqlClient, context: { userId: string
     periodStart: periods.weekStart,
     oilActual: fillSegments(oil.week),
     oilTarget: targets.week?.oil ?? null,
+    oilTargetInherited: targets.week?.inherited ?? false,
   };
   const month: PeriodPerformance = {
     periodStart: periods.monthStart,
     oilActual: fillSegments(oil.month),
     oilTarget: targets.month?.oil ?? null,
+    oilTargetInherited: targets.month?.inherited ?? false,
   };
 
   return {
@@ -311,34 +335,53 @@ interface PeriodTarget {
   userId: string;
   name: string;
   oil: SegmentLitres[];
+  /** The effective target was set for an earlier period and carried forward. */
+  inherited: boolean;
 }
 
-/** Every SE that has a target for the period (with name), oldest-name order. */
+/**
+ * Every SE's EFFECTIVE target for the period, oldest-name order: per SE, the most
+ * recent NON-ZERO target with `period_start <= periodStart` (so a target carries
+ * forward until superseded; a fully-zero target is ignored, 0 = "no target").
+ * `inherited` = that target was set for an earlier period than the one requested.
+ */
 async function getAllTargetsForPeriod(
   sql: SqlClient,
   periodType: "week" | "month",
   periodStart: string,
 ): Promise<PeriodTarget[]> {
   const rows = (await sql`
-    /* targets_all_for_period */
+    /* targets_effective_for_period */
+    with eff as (
+      select distinct on (t.user_id)
+        t.id, t.user_id, (t.period_start < ${periodStart}::date) as inherited
+      from se_targets t
+      where t.period_type = ${periodType}
+        and t.period_start <= ${periodStart}::date
+        and exists (
+          select 1 from se_segment_targets st
+          where st.se_target_id = t.id and st.target_litres > 0
+        )
+      order by t.user_id, t.period_start desc
+    )
     select
-      t.user_id as "userId",
+      eff.user_id as "userId",
       u.name as "name",
+      eff.inherited as "inherited",
       st.segment as "segment",
       st.target_litres as "litres"
-    from se_targets t
-    join users u on u.id = t.user_id
-    left join se_segment_targets st on st.se_target_id = t.id
-    where t.period_type = ${periodType} and t.period_start = ${periodStart}::date
+    from eff
+    join users u on u.id = eff.user_id
+    join se_segment_targets st on st.se_target_id = eff.id
     order by u.name
   `) as Row[];
   const order: string[] = [];
-  const info = new Map<string, { name: string }>();
+  const info = new Map<string, { name: string; inherited: boolean }>();
   const segMaps = new Map<string, Map<string, number>>();
   for (const r of rows) {
     const uid = str(r.userId);
     if (!info.has(uid)) {
-      info.set(uid, { name: str(r.name) });
+      info.set(uid, { name: str(r.name), inherited: r.inherited === true });
       segMaps.set(uid, new Map());
       order.push(uid);
     }
@@ -349,6 +392,7 @@ async function getAllTargetsForPeriod(
     userId: uid,
     name: info.get(uid)!.name,
     oil: fillSegments(segMaps.get(uid)!),
+    inherited: info.get(uid)!.inherited,
   }));
 }
 
@@ -356,8 +400,11 @@ async function getAllTargetsForPeriod(
  * Admin Targets page: SEs' target-vs-actual for ONE selected period. For the
  * current period and any PAST period, real actuals are computed (bounded to
  * that period, same rules as the live metric). Future periods are target-only.
- * Past periods list ONLY the SEs that had a target (pure target-vs-actual);
- * current/future list every active SE (so targets can be set).
+ * Targets are EFFECTIVE (carried forward until superseded), so a period shows the
+ * most recent non-zero target set at or before it, flagged `inherited` when it
+ * came from an earlier period. Past periods list ONLY the SEs that had an
+ * effective target by then; current/future list every active SE (so targets can
+ * be set).
  */
 export async function listExecutiveTargets(
   sql: SqlClient,
@@ -426,6 +473,7 @@ export async function listExecutiveTargets(
         periodStart: requestedStart,
         oilActual: fillSegments(oilByUser.get(se.userId) ?? new Map()),
         oilTarget: selected?.oil ?? null,
+        oilTargetInherited: selected?.inherited ?? false,
       },
       currentTarget: currentT ? { oil: currentT.oil } : null,
     };

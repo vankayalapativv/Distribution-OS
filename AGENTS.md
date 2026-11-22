@@ -40,7 +40,7 @@ This is a **lubricant distribution management system** — not generic FMCG. The
 ## Deployment Target
 
 - **API**: Cloudflare Workers (`apps/api`) — runs on V8 isolates, not Node.js
-- **Web**: Next.js (self-hosted or Cloudflare Pages)
+- **Web**: Next.js on **Cloudflare Workers via OpenNext** (`@opennextjs/cloudflare`) — worker `distribution-os-web`, live at `distributionos.vardhansystems.in`. **Deploy manually** (no CI deploy) with `pnpm -C apps/web deploy` (= `opennextjs-cloudflare build && wrangler deploy`); takes a few minutes, run it in the background. wrangler is signed in as `vishnuvardhan@vardhansystems.in`.
 - **Database**: Neon serverless PostgreSQL — accessed via `@neondatabase/serverless` driver
 
 **Never suggest Node.js-only libraries for `apps/api`.** Use Web-standard APIs only. The `compatibility_date` in `wrangler.jsonc` governs available APIs.

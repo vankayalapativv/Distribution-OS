@@ -221,3 +221,10 @@ Rules of thumb:
     `TableCell` is keyed.
 - Reference implementation: `src/features/logistics/*` + `apps/api/src/routes/logistics.ts`
   (see `SkeletonRows` and the `pageSize: 8` default).
+- **Row actions = a single ⋮ kebab**, never inline icon buttons. Trailing actions
+  cell is a shadcn `Popover` + `MoreVertical` trigger (`title="Actions"`) with
+  `<button>` menu items (destructive ones in `text-destructive`); the wrapper stops
+  row-click propagation (`onClick`+`onKeyDown`). Reference: `invoice-row-actions-menu.tsx`,
+  `order-row-actions-menu.tsx`, `products-row-actions.tsx`, `expenditure-row-actions.tsx`.
+  Tests must open the menu (`getByTitle("Actions")`) before clicking an item, and
+  re-open before the next (selecting closes it).

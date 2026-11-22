@@ -61,7 +61,10 @@ export function useExpendituresList(actionConfig: ActionConfig) {
   }, [deleting, actionConfig, queryClient]);
 
   const handleEdit = useCallback((entry: Expenditure) => { setEditing(entry); setFormOpen(true); }, []);
-  const columns = useMemo(() => buildExpenditureColumns({ onEdit: handleEdit, onDelete: setDeleting }), [handleEdit]);
+  const columns = useMemo(
+    () => buildExpenditureColumns({ onEdit: handleEdit, onDelete: setDeleting, onViewBill: setBillFor }),
+    [handleEdit],
+  );
 
   const paged = usePagedTable<Expenditure>({
     actionConfig, queryKey: "expenditures", path: "/expenditures", rowsKey: "rows", columns,

@@ -1,4 +1,9 @@
-import { Pencil, Trash2 } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 /** Row handlers for the oil catalogue table. Stock lives on the
  *  dedicated Stock Journal page now, so these are just edit/delete. */
@@ -9,7 +14,11 @@ export interface CatalogueHandlers<T> {
   canManage: boolean;
 }
 
-/** Edit + delete action buttons shared by the catalogue tables. */
+const itemClass =
+  "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-accent disabled:pointer-events-none disabled:opacity-40";
+
+/** Single ⋮ kebab per catalogue row → Edit + Delete. Matches the invoice/order
+ *  row menus. Stops row-click propagation so opening the menu never opens the row. */
 export function RowActions<T>({
   row, onEdit, onDelete, label,
 }: Readonly<{
@@ -18,22 +27,36 @@ export function RowActions<T>({
   onDelete: (row: T) => void;
   label: string;
 }>) {
+  const [open, setOpen] = useState(false);
   return (
-    <>
-      <button
-        onClick={(e) => { e.stopPropagation(); onEdit(row); }}
-        className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        aria-label={`Edit ${label}`}
-      >
-        <Pencil size={14} />
-      </button>
-      <button
-        onClick={(e) => { e.stopPropagation(); onDelete(row); }}
-        className="ml-1 rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-        aria-label={`Delete ${label}`}
-      >
-        <Trash2 size={14} />
-      </button>
-    </>
+    <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          title="Actions"
+          aria-label={`${label} actions`}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <MoreVertical className="size-4" />
+        </PopoverTrigger>
+        <PopoverContent align="end" side="bottom" className="w-40 gap-0.5 p-1.5">
+          <button
+            type="button"
+            aria-label={`Edit ${label}`}
+            className={cn(itemClass, "text-foreground")}
+            onClick={() => { setOpen(false); onEdit(row); }}
+          >
+            <Pencil className="size-4" /> Edit
+          </button>
+          <button
+            type="button"
+            aria-label={`Delete ${label}`}
+            className={cn(itemClass, "text-destructive")}
+            onClick={() => { setOpen(false); onDelete(row); }}
+          >
+            <Trash2 className="size-4" /> Delete
+          </button>
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }

@@ -46,6 +46,7 @@ describe("oilColumns", () => {
   it("shows row actions only when allowed", () => {
     const onEdit = vi.fn();
     const cell = renderCell(oilColumns({ onEdit, onDelete: vi.fn(), canManage: true })[4], product());
+    fireEvent.click(cell.getByTitle("Actions")); // open the ⋮ menu
     fireEvent.click(cell.getByLabelText("Edit product"));
     expect(onEdit).toHaveBeenCalled();
     expect(renderCell(oilColumns({ onEdit, onDelete: vi.fn(), canManage: false })[4], product()).container.textContent).toContain("—");

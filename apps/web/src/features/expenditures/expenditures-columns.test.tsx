@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { buildExpenditureColumns, expenditureSkeleton } from "./expenditures-columns";
 import type { Expenditure } from "./expenditures-api";
@@ -8,7 +8,7 @@ const entry = (over: Partial<Expenditure> = {}): Expenditure => ({
   categoryName: "Rent", type: "compulsory", amount: 5000, paymentMode: "upi", paidTo: "Landlord",
   userId: "u1", userName: "Asha", remarks: null, hasBill: false, createdAt: "", ...over,
 });
-const cols = buildExpenditureColumns({ onEdit: vi.fn(), onDelete: vi.fn() });
+const cols = buildExpenditureColumns({ onEdit: vi.fn(), onDelete: vi.fn(), onViewBill: vi.fn() });
 type CellFn = (ctx: { row: { original: Expenditure }; getValue: () => unknown }) => React.ReactNode;
 const byId = (id: string) => cols.find((c) => (c as { id?: string; accessorKey?: string }).id === id || (c as { accessorKey?: string }).accessorKey === id)!;
 const renderCell = (id: string, e: Expenditure) => {
@@ -47,6 +47,7 @@ describe("buildExpenditureColumns", () => {
     renderCell("expenditureDate", entry());
     expect(screen.getByText(/2026|Jul/)).toBeInTheDocument();
     renderCell("actions", entry());
+    fireEvent.click(screen.getByTitle("Actions")); // open the ⋮ menu
     expect(screen.getByRole("button", { name: "Edit EXP-1" })).toBeInTheDocument();
   });
 

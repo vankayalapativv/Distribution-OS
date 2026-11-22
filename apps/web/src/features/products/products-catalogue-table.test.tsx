@@ -26,23 +26,24 @@ const props = {
 };
 
 describe("CatalogueTable", () => {
-  it("shows the count, the Bulk Import + Add buttons, and wires search", () => {
+  it("shows the count, the + Add button + ⋮ Bulk-Import menu, and wires search", () => {
     render(<CatalogueTable {...props} />);
     expect(screen.getByText("5 products")).toBeInTheDocument();
-    expect(screen.getByText("Bulk Import")).toBeInTheDocument(); // opens the import dialog on click
+    expect(screen.getByText("+ Add product")).toBeInTheDocument();
+    // Bulk Import now lives in the ⋮ header menu (closed by default).
+    expect(screen.queryByText("Bulk Import")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTitle("More actions"));
+    expect(screen.getByText("Bulk Import")).toBeInTheDocument();
     fireEvent.click(screen.getByText("+ Add product"));
     fireEvent.change(screen.getByPlaceholderText("Search by name, brand, or code…"), { target: { value: "5w" } });
     expect(props.onAdd).toHaveBeenCalled();
     expect(hook.setSearch).toHaveBeenCalledWith("5w");
-    // No export/kebab any more.
-    expect(screen.queryByTitle("Actions")).not.toBeInTheDocument();
-    expect(screen.queryByText("Download as PDF")).not.toBeInTheDocument();
   });
 
-  it("hides Add + Bulk Import for a read-only accountant", () => {
+  it("hides Add + the ⋮ menu for a read-only accountant", () => {
     render(<CatalogueTable {...props} canManage={false} />);
     expect(screen.queryByText("+ Add product")).not.toBeInTheDocument();
-    expect(screen.queryByText("Bulk Import")).not.toBeInTheDocument();
+    expect(screen.queryByTitle("More actions")).not.toBeInTheDocument();
   });
 
   it("shows the empty create prompt, and the search-empty message", () => {

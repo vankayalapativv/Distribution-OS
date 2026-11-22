@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/data-table/data-table";
@@ -10,6 +9,7 @@ import { type ActionConfig } from "@/lib/api-client";
 import { BrandFilterSelect } from "./brand-filter-select";
 import { type CatalogueCategory } from "./catalogue-config";
 import { downloadProductsTemplate } from "./products-import";
+import { ProductsHeaderMenu } from "./products-header-menu";
 import { ProductsImportDialog } from "./products-import-dialog";
 import { useCatalogueTable, type CatalogueHandlerProps } from "./use-catalogue-table";
 
@@ -50,14 +50,7 @@ export function CatalogueTable({
       <PageHeader
         title="Products"
         subtitle={t.isLoading ? "Loading…" : countLabel}
-        action={
-          canManage ? (
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setImportOpen(true)}><Upload className="size-4" />Bulk Import</Button>
-              <Button onClick={onAdd}>+ Add product</Button>
-            </div>
-          ) : undefined
-        }
+        action={canManage ? <Button onClick={onAdd}>+ Add product</Button> : undefined}
       />
 
       <div className="flex flex-wrap items-center gap-2.5">
@@ -69,6 +62,11 @@ export function CatalogueTable({
         />
         {t.brandFilterable && (
           <BrandFilterSelect brand={t.brand} onChange={t.setBrand} options={t.brandOptions} />
+        )}
+        {canManage && (
+          <div className="ml-auto">
+            <ProductsHeaderMenu onImport={() => setImportOpen(true)} />
+          </div>
         )}
       </div>
 

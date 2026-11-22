@@ -17,3 +17,7 @@ node_modules
 
 .idea
 .scannerwork
+
+# Local working data — invoice/ledger PDFs pulled down for testing
+# (customer data, never commit)
+*.pdf

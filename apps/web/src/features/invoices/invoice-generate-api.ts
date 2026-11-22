@@ -2,6 +2,7 @@
  *  customer search that feeds its picker (GET /customers?search=). */
 import { apiRequest, type ActionConfig } from "@/lib/api-client";
 import type { OrderDetail } from "@/features/orders/orders-api";
+import type { Sku } from "@/features/stock/stock-api";
 
 /** The chosen customer, as GET /customers/:id already returns it. Only the
  *  invoice-relevant fields are typed here — the "Bill to" card reads identity,
@@ -240,6 +241,20 @@ export function initialFormLines(edit?: InvoiceEditData | null, seed?: OrderInvo
     brand: l.brand, segment: l.segment, hsnCode: l.hsnCode, qty: l.qty, rate: "", mrp: "", discountPct: "0",
     orderItemId: l.orderItemId, maxUnits: l.remainingUnits,
   }));
+}
+
+/** Fill a seeded line's missing segment from the catalogue, so an order→invoice
+ *  line whose order stored no segment still resolves its SKU (the SKU cell is
+ *  gated on segment). Single-segment products only; a multi-segment product (or a
+ *  line that already has a segment, or no product) is left untouched. Returns the
+ *  same array reference when nothing changes, so callers can skip a re-render. */
+export function backfillLineSegments(lines: InvoiceFormLine[], skus: Sku[]): InvoiceFormLine[] {
+  if (!lines.some((l) => l.productId && !l.segment)) return lines;
+  return lines.map((l) => {
+    if (!l.productId || l.segment) return l;
+    const segs = [...new Set(skus.filter((s) => s.productId === l.productId && s.segment).map((s) => s.segment as string))];
+    return segs.length === 1 ? { ...l, segment: segs[0] } : l;
+  });
 }
 
 /** The generate/edit payload: only complete, priced lines, as the API shape. Pure. */

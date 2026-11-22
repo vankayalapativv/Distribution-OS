@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { emptyLineItem, type LineItemDraft } from "./orders-create-helpers";
-import { cascadeLineItem } from "./oil-line-cascade";
+import { cascadeLineItem, segmentForPickedProduct } from "./oil-line-cascade";
 
 /** Owns the oil line-item draft state + handlers. Resets when the dialog opens
  *  — seeded from `initial` in edit mode, or one empty row for a new order. */
@@ -58,11 +58,27 @@ export function useOilLines(open: boolean, initial?: LineItemDraft[]) {
     setProductPopoverOpen((prev) => prev.map((v, i) => (i === index ? false : v)));
   }
 
-  function selectProduct(index: number, productId: string, brand?: string | null) {
-    // Set product + its company in one update (never resets the chosen segment).
+  function selectProduct(
+    index: number,
+    productId: string,
+    brand?: string | null,
+    segments?: readonly string[],
+  ) {
+    // Set product + its company in one update, and — when the product's segments
+    // are known — derive the segment (keeping a still-valid chosen one) so a
+    // directly-picked product never leaves the line segment-less. When segments
+    // are not supplied, the chosen segment is left as-is.
     setLineItems((prev) =>
       prev.map((item, i) =>
-        i === index ? { ...item, productId, packSizeLitres: 0, brand: brand || item.brand } : item,
+        i === index
+          ? {
+              ...item,
+              productId,
+              packSizeLitres: 0,
+              brand: brand || item.brand,
+              segment: segments === undefined ? item.segment : segmentForPickedProduct(item.segment, segments),
+            }
+          : item,
       ),
     );
     closeProductPopover(index);

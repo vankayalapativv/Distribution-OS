@@ -18,7 +18,7 @@ import { InvoiceDateField } from "./invoice-date-field";
 import { InvoiceLineTable } from "./invoice-line-table";
 import { InvoiceGenerateSummary } from "./invoice-generate-summary";
 import {
-  editInvoice, fetchBalancesForSkus, fetchCustomerDetail, fetchNextInvoiceNumber, generateInvoice,
+  backfillLineSegments, editInvoice, fetchBalancesForSkus, fetchCustomerDetail, fetchNextInvoiceNumber, generateInvoice,
   initialFormLines, supplyTypeOf, toGenerateLines,
   type GenerateLine, type InvoiceEditData, type InvoiceFormLine, type OrderInvoiceSeed,
 } from "./invoice-generate-api";
@@ -121,6 +121,17 @@ function InvoiceGenerateInner({ role, actionConfig, seed, edit }: { readonly rol
 
   // Whole catalogue (product × pack) once — feeds the Brand → Segment → SKU → Pack cascade.
   const skuQ = useQuery({ queryKey: ["invoice-skus"], queryFn: () => fetchSkus(actionConfig, "") });
+
+  // Backfill a seeded line's missing segment from the catalogue once SKUs load, so
+  // an order→invoice line whose order stored no segment still resolves its SKU
+  // (the SKU cell is gated on segment). Single-segment products only — a multi-
+  // segment product stays blank for an explicit pick. Guarded setState-during-
+  // render, same pattern as the default-godown selection below.
+  const [segmentsBackfilled, setSegmentsBackfilled] = useState(false);
+  if (!edit && !segmentsBackfilled && (skuQ.data?.length ?? 0) > 0) {
+    setSegmentsBackfilled(true);
+    setLines((ls) => backfillLineSegments(ls, skuQ.data ?? []));
+  }
 
   // Provisional next number for the top of the Invoice details card (new invoices
   // only — an edit already has its real, immutable number).

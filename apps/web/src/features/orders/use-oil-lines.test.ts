@@ -90,4 +90,15 @@ describe("useOilLines", () => {
     act(() => result.current.selectProduct(0, "p10")); // no brand → keep existing
     expect(result.current.lineItems[0].brand).toBe("Savsol");
   });
+
+  it("selectProduct auto-sets the segment from the product's segments when provided", () => {
+    const { result } = renderHook(() => useOilLines(true, [draft({ brand: "Fuchs" })]));
+    act(() => result.current.selectProduct(0, "p1", "Fuchs", ["Gear Oil"])); // sole segment → adopted
+    expect(result.current.lineItems[0]).toMatchObject({ productId: "p1", segment: "Gear Oil" });
+    act(() => result.current.selectProduct(0, "p2", "Fuchs", ["3W", "Commercial"])); // multi + no valid current → blank
+    expect(result.current.lineItems[0].segment).toBe("");
+    act(() => result.current.updateLineItem(0, "segment", "Commercial"));
+    act(() => result.current.selectProduct(0, "p3", "Fuchs", ["3W", "Commercial"])); // keeps a still-valid choice
+    expect(result.current.lineItems[0].segment).toBe("Commercial");
+  });
 });

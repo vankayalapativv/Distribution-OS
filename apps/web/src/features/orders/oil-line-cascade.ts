@@ -24,3 +24,15 @@ export function cascadeLineItem(
   }
   return { ...item, [field]: value };
 }
+
+/**
+ * The segment to apply when a product is picked directly (bypassing the segment
+ * step): keep the current segment if the product supports it, otherwise adopt the
+ * product's sole segment, otherwise leave it blank so a multi-segment product is
+ * disambiguated explicitly. Stops segment-less order lines (which break the
+ * order→invoice SKU resolution and per-segment target actuals).
+ */
+export function segmentForPickedProduct(current: string, productSegments: readonly string[]): string {
+  if (current && productSegments.includes(current)) return current;
+  return productSegments.length === 1 ? productSegments[0] : "";
+}

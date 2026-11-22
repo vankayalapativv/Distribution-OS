@@ -13,7 +13,7 @@ interface OrderOilProductComboboxProps {
   readonly onRegisterSearchInput: (index: number, el: HTMLInputElement | null) => void;
   readonly onOpenProductPopover: (index: number) => void;
   readonly onCloseProductPopover: (index: number) => void;
-  readonly onSelectProduct: (index: number, productId: string, brand?: string | null) => void;
+  readonly onSelectProduct: (index: number, productId: string, brand?: string | null, segments?: readonly string[]) => void;
   readonly onProductSearchChange: (index: number, value: string) => void;
 }
 
@@ -59,7 +59,7 @@ export function OrderOilProductCombobox({
       items={filteredProducts}
       getKey={(p) => p.id}
       isSelected={(p) => item.productId === p.id}
-      onSelect={(p) => onSelectProduct(index, p.id, p.brand)}
+      onSelect={(p) => onSelectProduct(index, p.id, p.brand, p.segments)}
       renderItem={(p) => p.productName}
       itemClassName="flex w-full items-center px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
       emptyText={item.segment ? `No products for "${item.segment}"` : "No products found"}

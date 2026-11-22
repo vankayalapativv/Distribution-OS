@@ -83,7 +83,7 @@ describe("OrderOilProductCombobox", () => {
   it("selecting an item and typing search report with the row index", () => {
     const h = setup(emptyLineItem());
     fireEvent.click(screen.getByText("Titan GT1"));
-    expect(h.onSelectProduct).toHaveBeenCalledWith(0, "p1", "Fuchs");
+    expect(h.onSelectProduct).toHaveBeenCalledWith(0, "p1", "Fuchs", ["Car"]);
     fireEvent.change(screen.getByTestId("search"), { target: { value: "gt1" } });
     expect(h.onProductSearchChange).toHaveBeenCalledWith(0, "gt1");
     expect(h.onRegisterSearchInput).toHaveBeenCalled();

@@ -9,10 +9,17 @@ vi.mock("@/components/data-table/data-table", () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   DataTable: ({ empty }: any) => <div data-testid="table">{empty}</div>,
 }));
+vi.mock("./products-import-control", () => ({
+  ProductsImportControl: () => <div data-testid="import-control" />,
+}));
+vi.mock("./brand-filter-select", () => ({
+  BrandFilterSelect: () => <div data-testid="brand-filter" />,
+}));
 
 const hook = {
   search: "", setSearch: vi.fn(), appliedSearch: "",
-  columns: [1, 2], skeleton: [1, 2], noun: "oil",
+  brand: "__all__", setBrand: vi.fn(), brandFilterable: false, brandOptions: [] as string[],
+  columns: [1, 2], skeleton: [1, 2],
   table: {}, total: 5, pageCount: 1, pageSize: 8, isLoading: false, showSkeleton: false, error: null as { message: string } | null,
 };
 vi.mock("./use-catalogue-table", () => ({ useCatalogueTable: () => hook }));
@@ -26,27 +33,44 @@ const props = {
 };
 
 describe("CatalogueTable", () => {
-  it("shows the count, the + Add button + ⋮ Bulk-Import menu, and wires search", () => {
+  it("shows the count, + Add button and the ⋮ import control; wires search", () => {
     render(<CatalogueTable {...props} />);
     expect(screen.getByText("5 products")).toBeInTheDocument();
     expect(screen.getByText("+ Add product")).toBeInTheDocument();
-    // Bulk Import now lives in the ⋮ header menu (closed by default).
-    expect(screen.queryByText("Bulk Import")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTitle("More actions"));
-    expect(screen.getByText("Bulk Import")).toBeInTheDocument();
+    expect(screen.getByTestId("import-control")).toBeInTheDocument();
     fireEvent.click(screen.getByText("+ Add product"));
     fireEvent.change(screen.getByPlaceholderText("Search by name, brand, or code…"), { target: { value: "5w" } });
     expect(props.onAdd).toHaveBeenCalled();
     expect(hook.setSearch).toHaveBeenCalledWith("5w");
   });
 
-  it("hides Add + the ⋮ menu for a read-only accountant", () => {
+  it("hides + Add and the import control for a read-only accountant", () => {
     render(<CatalogueTable {...props} canManage={false} />);
     expect(screen.queryByText("+ Add product")).not.toBeInTheDocument();
-    expect(screen.queryByTitle("More actions")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("import-control")).not.toBeInTheDocument();
   });
 
-  it("shows the empty create prompt, and the search-empty message", () => {
+  it("singularises the count and shows a loading subtitle", () => {
+    hook.total = 1;
+    const { rerender } = render(<CatalogueTable {...props} />);
+    expect(screen.getByText("1 product")).toBeInTheDocument();
+    hook.isLoading = true;
+    rerender(<CatalogueTable {...props} />);
+    expect(screen.getByText("Loading…")).toBeInTheDocument();
+    hook.total = 5;
+    hook.isLoading = false;
+  });
+
+  it("renders the brand filter only when brandFilterable", () => {
+    const { rerender } = render(<CatalogueTable {...props} />);
+    expect(screen.queryByTestId("brand-filter")).not.toBeInTheDocument();
+    hook.brandFilterable = true;
+    rerender(<CatalogueTable {...props} />);
+    expect(screen.getByTestId("brand-filter")).toBeInTheDocument();
+    hook.brandFilterable = false;
+  });
+
+  it("shows the empty create prompt and the search-empty message", () => {
     hook.appliedSearch = "";
     const { rerender } = render(<CatalogueTable {...props} />);
     expect(screen.getByText(/Add your first product/)).toBeInTheDocument();

@@ -9,6 +9,26 @@ vi.mock("@/lib/api-client", async () => {
   return { ...actual, apiRequest: (...a: unknown[]) => apiRequest(...a) };
 });
 vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => ({ invalidateQueries }) }));
+vi.mock("@/components/ui/dialog", () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Dialog: (p: any) => (
+    <div>
+      <button data-testid="oc-open" onClick={() => p.onOpenChange(true)} />
+      <button data-testid="oc-close" onClick={() => p.onOpenChange(false)} />
+      {p.open && p.children}
+    </div>
+  ),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  DialogContent: (p: any) => <div>{p.children}</div>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  DialogBody: (p: any) => <div>{p.children}</div>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  DialogHeader: (p: any) => <div>{p.children}</div>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  DialogFooter: (p: any) => <div>{p.children}</div>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  DialogTitle: (p: any) => <div>{p.children}</div>,
+}));
 
 import { ProductDeleteDialog } from "./product-delete-dialog";
 
@@ -50,9 +70,11 @@ describe("ProductDeleteDialog", () => {
     expect(apiRequest).not.toHaveBeenCalled();
   });
 
-  it("dismissing via the dialog (Escape) clears any error and closes", () => {
+  it("forwards both open-change directions (clearing the error only on close)", () => {
     render(<ProductDeleteDialog target={target} onOpenChange={onOpenChange} actionConfig={config} />);
-    fireEvent.keyDown(document.body, { key: "Escape" });
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    fireEvent.click(screen.getByTestId("oc-open"));   // next=true → no setError, forwards true
+    fireEvent.click(screen.getByTestId("oc-close"));  // next=false → clears error, forwards false
+    expect(onOpenChange).toHaveBeenNthCalledWith(1, true);
+    expect(onOpenChange).toHaveBeenNthCalledWith(2, false);
   });
 });

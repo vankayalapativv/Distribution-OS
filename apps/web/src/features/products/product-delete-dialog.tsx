@@ -28,11 +28,11 @@ export function ProductDeleteDialog({
   const [error, setError] = useState<string | null>(null);
 
   async function handleDelete() {
-    if (!target) return;
+    // The Delete button only renders while the dialog is open (target set).
     setIsDeleting(true);
     setError(null);
     try {
-      await apiRequest(actionConfig, "DELETE", `/products/${target.id}`);
+      await apiRequest(actionConfig, "DELETE", `/products/${target!.id}`);
       void queryClient.invalidateQueries({ queryKey: ["products"] });
       onOpenChange(false);
     } catch (err) {

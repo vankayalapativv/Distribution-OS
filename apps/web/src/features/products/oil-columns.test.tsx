@@ -22,6 +22,7 @@ describe("oilColumns", () => {
 
   it("renders name, brand and segments (with empty fallbacks)", () => {
     expect(renderCell(cols[0], product()).container.textContent).toContain("Fuchs 5W30");
+    expect(renderCell(cols[1], product({ brand: "Fuchs" })).container.textContent).toContain("Fuchs");
     expect(renderCell(cols[1], product({ brand: "" })).container.textContent).toContain("—");
     expect(renderCell(cols[2], product({ segments: [] })).container.textContent).toContain("—");
     expect(renderCell(cols[2], product({ segments: ["Cars", "2W"] })).container.textContent).toContain("2W");
@@ -38,6 +39,8 @@ describe("oilColumns", () => {
     expect(text).toContain("5 L");
     expect(text).toContain("20 L");
     expect(renderCell(cols[3], product({ packs: [] })).container.textContent).toContain("—");
+    // packs absent → the `?? []` fallback also renders a dash.
+    expect(renderCell(cols[3], product({ packs: undefined as unknown as ManagedProduct["packs"] })).container.textContent).toContain("—");
   });
 
   it("shows row actions only when allowed", () => {

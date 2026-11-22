@@ -47,4 +47,20 @@ describe("useCatalogueTable", () => {
     expect(replace).toHaveBeenCalledWith("/products?search=5W30", { scroll: false });
   });
 
+  it("does not rewrite the URL when the trimmed search already matches the filter", () => {
+    setup();
+    act(() => vi.advanceTimersByTime(350)); // initial effect: "" === "" → no setFilter
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("writes a chosen brand to the URL and clears it for null / All brands", () => {
+    const { result } = setup();
+    act(() => result.current.setBrand("Fuchs"));
+    expect(replace).toHaveBeenLastCalledWith("/products?brand=Fuchs", { scroll: false });
+    act(() => result.current.setBrand("__all__"));
+    expect(replace).toHaveBeenLastCalledWith("/products", { scroll: false });
+    act(() => result.current.setBrand(null));
+    expect(replace).toHaveBeenLastCalledWith("/products", { scroll: false });
+  });
+
 });

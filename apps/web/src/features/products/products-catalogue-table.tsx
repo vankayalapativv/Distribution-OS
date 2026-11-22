@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/data-table/data-table";
@@ -8,9 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { type ActionConfig } from "@/lib/api-client";
 import { BrandFilterSelect } from "./brand-filter-select";
 import { type CatalogueCategory } from "./catalogue-config";
-import { downloadProductsTemplate } from "./products-import";
-import { ProductsHeaderMenu } from "./products-header-menu";
-import { ProductsImportDialog } from "./products-import-dialog";
+import { ProductsImportControl } from "./products-import-control";
 import { useCatalogueTable, type CatalogueHandlerProps } from "./use-catalogue-table";
 
 // Re-exported so existing imports keep working; the constants now live in ./catalogue-config.
@@ -31,18 +28,6 @@ export function CatalogueTable({
   readonly onAdd: () => void;
 }) {
   const t = useCatalogueTable(category, actionConfig, canManage, handlers);
-  const [importOpen, setImportOpen] = useState(false);
-  const [tplBusy, setTplBusy] = useState(false);
-
-  const downloadTemplate = async () => {
-    setTplBusy(true);
-    try {
-      await downloadProductsTemplate(t.brandOptions);
-    } finally {
-      setTplBusy(false);
-    }
-  };
-
   const countLabel = `${t.total} product${t.total !== 1 ? "s" : ""}`;
 
   return (
@@ -65,7 +50,7 @@ export function CatalogueTable({
         )}
         {canManage && (
           <div className="ml-auto">
-            <ProductsHeaderMenu onImport={() => setImportOpen(true)} />
+            <ProductsImportControl actionConfig={actionConfig} brandOptions={t.brandOptions} />
           </div>
         )}
       </div>
@@ -94,16 +79,6 @@ export function CatalogueTable({
           )
         }
       />
-
-      {canManage && importOpen && (
-        <ProductsImportDialog
-          actionConfig={actionConfig}
-          open
-          onClose={() => setImportOpen(false)}
-          onDownloadTemplate={() => void downloadTemplate()}
-          downloading={tplBusy}
-        />
-      )}
     </>
   );
 }

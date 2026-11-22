@@ -29,7 +29,7 @@ export function useCatalogueTable(category: CatalogueCategory, actionConfig: Act
   const appliedSearch = url.filters.search;
   // Brand filter for the oils catalogue.
   const brandFilterable = category === "oils";
-  const appliedBrand = brandFilterable ? url.filters.brand : "";
+  const appliedBrand = url.filters.brand;
   const [search, setSearch] = useState(appliedSearch);
 
   // Brand options for the switch (e.g. Fuchs / Savsol) — only fetched for oils.

@@ -83,12 +83,25 @@ export async function requireCapability(
  * DENIES the two configurable roles; SUPER_ADMIN, SALES_EXECUTIVE, LOGISTICS and
  * unauthenticated requests pass straight through (their own route guards still
  * apply). Apply via `v1.use("/<path>/*", sectionGuard("<sectionKey>"))`.
+ *
+ * `readExemptSuffixes` lists GET paths under the guarded prefix that must stay
+ * reachable even when the section is off — cross-cutting read-only lookups that
+ * another section depends on. Example: the invoice-generate form (an `invoices`
+ * feature) reads the godown list + on-hand from `/stock/*`, but ACCOUNTANT has
+ * `section:stock` off by default; without this it can't bill an order. Only GET
+ * is exempted (writes stay guarded), and each endpoint's own
+ * `requireRole`/`requireCapability` still governs who may call it.
  */
-export function sectionGuard(sectionKey: string): MiddlewareHandler<ApiEnv> {
+export function sectionGuard(
+  sectionKey: string,
+  readExemptSuffixes: readonly string[] = [],
+): MiddlewareHandler<ApiEnv> {
   const key = `section:${sectionKey}`;
   return async (c, next) => {
     const auth = c.var.auth;
-    if (auth?.isAuthenticated && isConfigurableRole(auth.role)) {
+    const exempt =
+      c.req.method === "GET" && readExemptSuffixes.some((s) => c.req.path.endsWith(s));
+    if (!exempt && auth?.isAuthenticated && isConfigurableRole(auth.role)) {
       const perms = await effectivePermissionsForRole(getSqlClient(c), auth.role);
       if (perms[key] !== true) {
         throw new ApiError(

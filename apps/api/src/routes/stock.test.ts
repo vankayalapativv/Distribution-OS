@@ -144,8 +144,23 @@ describe("stock routes — writes", () => {
 });
 
 describe("stock routes — section guard", () => {
-  it("403s MANAGER and ACCOUNTANT by default (section:stock off)", async () => {
-    expect((await get("/locations", "manager")).status).toBe(403);
+  it("403s MANAGER and ACCOUNTANT on non-exempt stock reads (section:stock off)", async () => {
+    expect((await get("/balances", "manager")).status).toBe(403);
     expect((await get("/balances", "accountant")).status).toBe(403);
+    expect((await get("/movements", "accountant")).status).toBe(403);
+  });
+  it("exempts the invoice-generate read lookups so ACCOUNTANT can bill an order", async () => {
+    // GET locations/skus/balances-for-skus stay reachable despite section:stock off,
+    // so the invoice-generate form (an `invoices` feature) can load the godown list +
+    // per-line on-hand. (Regression: ACCOUNTANT could not generate invoices.)
+    expect((await get("/locations", "accountant")).status).toBe(200);
+    expect((await get("/skus", "accountant")).status).toBe(200);
+    expect((await get("/balances/for-skus?locationId=l1&skus=p1%7C5", "accountant")).status).toBe(200);
+    expect((await get("/locations", "manager")).status).toBe(200);
+  });
+  it("still section-guards WRITES to an exempt path (POST /locations stays blocked)", async () => {
+    // MANAGER has the stock.manage capability but section:stock off → the section
+    // guard (non-GET) must still block the write.
+    expect((await post("/locations", { name: "X", isDefault: false }, "POST", "manager")).status).toBe(403);
   });
 });

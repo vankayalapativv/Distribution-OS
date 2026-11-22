@@ -158,7 +158,14 @@ v1.use("/orders/*", sectionGuard("orders"));
 v1.use("/products/*", sectionGuard("products"));
 v1.use("/invoices/*", sectionGuard("invoices"));
 v1.use("/invoice-files/*", sectionGuard("invoices"));
-v1.use("/stock/*", sectionGuard("stock"));
+// The invoice-generate form (an `invoices` feature) reads these three from
+// `/stock/*` to bill an order; ACCOUNTANT has `section:stock` off by default, so
+// keep these GET lookups reachable or they can't generate invoices. Writes and
+// the rest of the Stock Journal stay section-gated.
+v1.use(
+  "/stock/*",
+  sectionGuard("stock", ["/stock/locations", "/stock/skus", "/stock/balances/for-skus"]),
+);
 v1.use("/collections/*", sectionGuard("collections"));
 v1.use("/alerts/*", sectionGuard("alerts"));
 v1.use("/tasks/*", sectionGuard("tasks"));

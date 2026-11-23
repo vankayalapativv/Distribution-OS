@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { canAccessSection, dashboardForRole, requireSessionRole } from "../../../features/auth/auth-role";
 import { getActionConfig, listCollectors } from "../../../features/collections/collections-api";
-import { listCustomers } from "../../../features/customers/customers-api";
+import { type Customer, listCustomers } from "../../../features/customers/customers-api";
 import { CollectionsList } from "../../../features/collections/collections-list";
 import { requireAuthToken } from "../../../features/auth/server-session";
 
@@ -29,8 +29,13 @@ export default async function CollectionsPage({
   // collectors list (which that endpoint scopes to those roles) is skipped
   // for ACCOUNTANT.
   const canCreate = auth.role === "SUPER_ADMIN" || auth.role === "MANAGER";
+  // A role can hold Collections without the Customers section; fetch customers
+  // only when permitted so the /customers 403 can't crash the page.
+  const customersFetch: Promise<Customer[]> = canAccessSection(auth, "customers")
+    ? listCustomers()
+    : Promise.resolve([]);
   const [customers, collectors] = await Promise.all([
-    listCustomers(),
+    customersFetch,
     canCreate ? listCollectors() : Promise.resolve([]),
   ]);
   const config = getActionConfig();

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { canAccessSection, dashboardForRole, requireSessionRole } from "../../../features/auth/auth-role";
 import {
+  type CustomerLite,
   getActionConfig,
   listCustomersLite,
   listTaskAssignees,
@@ -19,10 +20,16 @@ export default async function TasksPage() {
     redirect(dashboardForRole(auth.role));
   }
 
+  // The task form links to customers, but a role can hold Tasks without the
+  // Customers section. Fetch customers only when permitted — otherwise the
+  // /customers call 403s and crashes the page; fall back to an empty list.
+  const customersFetch: Promise<CustomerLite[]> = canAccessSection(auth, "customers")
+    ? listCustomersLite()
+    : Promise.resolve([]);
   const [tasks, assignees, customers] = await Promise.all([
     listTasks(),
     listTaskAssignees(),
-    listCustomersLite(),
+    customersFetch,
   ]);
   const config = getActionConfig();
 

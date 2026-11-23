@@ -15,9 +15,21 @@
         "EXPO_PUBLIC_NEON_AUTH_BASE_URL": "https://ep-curly-mouse-b3m19z98.neonauth.c-4.ap-southeast-1.aws.neon.tech/neondb/auth",
         "EXPO_PUBLIC_NEON_AUTH_ORIGIN": "http://localhost:3000"
       }
+    },
+    "playstore": {
+      "extends": "production",
+      "android": {
+        "buildType": "app-bundle"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "production",
+        "releaseStatus": "draft"
+      }
+    }
   }
 }

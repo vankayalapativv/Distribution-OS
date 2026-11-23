@@ -45,5 +45,8 @@ example
 # Firebase service-account key (secret — uploaded to EAS, never committed)
 fcm-service-key.json
 
+# Google Play Developer API service-account key for `eas submit` (secret — never committed)
+google-play-service-account.json
+
 
 coverage/

@@ -69,6 +69,16 @@ export interface ReassignPreview {
   salesExecutives: { id: string; name: string }[];
 }
 
+export interface ReassignListItem {
+  id: string;
+  legalName: string;
+  customerCode: string | null;
+  city: string | null;
+  owner: { id: string; name: string } | null;
+  /** Total records attributed to the current owner = exactly what a move re-attributes. */
+  recordCount: number;
+}
+
 const ZERO_COUNTS: MovedCounts = {
   orders: 0,
   collections: 0,
@@ -190,6 +200,42 @@ async function loadCustomerOwner(sql: SqlClient, customerId: string) {
     ownerId: nullStr(row.ownerId),
     ownerName: nullStr(row.ownerName),
   };
+}
+
+/**
+ * Every customer with its current owner + the count of records attributed to that
+ * owner — the browse-and-pick list for the reassign page. The count uses the SAME
+ * 7-category rule as the per-customer preview/move, so the number a row shows is
+ * exactly what reassigning that customer would re-attribute. One set-based query
+ * (correlated counts, not N round-trips); RLS scopes it to the enterprise.
+ */
+export async function listReassignCustomers(sql: SqlClient): Promise<ReassignListItem[]> {
+  const rows = (await sql`
+    /* reassign_customer_list */
+    select
+      c.id, c.legal_name as "legalName", c.customer_code as "customerCode",
+      c.address_city as "city", c.created_by as "ownerId", ow.name as "ownerName",
+      (
+        (select count(*) from orders o where o.customer_id = c.id and (o.sales_executive_id = c.created_by or o.created_by = c.created_by))
+      + (select count(*) from collections col where col.customer_id = c.id and (col.collected_by_user_id = c.created_by or col.created_by = c.created_by))
+      + (select count(*) from invoices i where i.customer_id = c.id and (i.sales_executive_id = c.created_by or i.created_by = c.created_by))
+      + (select count(*) from visits v where v.customer_id = c.id and v.executive_id = c.created_by)
+      + (select count(*) from customer_photos p where p.customer_id = c.id and p.uploaded_by = c.created_by)
+      + (select count(*) from customer_notes n where n.customer_id = c.id and (n.created_by = c.created_by or n.edited_by = c.created_by))
+      + (select count(*) from beat_customer_days b where b.customer_id = c.id and b.executive_id = c.created_by)
+      )::int as "recordCount"
+    from customers c
+    left join users ow on ow.id = c.created_by
+    order by c.legal_name
+  `) as Row[];
+  return rows.map((r) => ({
+    id: str(r.id),
+    legalName: str(r.legalName),
+    customerCode: nullStr(r.customerCode),
+    city: nullStr(r.city),
+    owner: nullStr(r.ownerId) ? { id: str(r.ownerId), name: str(r.ownerName) } : null,
+    recordCount: num(r.recordCount),
+  }));
 }
 
 export async function getReassignPreview(sql: SqlClient, customerId: string): Promise<ReassignPreview> {

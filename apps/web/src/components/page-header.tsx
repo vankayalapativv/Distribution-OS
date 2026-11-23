@@ -22,7 +22,10 @@ export function PageHeader({
     <div className="flex items-center justify-between">
       <div>
         <h2 className="text-2xl font-semibold">{title}</h2>
-        {subtitle != null && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+        {/* A div, not a p: `subtitle` is ReactNode and some callers pass a
+            Skeleton or other block element (a <div> inside a <p> is invalid HTML
+            and causes a hydration error). */}
+        {subtitle != null && <div className="mt-1 text-sm text-muted-foreground">{subtitle}</div>}
       </div>
       {action}
     </div>

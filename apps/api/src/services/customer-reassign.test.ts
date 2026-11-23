@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getReassignPreview, reassignCustomer, undoReassignment } from "./customer-reassign";
+import { getReassignPreview, listReassignCustomers, reassignCustomer, undoReassignment } from "./customer-reassign";
 import { makeSql } from "../test/sql-mock";
 
 const CUST = "cust-1";
@@ -19,6 +19,25 @@ const historyRow = (over: Record<string, unknown> = {}) => ({
   undoneAt: null,
   counts: COUNTS,
   ...over,
+});
+
+describe("listReassignCustomers", () => {
+  it("maps owner + recordCount per customer, with a null owner when unowned", async () => {
+    const sql = makeSql({
+      reassign_customer_list: [
+        { id: "c1", legalName: "Balaji Auto", customerCode: "VD-C08", city: "Khammam", ownerId: OWNER, ownerName: "Priya", recordCount: 112 },
+        { id: "c2", legalName: "Orphan Co", customerCode: null, city: null, ownerId: null, ownerName: null, recordCount: 0 },
+      ],
+    });
+    const rows = await listReassignCustomers(sql);
+    expect(rows[0]).toEqual({
+      id: "c1", legalName: "Balaji Auto", customerCode: "VD-C08", city: "Khammam",
+      owner: { id: OWNER, name: "Priya" }, recordCount: 112,
+    });
+    expect(rows[1]).toEqual({
+      id: "c2", legalName: "Orphan Co", customerCode: null, city: null, owner: null, recordCount: 0,
+    });
+  });
 });
 
 describe("getReassignPreview", () => {

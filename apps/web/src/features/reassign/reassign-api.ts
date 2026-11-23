@@ -40,10 +40,14 @@ export interface ReassignPreview {
   salesExecutives: SalesExec[];
 }
 
-export interface CustomerPick {
+/** One row of the browse-and-pick list: owner + record count per customer. */
+export interface ReassignCustomerRow {
   id: string;
   legalName: string;
   customerCode: string | null;
+  city: string | null;
+  owner: { id: string; name: string } | null;
+  recordCount: number;
 }
 
 interface ApiSuccess<T> {
@@ -51,23 +55,16 @@ interface ApiSuccess<T> {
   data: T;
 }
 
-async function fetchApi(path: string): Promise<Response> {
+/** Every customer with its current owner + record count — the reassign list. */
+export async function listReassignCustomers(): Promise<ReassignCustomerRow[]> {
   const authHeaders = await getApiAuthHeaders();
-  return serverApiFetch(path, { cache: "no-store", headers: authHeaders });
-}
-
-/** Every customer (SA sees all) — the picker source for the reassign page. */
-export async function listCustomersForPicker(): Promise<CustomerPick[]> {
-  const res = await fetchApi("/customers");
-  if (!res.ok) throw new Error(`Customers API failed with ${res.status}`);
-  const body = (await res.json()) as ApiSuccess<
-    { id: string; legalName: string; customerCode: string | null }[]
-  >;
-  return body.data.map((c) => ({
-    id: c.id,
-    legalName: c.legalName,
-    customerCode: c.customerCode ?? null,
-  }));
+  const res = await serverApiFetch("/customers/reassign/customers", {
+    cache: "no-store",
+    headers: authHeaders,
+  });
+  if (!res.ok) throw new Error(`Reassign customers API failed with ${res.status}`);
+  const body = (await res.json()) as ApiSuccess<ReassignCustomerRow[]>;
+  return body.data;
 }
 
 export function getActionConfig(): { apiBaseUrl: string } {

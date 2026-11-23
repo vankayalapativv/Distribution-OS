@@ -20,6 +20,7 @@ vi.mock("../services/customer-statement", () => ({ ensureStatementToken: (...a: 
 vi.mock("../services/customer-visits", () => ({ getCustomerVisits: vi.fn().mockResolvedValue({ rows: [] }) }));
 vi.mock("../services/customer-reassign", () => ({
   getReassignPreview: vi.fn().mockResolvedValue({ current: {} }),
+  listReassignCustomers: vi.fn().mockResolvedValue([{ id: "c1", legalName: "Acme", owner: null, recordCount: 0 }]),
   reassignCustomer: vi.fn().mockResolvedValue({ toUserName: "B", fromUserName: "A" }),
   undoReassignment: vi.fn().mockResolvedValue({ fromUserName: "A" }),
 }));
@@ -62,6 +63,7 @@ describe("customers — paged/filter/opening/ledger/statement/visits/reassign", 
   });
   it("visits + reassign preview/apply/undo", async () => {
     expect((await (await app()).request("/api/v1/customers/c1/visits?from=2026-06-01&to=2026-06-30&page=1&pageSize=8", { headers: headers("manager") }, ENV)).status).toBe(200);
+    expect((await (await app()).request("/api/v1/customers/reassign/customers", { headers: headers("superAdmin") }, ENV)).status).toBe(200);
     expect((await (await app()).request("/api/v1/customers/c1/reassign/preview", { headers: headers("superAdmin") }, ENV)).status).toBe(200);
     expect((await (await app()).request("/api/v1/customers/c1/reassign", { method: "POST", headers: jh(), body: JSON.stringify({ toUserId: "se-2" }) }, ENV)).status).toBe(200);
     expect((await (await app()).request("/api/v1/customers/c1/reassign/undo", { method: "POST", headers: jh(), body: "{}" }, ENV)).status).toBe(200);

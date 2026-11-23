@@ -1,12 +1,9 @@
 import { redirect } from "next/navigation";
-import { dashboardForRole, requireSessionRole } from "../../../features/auth/auth-role";
-import { requireAuthToken } from "../../../features/auth/server-session";
-import { DashboardShell } from "../../../features/shell/dashboard-shell";
-import {
-  getActionConfig,
-  listCustomersForPicker,
-} from "../../../features/reassign/reassign-api";
-import { ReassignView } from "../../../features/reassign/reassign-view";
+import { dashboardForRole, requireSessionRole } from "@/features/auth/auth-role";
+import { requireAuthToken } from "@/features/auth/server-session";
+import { DashboardShell } from "@/features/shell/dashboard-shell";
+import { getActionConfig, listReassignCustomers } from "@/features/reassign/reassign-api";
+import { ReassignView } from "@/features/reassign/reassign-view";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +14,7 @@ export default async function ReassignPage() {
     redirect(dashboardForRole(auth.role));
   }
   const authToken = await requireAuthToken();
-  const customers = await listCustomersForPicker();
+  const customers = await listReassignCustomers();
   const config = getActionConfig();
 
   return (

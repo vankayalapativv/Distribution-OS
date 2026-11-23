@@ -30,6 +30,7 @@ import {
 import { getCustomerVisits } from "../services/customer-visits";
 import {
   getReassignPreview,
+  listReassignCustomers,
   reassignCustomer,
   undoReassignment,
 } from "../services/customer-reassign";
@@ -226,9 +227,16 @@ export const customersRoutes = new Hono<ApiEnv>()
     return c.json(success(c, result));
   })
   // ── Customer reassignment (SUPER_ADMIN moves ownership between SEs) ───────────
-  // Per-customer only — there is no bulk endpoint. Preview shows the current
-  // owner + what would move; reassign applies it atomically; undo reverses the
-  // latest reassignment (only the exact rows it moved).
+  // Per-customer only — there is no bulk endpoint. The list is the browse-and-pick
+  // source (owner + record count per customer); preview shows the current owner +
+  // what would move; reassign applies it atomically; undo reverses the latest
+  // reassignment (only the exact rows it moved).
+  // (Static "reassign" segment — Hono matches it ahead of the "/:id" param route.)
+  .get("/reassign/customers", async (c) => {
+    requireRole(c, ["SUPER_ADMIN"]);
+    const customers = await listReassignCustomers(getSqlClient(c));
+    return c.json(success(c, customers));
+  })
   .get("/:id/reassign/preview", async (c) => {
     requireRole(c, ["SUPER_ADMIN"]);
     const preview = await getReassignPreview(getSqlClient(c), c.req.param("id"));

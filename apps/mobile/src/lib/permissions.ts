@@ -63,7 +63,7 @@ async function ensureBackgroundLocation(confirm: ConfirmFn): Promise<StartDayPer
   const proceed = await confirm({
     title: "Allow location all the time",
     message:
-      'Your route must keep recording when the app is in your pocket. On the next screen choose "Allow all the time", then tap "Start day" again.',
+      'Distribution OS needs to collect your location in the background — even when the app is closed or not in use — to keep recording your route. On the next screen choose "Allow all the time", then tap "Start day" again.',
     confirmLabel: "Continue",
     cancelLabel: "Not now",
   });
@@ -94,9 +94,32 @@ async function ensureBatteryExemption(confirm: ConfirmFn): Promise<StartDayPermi
   return { ok: false, missingEssential: "battery", awaitingSystemScreen: proceed };
 }
 
+/** 0. Prominent Disclosure & Consent — REQUIRED by Google Play's User Data
+ *  policy and shown BEFORE any location permission request. It must state what
+ *  location data is collected, how it is used, that it is collected in the
+ *  background (even when the app is closed or not in use), and that it is shared
+ *  with the organization. Declining blocks Start day. (A prior submission was
+ *  rejected because the disclosure did not state the usage of collected location
+ *  data, so keep this explicit.) */
+async function ensureLocationDisclosure(confirm: ConfirmFn): Promise<StartDayPermissionResult | null> {
+  const agreed = await confirm({
+    title: "Location data collection",
+    message:
+      "Distribution OS collects location data to record your work route and visit check-ins, and to track attendance during your work day — including when the app is closed or not in use. This location data is shared with your organization. Collection runs only between Start day and End day. Tap “I agree” to allow this.",
+    confirmLabel: "I agree",
+    cancelLabel: "Not now",
+  });
+  if (agreed) return null;
+  return { ok: false, missingEssential: "location" };
+}
+
 export async function runStartDayPermissionSetup(
   confirm: ConfirmFn,
 ): Promise<StartDayPermissionResult> {
+  // Prominent Disclosure must come before the first location permission request.
+  const disclosure = await ensureLocationDisclosure(confirm);
+  if (disclosure) return disclosure;
+
   const foreground = await ensureForegroundLocation(confirm);
   if (foreground) return foreground;
 

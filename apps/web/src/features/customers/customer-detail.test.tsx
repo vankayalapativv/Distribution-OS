@@ -4,6 +4,8 @@ const h = vi.hoisted(() => ({
   state: { data: { id: "c1", legalName: "Raj Motors" } as unknown, isError: false },
   captured: undefined as { queryFn: () => unknown } | undefined,
 }));
+const useCan = vi.fn(() => true);
+vi.mock("@/features/shell/use-can", () => ({ useCan: (...a: unknown[]) => useCan(...(a as [])) }));
 vi.mock("@/features/shell/dashboard-shell", () => ({
   DashboardShell: (p: { children: React.ReactNode }) => <div>{p.children}</div>,
 }));
@@ -56,6 +58,7 @@ const cfg = { apiBaseUrl: "x", authToken: "t" };
 afterEach(() => {
   h.state = { data: { id: "c1", legalName: "Raj Motors" }, isError: false };
   apiGet.mockClear();
+  useCan.mockReturnValue(true);
 });
 
 describe("CustomerDetail", () => {
@@ -74,7 +77,8 @@ describe("CustomerDetail", () => {
     fireEvent.click(screen.getByText("go-orders"));
     expect(screen.getByText("content:orders")).toBeInTheDocument();
   });
-  it("hides the edit dialogs for a read-only role (ACCOUNTANT)", () => {
+  it("hides the edit dialogs without the customers.edit capability", () => {
+    useCan.mockReturnValue(false);
     render(<CustomerDetail customerId="c1" role="ACCOUNTANT" actionConfig={cfg} />);
     expect(screen.getByText("header canEdit:false")).toBeInTheDocument();
     fireEvent.click(screen.getByText("hdr-edit")); // no-op: dialogs not mounted

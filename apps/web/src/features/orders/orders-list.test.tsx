@@ -54,6 +54,8 @@ const props = {
   customers: [],
   salesExecutives: [],
   role: "SUPER_ADMIN" as const,
+  canCreate: true,
+  canInvoice: true,
   actionConfig: cfg,
 };
 

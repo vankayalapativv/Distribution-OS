@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { type ActionConfig } from "@/lib/api-client";
 import { DashboardShell } from "@/features/shell/dashboard-shell";
+import { useCan } from "@/features/shell/use-can";
 import { INFO_TABS } from "./customer-detail-sections";
 import { CustomerEditDialog } from "./customer-edit-dialog";
 import { CustomerStatusDialog } from "./customer-status-dialog";
@@ -30,7 +31,8 @@ export function CustomerDetailInner({
   const [editOpen, setEditOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(INFO_TABS[0].key);
-  const canEdit = role === "SUPER_ADMIN" || role === "MANAGER";
+  const canEdit = useCan("action:customers.edit");
+  const canCreateOrder = useCan("action:orders.create");
 
   const d = useCustomerDetailData(customer.id, actionConfig);
   const tabs = buildTabs({
@@ -63,7 +65,7 @@ export function CustomerDetailInner({
             customer={customer}
             role={role}
             actionConfig={actionConfig}
-            canEdit={canEdit}
+            canCreateOrder={canCreateOrder}
             orders={d.orders}
             ordersTotal={d.ordersTotal}
             ordersLoading={d.ordersLoading}

@@ -2,6 +2,7 @@
 
 import { withQueryClient } from "@/components/data-table/query-provider";
 import { DashboardShell } from "@/features/shell/dashboard-shell";
+import { useCan } from "@/features/shell/use-can";
 import type { ActionConfig } from "@/lib/api-client";
 import { CatalogueTable } from "./products-catalogue-table";
 import { ProductsDialogs } from "./products-dialogs";
@@ -16,8 +17,9 @@ interface ProductsListProps {
 
 function ProductsInner({ role, actionConfig }: Readonly<ProductsListProps>) {
   // Single unified Products list. The litres/quantity distinction is the
-  // product's `unit`, not a separate tab. ACCOUNTANT views but can't edit.
-  const canManage = role !== "ACCOUNTANT";
+  // product's `unit`, not a separate tab. Add/edit/delete is gated by the
+  // `products.manage` capability (the API enforces it too).
+  const canManage = useCan("action:products.manage");
   const d = useProductsDialogs();
 
   return (

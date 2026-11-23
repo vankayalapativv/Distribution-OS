@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { addMonths, addWeeks, format, startOfMonth, startOfWeek, subMonths, subWeeks } from "date-fns";
+import { useCan } from "@/features/shell/use-can";
 import { apiGet, type ActionConfig } from "@/lib/api-client";
 import type { ExecutiveTargets, TargetPeriod, TargetsResponse } from "./targets-api";
 import { currentStartOf, MONDAY, periodLabel } from "./targets-period";
 
 /** All state, derived flags, navigation and the query for the Targets panel. */
 export function useTargetsPanel(actionConfig: ActionConfig) {
+  const canEditTargets = useCan("action:targets.edit");
   const [period, setPeriod] = useState<TargetPeriod>("week");
   const [selectedStart, setSelectedStart] = useState<Date>(() => currentStartOf("week"));
   const [editing, setEditing] = useState<ExecutiveTargets | null>(null);
@@ -36,7 +38,8 @@ export function useTargetsPanel(actionConfig: ActionConfig) {
 
   return {
     period, selectedStart, editing, setEditing, currentStart, startStr, isFuture, isPast, isCurrent,
-    canEdit: !isPast, label: periodLabel(period, selectedStart), query, executives,
+    // Editable only for a non-past period AND when the role holds targets.edit.
+    canEdit: !isPast && canEditTargets, label: periodLabel(period, selectedStart), query, executives,
     changePeriod, step, jumpTo, goToCurrent: () => setSelectedStart(currentStart),
   };
 }

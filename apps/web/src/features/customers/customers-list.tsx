@@ -18,10 +18,17 @@ import { plural } from "@/lib/format";
 
 export type { CustomersRole } from "./customers-list-logic";
 
-function CustomersInner({ role, actionConfig }: { readonly role: CustomersRole; readonly actionConfig: ActionConfig }) {
+function CustomersInner({
+  role,
+  canCreate,
+  actionConfig,
+}: {
+  readonly role: CustomersRole;
+  readonly canCreate: boolean;
+  readonly actionConfig: ActionConfig;
+}) {
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
-  const canCreate = role === "SUPER_ADMIN" || role === "MANAGER";
   const c = useCustomersList(actionConfig);
 
   return (

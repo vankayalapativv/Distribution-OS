@@ -55,7 +55,7 @@ const reset = (over: Partial<typeof listState> = {}) => {
 describe("CustomersList", () => {
   it("shows the count subtitle, add button, and routes on row click (editable role)", () => {
     reset();
-    render(<CustomersList role="SUPER_ADMIN" actionConfig={cfg} />);
+    render(<CustomersList role="SUPER_ADMIN" canCreate actionConfig={cfg} />);
     expect(screen.getByText("2 customers in your organisation")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "+ Add Customer" })).toBeInTheDocument();
     fireEvent.click(screen.getByText("row"));
@@ -63,7 +63,7 @@ describe("CustomersList", () => {
   });
   it("opens the create dialog from header + the empty-state button", () => {
     reset();
-    render(<CustomersList role="MANAGER" actionConfig={cfg} />);
+    render(<CustomersList role="MANAGER" canCreate actionConfig={cfg} />);
     fireEvent.click(screen.getByRole("button", { name: "+ Add Customer" }));
     expect(screen.getByText("create-dialog")).toBeInTheDocument();
     expect(screen.getByTestId("empty")).toHaveTextContent("No customers yet.");
@@ -71,19 +71,19 @@ describe("CustomersList", () => {
   });
   it("shows a Loading… subtitle while the table loads", () => {
     reset({ isLoading: true });
-    render(<CustomersList role="SUPER_ADMIN" actionConfig={cfg} />);
+    render(<CustomersList role="SUPER_ADMIN" canCreate actionConfig={cfg} />);
     expect(screen.getByText("Loading…")).toBeInTheDocument();
   });
   it("hides create + shows the filtered empty text for read-only roles", () => {
     reset();
     Object.assign(listState.url, { hasFilters: true });
-    render(<CustomersList role="ACCOUNTANT" actionConfig={cfg} />);
+    render(<CustomersList role="ACCOUNTANT" canCreate={false} actionConfig={cfg} />);
     expect(screen.queryByRole("button", { name: "+ Add Customer" })).not.toBeInTheDocument();
     expect(screen.getByTestId("empty")).toHaveTextContent("No customers match your filters.");
   });
   it("shows an error banner and a singular subtitle", () => {
     reset({ total: 1, error: { message: "Boom" } });
-    render(<CustomersList role="SUPER_ADMIN" actionConfig={cfg} />);
+    render(<CustomersList role="SUPER_ADMIN" canCreate actionConfig={cfg} />);
     expect(screen.getByText("Boom")).toBeInTheDocument();
     expect(screen.getByText("1 customer in your organisation")).toBeInTheDocument();
   });

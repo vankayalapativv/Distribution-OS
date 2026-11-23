@@ -33,27 +33,28 @@ afterEach(() => {
   setFilter.mockReset();
 });
 
-describe("useOrdersList role flags", () => {
-  it("SUPER_ADMIN can create and invoice", () => {
-    const { result } = renderHook(() => useOrdersList([], "SUPER_ADMIN", cfg));
-    expect(result.current.canCreate).toBe(true);
-    expect(result.current.canInvoice).toBe(true);
-  });
-  it("MANAGER can create but not invoice", () => {
-    const { result } = renderHook(() => useOrdersList([], "MANAGER", cfg));
+const caps = (canCreate: boolean, canInvoice: boolean) => ({ canCreate, canInvoice });
+
+describe("useOrdersList capability flags", () => {
+  it("surfaces the given capabilities and builds columns with them", () => {
+    const { result } = renderHook(() => useOrdersList([], caps(true, false), cfg));
     expect(result.current.canCreate).toBe(true);
     expect(result.current.canInvoice).toBe(false);
+    const opts = buildOrdersColumns.mock.calls[0][0] as Record<string, unknown>;
+    expect(opts).toMatchObject({ canCreate: true, canInvoice: false, showActions: true });
   });
-  it("ACCOUNTANT can invoice but not create", () => {
-    const { result } = renderHook(() => useOrdersList([], "ACCOUNTANT", cfg));
+  it("showActions is false when neither capability is held", () => {
+    const { result } = renderHook(() => useOrdersList([], caps(false, false), cfg));
     expect(result.current.canCreate).toBe(false);
-    expect(result.current.canInvoice).toBe(true);
+    expect(result.current.canInvoice).toBe(false);
+    const opts = buildOrdersColumns.mock.calls[0][0] as Record<string, unknown>;
+    expect(opts.showActions).toBe(false);
   });
 });
 
 describe("useOrdersList wiring", () => {
-  it("builds columns with the derived flags + dialog handlers", () => {
-    renderHook(() => useOrdersList([], "SUPER_ADMIN", cfg));
+  it("builds columns with the flags + dialog handlers", () => {
+    renderHook(() => useOrdersList([], caps(true, true), cfg));
     const opts = buildOrdersColumns.mock.calls[0][0] as Record<string, unknown>;
     expect(opts).toMatchObject({ filterFulfillment: "invoiced", canCreate: true, canInvoice: true, showActions: true });
     (opts.onEdit as (o: unknown) => void)({ id: "o1" });
@@ -63,13 +64,13 @@ describe("useOrdersList wiring", () => {
   });
 
   it("setFilterFulfillment writes the fulfillment URL filter", () => {
-    const { result } = renderHook(() => useOrdersList([], "SUPER_ADMIN", cfg));
+    const { result } = renderHook(() => useOrdersList([], caps(true, true), cfg));
     act(() => result.current.setFilterFulfillment("delivered"));
     expect(setFilter).toHaveBeenCalledWith("fulfillment", "delivered");
   });
 
   it("returns the paged-table result + notifications", () => {
-    const { result } = renderHook(() => useOrdersList([], "MANAGER", cfg));
+    const { result } = renderHook(() => useOrdersList([], caps(true, false), cfg));
     expect(result.current.paged.total).toBe(5);
     expect(result.current.notif.newCount).toBe(2);
     expect(result.current.columns).toHaveLength(1);

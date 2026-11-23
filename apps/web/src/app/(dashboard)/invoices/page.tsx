@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { InvoicesList } from "../../../features/invoices/invoices-list";
-import { canAccessSection, dashboardForRole, requireSessionRole } from "../../../features/auth/auth-role";
+import { canAccessSection, canPerformAction, dashboardForRole, requireSessionRole } from "../../../features/auth/auth-role";
 import { requireAuthToken } from "../../../features/auth/server-session";
 import { getMetricsApiBaseUrl } from "../../../features/dashboard/dashboard-api";
 
@@ -18,6 +18,7 @@ export default async function InvoicesPage() {
   return (
     <InvoicesList
       role={auth.role}
+      canGenerate={canPerformAction(auth, "invoices.generate")}
       actionConfig={{ apiBaseUrl: getMetricsApiBaseUrl(), authToken }}
     />
   );

@@ -12,18 +12,24 @@ import type { CustomerOption } from "@/features/customers/customer-search-select
 
 export type OrdersRole = "SUPER_ADMIN" | "MANAGER" | "ACCOUNTANT";
 
-/** Wires the orders list: URL state, section notifications, role flags, dialog
- *  state, the built columns, and the paged-table query. Keeps the list component
- *  a thin layout that just distributes this to the header/controls/table. */
-export function useOrdersList(customers: CustomerOption[], role: OrdersRole, actionConfig: ActionConfig) {
+/** Action capabilities for the orders list, resolved server-side from the
+ *  caller's effective permissions (not their role). */
+export interface OrdersCaps {
+  canCreate: boolean;
+  canInvoice: boolean;
+}
+
+/** Wires the orders list: URL state, section notifications, capability flags,
+ *  dialog state, the built columns, and the paged-table query. Keeps the list
+ *  component a thin layout that distributes this to the header/controls/table. */
+export function useOrdersList(customers: CustomerOption[], caps: OrdersCaps, actionConfig: ActionConfig) {
   const router = useRouter();
   const state = useOrdersListState(customers);
   const filterFulfillment = state.applied.fulfillment;
   const setFilterFulfillment = (v: string) => state.url.setFilter("fulfillment", v);
 
   const notif = useSectionNotifications(actionConfig, "orders");
-  const canCreate = role === "SUPER_ADMIN" || role === "MANAGER";
-  const canInvoice = role === "SUPER_ADMIN" || role === "ACCOUNTANT";
+  const { canCreate, canInvoice } = caps;
 
   const dialogs = useOrdersDialogs(actionConfig);
   const { columns, skeleton } = buildOrdersColumns({

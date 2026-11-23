@@ -9,11 +9,12 @@ import { ALERT_TYPE_LABELS, SEVERITY_CLASSES } from "./alerts-helpers";
 interface AlertCardProps {
   readonly alert: Alert;
   readonly closing: boolean;
+  readonly canClose: boolean;
   readonly onClose: (id: string) => void;
 }
 
-/** A single alert card: severity/type display + Close action. */
-export function AlertCard({ alert, closing, onClose }: AlertCardProps) {
+/** A single alert card: severity/type display + Close action (when permitted). */
+export function AlertCard({ alert, closing, canClose, onClose }: AlertCardProps) {
   return (
     <div
       className={`rounded-lg border bg-white p-4 transition-opacity ${alert.status === "closed" ? "opacity-60" : ""}`}
@@ -45,7 +46,7 @@ export function AlertCard({ alert, closing, onClose }: AlertCardProps) {
             )}
           </div>
         </div>
-        {alert.status === "open" && (
+        {alert.status === "open" && canClose && (
           <Button
             size="sm"
             variant="outline"

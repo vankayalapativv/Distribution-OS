@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+const useCan = vi.fn(() => true);
+vi.mock("@/features/shell/use-can", () => ({ useCan: (...a: unknown[]) => useCan(...(a as [])) }));
 vi.mock("@/components/data-table/query-provider", () => ({ withQueryClient: (C: unknown) => C }));
 vi.mock("@/features/shell/dashboard-shell", () => ({ DashboardShell: ({ children }: { readonly children: React.ReactNode }) => <div>{children}</div> }));
 vi.mock("@/features/shell/new-items-banner", () => ({ NewItemsBanner: () => <div /> }));
@@ -47,9 +49,11 @@ describe("CollectionsList", () => {
     expect(screen.getByTestId("create-open")).toBeInTheDocument();
   });
 
-  it("hides create for an accountant", () => {
+  it("hides create without the collections.record capability", () => {
+    useCan.mockReturnValue(false);
     render(<CollectionsList {...props} role="ACCOUNTANT" />);
     expect(screen.queryByText("+ Record Collection")).not.toBeInTheDocument();
+    useCan.mockReturnValue(true);
   });
 
   it("navigates to a collection on row click", () => {

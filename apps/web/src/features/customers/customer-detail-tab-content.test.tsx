@@ -18,7 +18,7 @@ const props = {
   customer: { id: "c1", legalName: "Raj" } as unknown as Customer,
   role: "SUPER_ADMIN" as const,
   actionConfig: cfg,
-  canEdit: true,
+  canCreateOrder: true,
   orders: [],
   ordersTotal: 0,
   ordersLoading: false,

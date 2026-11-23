@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { canAccessSection, dashboardForRole, requireSessionRole } from "../../../features/auth/auth-role";
+import { canAccessSection, canPerformAction, dashboardForRole, requireSessionRole } from "../../../features/auth/auth-role";
 import { getActionConfig } from "../../../features/customers/customers-api";
 import { CustomersList } from "../../../features/customers/customers-list";
 import { requireAuthToken } from "../../../features/auth/server-session";
@@ -20,6 +20,7 @@ export default async function CustomersPage() {
   return (
     <CustomersList
       role={auth.role as "SUPER_ADMIN" | "MANAGER" | "ACCOUNTANT"}
+      canCreate={canPerformAction(auth, "customers.edit")}
       actionConfig={{ ...config, authToken }}
     />
   );

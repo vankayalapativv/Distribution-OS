@@ -7,6 +7,7 @@ const hook = {
   verifyError: null as string | null, rejectOpen: false, setRejectOpen: vi.fn(),
   handleVerify: vi.fn(), isPending: true,
 };
+vi.mock("@/features/shell/use-can", () => ({ useCan: () => true }));
 vi.mock("./use-collection-detail", () => ({ useCollectionDetail: () => hook }));
 vi.mock("@/features/shell/dashboard-shell", () => ({ DashboardShell: ({ children }: { readonly children: React.ReactNode }) => <div>{children}</div> }));
 vi.mock("./collection-summary", () => ({ CollectionSummary: () => <div data-testid="summary" /> }));

@@ -19,12 +19,14 @@ interface OrdersListProps {
   customers: CustomerOption[];
   salesExecutives: SalesExecutive[];
   role: OrdersRole;
+  canCreate: boolean;
+  canInvoice: boolean;
   actionConfig: ActionConfig;
 }
 
 function OrdersInner(props: Readonly<OrdersListProps>) {
-  const { customers, salesExecutives, role, actionConfig } = props;
-  const v = useOrdersList(customers, role, actionConfig);
+  const { customers, salesExecutives, role, canCreate, canInvoice, actionConfig } = props;
+  const v = useOrdersList(customers, { canCreate, canInvoice }, actionConfig);
   const { state, dialogs, paged } = v;
   const onNewOrder = () => dialogs.setCreateOpen(true);
 

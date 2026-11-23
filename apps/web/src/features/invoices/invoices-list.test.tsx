@@ -16,7 +16,7 @@ vi.mock("@/features/shell/dashboard-shell", () => ({
 }));
 vi.mock("@/components/page-header", () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  PageHeader: ({ subtitle }: any) => <p>{subtitle}</p>,
+  PageHeader: ({ subtitle, action }: any) => <div><p>{subtitle}</p>{action}</div>,
 }));
 vi.mock("./invoices-search-bar", () => ({ InvoicesSearchBar: () => <div>SEARCH</div> }));
 vi.mock("@/components/data-table/data-table", () => ({
@@ -33,17 +33,23 @@ afterEach(() => { s.error = null; s.createOpen = false; });
 
 describe("InvoicesList", () => {
   it("renders the count subtitle, search bar, table; a row click opens the PDF", () => {
-    render(<InvoicesList role="ACCOUNTANT" actionConfig={config} />);
+    render(<InvoicesList role="ACCOUNTANT" canGenerate actionConfig={config} />);
     expect(screen.getByText(/3 invoices/)).toBeInTheDocument();
     expect(screen.getByText("SEARCH")).toBeInTheDocument();
     expect(screen.getByText("No invoices yet.")).toBeInTheDocument();
+    expect(screen.getByText("New invoice")).toBeInTheDocument();
     fireEvent.click(screen.getByText("row"));
     expect(s.openPdf).toHaveBeenCalledWith({ id: "i1" });
   });
 
+  it("hides New invoice when the generate capability is absent", () => {
+    render(<InvoicesList role="MANAGER" canGenerate={false} actionConfig={config} />);
+    expect(screen.queryByText("New invoice")).not.toBeInTheDocument();
+  });
+
   it("shows an error banner when the list errors", () => {
     s.error = { message: "Boom" };
-    render(<InvoicesList role="SUPER_ADMIN" actionConfig={config} />);
+    render(<InvoicesList role="SUPER_ADMIN" canGenerate actionConfig={config} />);
     expect(screen.getByText("Boom")).toBeInTheDocument();
   });
 });

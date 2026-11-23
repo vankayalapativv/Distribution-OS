@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useCan } from "@/features/shell/use-can";
 import { apiGet, type ActionConfig } from "@/lib/api-client";
 import { OrdersCreateDialog } from "@/features/orders/orders-create-dialog";
 import type { Product, SalesExecutive } from "@/features/orders/orders-api";
@@ -25,6 +26,7 @@ export function CustomerNewOrderButton({
   /** Button style — the Orders tab uses the primary default; the ledger uses outline. */
   variant?: "default" | "outline";
 }>) {
+  const canCreate = useCan("action:orders.create");
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   // `loaded` stays true after the first open so the data isn't refetched on reopen.
@@ -51,6 +53,10 @@ export function CustomerNewOrderButton({
     setLoaded(true);
     setOpen(true);
   }
+
+  // Hidden entirely for a role without the orders.create capability (the Orders
+  // page hides its button the same way; the API enforces it too).
+  if (!canCreate) return null;
 
   return (
     <>

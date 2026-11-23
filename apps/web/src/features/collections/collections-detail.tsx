@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { DashboardShell } from "@/features/shell/dashboard-shell";
+import { useCan } from "@/features/shell/use-can";
 import { type ActionConfig } from "@/lib/api-client";
 import { formatDate } from "@/lib/format";
 import { CollectionAllocations } from "./collection-allocations";
@@ -22,7 +23,7 @@ export function CollectionDetailView({
   readonly role: CollectionDetailRole;
   readonly actionConfig: ActionConfig;
 }) {
-  const canReview = role === "SUPER_ADMIN" || role === "ACCOUNTANT";
+  const canReview = useCan("action:collections.verify");
   const c = useCollectionDetail(initialCollection, actionConfig);
   const { collection } = c;
 

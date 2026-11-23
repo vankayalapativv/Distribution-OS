@@ -7,6 +7,7 @@ import { AlertTriangle, ArrowLeft, Boxes, Droplet, MoreVertical, PackageOpen, Pe
 import { withQueryClient } from "@/components/data-table/query-provider";
 import { PageHeader } from "@/components/page-header";
 import { DashboardShell } from "@/features/shell/dashboard-shell";
+import { useCan } from "@/features/shell/use-can";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -614,7 +615,7 @@ function StockJournalInner({ role, actionConfig }: { readonly role: Role; readon
     switchTimer.current = setTimeout(() => setSwitching(false), 550);
   };
 
-  const canWrite = role === "SUPER_ADMIN" || role === "MANAGER";
+  const canWrite = useCan("action:stock.manage");
   const loc = locationId || undefined;
 
   const locQ = useQuery({ queryKey: ["stock-locations"], queryFn: () => fetchLocations(actionConfig) });

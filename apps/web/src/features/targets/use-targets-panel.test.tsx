@@ -9,6 +9,7 @@ vi.mock("@/lib/api-client", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api-client")>("@/lib/api-client");
   return { ...actual, apiGet: (...a: unknown[]) => apiGet(...a) };
 });
+vi.mock("@/features/shell/use-can", () => ({ useCan: () => true }));
 
 import { useTargetsPanel } from "./use-targets-panel";
 

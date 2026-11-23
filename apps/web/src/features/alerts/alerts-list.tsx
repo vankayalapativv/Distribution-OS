@@ -2,6 +2,7 @@
 
 import { PageHeader } from "@/components/page-header";
 import { DashboardShell } from "@/features/shell/dashboard-shell";
+import { useCan } from "@/features/shell/use-can";
 import type { ActionConfig } from "@/lib/api-client";
 import type { Alert } from "./alerts-api";
 import { AlertCard } from "./alert-card";
@@ -19,6 +20,7 @@ interface AlertsListProps {
 
 export function AlertsList({ alerts: initialAlerts, role, actionConfig }: AlertsListProps) {
   const a = useAlerts(initialAlerts, actionConfig);
+  const canClose = useCan("action:alerts.close");
 
   return (
     <DashboardShell role={role} active="alerts">
@@ -43,7 +45,7 @@ export function AlertsList({ alerts: initialAlerts, role, actionConfig }: Alerts
       ) : (
         <div className="flex flex-col gap-3">
           {a.filtered.map((alert) => (
-            <AlertCard key={alert.id} alert={alert} closing={a.closingId === alert.id} onClose={a.handleClose} />
+            <AlertCard key={alert.id} alert={alert} closing={a.closingId === alert.id} canClose={canClose} onClose={a.handleClose} />
           ))}
         </div>
       )}

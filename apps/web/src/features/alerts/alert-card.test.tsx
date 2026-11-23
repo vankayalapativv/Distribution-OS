@@ -10,7 +10,7 @@ const alert = (over: Partial<Alert> = {}): Alert =>
 
 describe("AlertCard", () => {
   it("shows severity, type label, message and details", () => {
-    render(<AlertCard alert={alert({ severity: "high", recommendedAction: "Call the customer", executiveName: "Ravi", customerName: "Sri Laxmi" })} closing={false} onClose={() => {}} />);
+    render(<AlertCard alert={alert({ severity: "high", recommendedAction: "Call the customer", executiveName: "Ravi", customerName: "Sri Laxmi" })} closing={false} canClose onClose={() => {}} />);
     expect(screen.getByText("high")).toBeInTheDocument();
     expect(screen.getByText("Credit Overdue")).toBeInTheDocument();
     expect(screen.getByText("Overdue > 60 days")).toBeInTheDocument();
@@ -20,30 +20,35 @@ describe("AlertCard", () => {
   });
 
   it("uses a muted pill for an unknown severity", () => {
-    render(<AlertCard alert={alert({ severity: "critical" })} closing={false} onClose={() => {}} />);
+    render(<AlertCard alert={alert({ severity: "critical" })} closing={false} canClose onClose={() => {}} />);
     expect(screen.getByText("critical").className).toMatch(/bg-muted/);
   });
 
   it("falls back to the raw type code for unknown types", () => {
-    render(<AlertCard alert={alert({ alertType: "TRACKING_COMMUNICATION_INTERRUPTED" })} closing={false} onClose={() => {}} />);
+    render(<AlertCard alert={alert({ alertType: "TRACKING_COMMUNICATION_INTERRUPTED" })} closing={false} canClose onClose={() => {}} />);
     expect(screen.getByText("TRACKING_COMMUNICATION_INTERRUPTED")).toBeInTheDocument();
   });
 
   it("closes an open alert on click", () => {
     const onClose = vi.fn();
-    render(<AlertCard alert={alert()} closing={false} onClose={onClose} />);
+    render(<AlertCard alert={alert()} closing={false} canClose onClose={onClose} />);
     fireEvent.click(screen.getByRole("button", { name: /Close/ }));
     expect(onClose).toHaveBeenCalledWith("a1");
   });
 
   it("shows a busy, disabled button while closing", () => {
-    render(<AlertCard alert={alert()} closing onClose={() => {}} />);
+    render(<AlertCard alert={alert()} closing canClose onClose={() => {}} />);
     const btn = screen.getByRole("button", { name: /Closing/ });
     expect(btn).toBeDisabled();
   });
 
+  it("hides the Close button on an open alert without the alerts.close capability", () => {
+    render(<AlertCard alert={alert()} closing={false} canClose={false} onClose={() => {}} />);
+    expect(screen.queryByRole("button", { name: /Close/ })).not.toBeInTheDocument();
+  });
+
   it("shows a Closed label and no action for a closed alert", () => {
-    render(<AlertCard alert={alert({ status: "closed" })} closing={false} onClose={() => {}} />);
+    render(<AlertCard alert={alert({ status: "closed" })} closing={false} canClose onClose={() => {}} />);
     expect(screen.getByText("Closed")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });

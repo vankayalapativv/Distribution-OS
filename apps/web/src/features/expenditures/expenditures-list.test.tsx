@@ -11,6 +11,7 @@ const s = {
   setDeleting: vi.fn(), setFormOpen: vi.fn(), setEditing: vi.fn(), confirmDelete: vi.fn(),
   formOpen: false, editing: null, categoryOpen: false, billFor: null, deleting: null,
 };
+vi.mock("@/features/shell/use-can", () => ({ useCan: () => true }));
 vi.mock("./use-expenditures-list", () => ({ useExpendituresList: () => s }));
 vi.mock("@/components/data-table/query-provider", () => ({
   withQueryClient: (C: any) => C,

@@ -9,6 +9,7 @@ const apiGet = vi.fn(async (...args: unknown[]) => {
   return { salesExecutives: [] };
 });
 vi.mock("@/lib/api-client", () => ({ apiGet: (...a: unknown[]) => apiGet(...a) }));
+vi.mock("@/features/shell/use-can", () => ({ useCan: () => true }));
 vi.mock("@/features/orders/orders-create-dialog", () => ({
   OrdersCreateDialog: (p: { open: boolean; onCreated: () => void }) =>
     p.open ? <button onClick={() => p.onCreated()}>created</button> : null,

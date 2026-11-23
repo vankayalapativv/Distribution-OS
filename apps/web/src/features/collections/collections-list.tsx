@@ -9,6 +9,7 @@ import { withQueryClient } from "@/components/data-table/query-provider";
 import { PageHeader } from "@/components/page-header";
 import { DashboardShell } from "@/features/shell/dashboard-shell";
 import { NewItemsBanner } from "@/features/shell/new-items-banner";
+import { useCan } from "@/features/shell/use-can";
 import { type ActionConfig } from "@/lib/api-client";
 import { collectionColumns } from "./collections-columns";
 import { collectionSkeleton } from "./collections-columns-skeleton";
@@ -33,7 +34,7 @@ interface CollectionsListProps {
 function CollectionsInner({ customers, collectors, role, actionConfig }: CollectionsListProps) {
   const router = useRouter();
   const c = useCollectionsList(actionConfig, customers);
-  const canCreate = role === "SUPER_ADMIN" || role === "MANAGER";
+  const canCreate = useCan("action:collections.record");
   const [createOpen, setCreateOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
 

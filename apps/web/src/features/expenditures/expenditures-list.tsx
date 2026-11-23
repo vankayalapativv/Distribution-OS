@@ -5,6 +5,7 @@ import { DataTable } from "@/components/data-table/data-table";
 import { withQueryClient } from "@/components/data-table/query-provider";
 import { PageHeader } from "@/components/page-header";
 import { DashboardShell } from "@/features/shell/dashboard-shell";
+import { useCan } from "@/features/shell/use-can";
 import type { ActionConfig } from "@/lib/api-client";
 import { expenditureSkeleton } from "./expenditures-skeleton";
 import { DateRangePicker } from "./expenditure-date-range-picker";
@@ -24,6 +25,7 @@ export type ExpendituresRole = "SUPER_ADMIN" | "MANAGER" | "ACCOUNTANT";
 
 function ExpendituresInner({ role, actionConfig }: { readonly role: ExpendituresRole; readonly actionConfig: ActionConfig }) {
   const s = useExpendituresList(actionConfig);
+  const canManage = useCan("action:expenditures.manage");
 
   return (
     <>
@@ -38,10 +40,12 @@ function ExpendituresInner({ role, actionConfig }: { readonly role: Expenditures
         {/* Search + type + category filters on the left, the actions on the right. */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <ExpenditureFilters s={s} categories={s.categories} />
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => s.setCategoryOpen(true)}>+ Category</Button>
-            <Button onClick={s.openNew}>+ Record Expenditure</Button>
-          </div>
+          {canManage && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => s.setCategoryOpen(true)}>+ Category</Button>
+              <Button onClick={s.openNew}>+ Record Expenditure</Button>
+            </div>
+          )}
         </div>
 
         <ExpenditureSummaryPanel actionConfig={actionConfig} from={s.from} to={s.to} />

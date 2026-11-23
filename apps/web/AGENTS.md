@@ -235,3 +235,31 @@ Rules of thumb:
   `order-row-actions-menu.tsx`, `products-row-actions.tsx`, `expenditure-row-actions.tsx`.
   Tests must open the menu (`getByTitle("Actions")`) before clicking an item, and
   re-open before the next (selecting closes it).
+
+## Permissions — capability gating (sections + actions)
+
+SUPER_ADMIN configures what MANAGER/ACCOUNTANT can do via the `/permissions` page
+(`features/permissions/*`, full-width Role-Panels UI). The catalog (17 `section:*` +
+10 `action:*` keys) and per-role defaults live in `apps/api/src/services/permissions.ts`.
+**The UI is UX only — the API enforces** (`sectionGuard` / `requireCapability`). Keep the
+two in sync but never rely on the UI for security.
+
+- **Hide a section** — nav + pages already use `canAccessSection(auth, "<key>")`
+  (`features/auth/auth-role.ts`, reads the `/me` permission map). SUPER_ADMIN is all-true.
+- **Hide an action button/control** — gate it, never by `role ===`:
+  - Client component: `const can = useCan("action:<key>")`
+    (`features/shell/use-can.ts` — reads the app-wide `PermissionsProvider` context,
+    flash-free, context-only so it works even outside a React-Query provider).
+  - Server page: `canPerformAction(auth, "<key>")` and pass the boolean as a prop.
+  Example keys: `orders.create`, `invoices.generate`, `customers.edit`, `products.manage`,
+  `stock.manage`, `collections.record`, `collections.verify`, `expenditures.manage`,
+  `alerts.close`, `targets.edit`. Tests mock `@/features/shell/use-can`
+  (`vi.mock("@/features/shell/use-can", () => ({ useCan: () => true }))`) or pass the prop.
+
+- **⚠️ Cross-section dependency = 500 trap.** A page under section A that fetches an
+  endpoint gated by section B (e.g. `listCustomers`/`listCustomersLite` → `/customers`,
+  `listSalesExecutives` → `/orders/sales-executives`) throws on the 403 for a role that
+  has A but not B, crashing the page. **Guard every cross-section fetch:**
+  `const xs = canAccessSection(auth, "B") ? fetchB() : Promise.resolve([]);` then `await`
+  that. Already fixed on Market Intelligence (customers + orders), Tasks, Orders,
+  Collections — apply the same guard to any new page with such a dependency.

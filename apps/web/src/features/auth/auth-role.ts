@@ -148,6 +148,17 @@ export function canAccessSection(
 }
 
 /**
+ * Whether the session may perform a configurable ACTION (e.g. "orders.create",
+ * "invoices.generate", "customers.edit"). SUPER_ADMIN always may; MANAGER /
+ * ACCOUNTANT are governed by their effective `action:<key>` permission. Used to
+ * hide action buttons a role can't use — the API still enforces independently.
+ */
+export function canPerformAction(auth: MeAuthContext, actionKey: string): boolean {
+  if (auth.role === "SUPER_ADMIN") return true;
+  return auth.permissions[`action:${actionKey}`] === true;
+}
+
+/**
  * Page guard for a configurable section: redirects home if the session's role
  * isn't allowed the section. Replaces the old hardcoded per-page role checks so
  * SA grants/revokes take effect. The API still enforces access independently.

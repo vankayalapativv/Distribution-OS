@@ -17,7 +17,7 @@ export function CustomerDetailTabContent({
   customer,
   role,
   actionConfig,
-  canEdit,
+  canCreateOrder,
   orders,
   ordersTotal,
   ordersLoading,
@@ -28,7 +28,7 @@ export function CustomerDetailTabContent({
   readonly customer: Customer;
   readonly role: CustomerDetailRole;
   readonly actionConfig: ActionConfig;
-  readonly canEdit: boolean;
+  readonly canCreateOrder: boolean;
   readonly orders: Order[];
   readonly ordersTotal: number;
   readonly ordersLoading: boolean;
@@ -44,7 +44,7 @@ export function CustomerDetailTabContent({
         customerId={customer.id}
         customerName={customer.legalName}
         actionConfig={actionConfig}
-        canCreateOrder={canEdit}
+        canCreateOrder={canCreateOrder}
       />
     );
   if (activeTab === LEDGER_TAB)

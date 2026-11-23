@@ -15,7 +15,15 @@ import { useInvoicesList } from "./use-invoices-list";
 // MANAGER included since SA can grant the Invoices section to Managers (0073).
 export type InvoicesRole = "SUPER_ADMIN" | "ACCOUNTANT" | "MANAGER";
 
-function InvoicesInner({ role, actionConfig }: { readonly role: InvoicesRole; readonly actionConfig: ActionConfig }) {
+function InvoicesInner({
+  role,
+  canGenerate,
+  actionConfig,
+}: {
+  readonly role: InvoicesRole;
+  readonly canGenerate: boolean;
+  readonly actionConfig: ActionConfig;
+}) {
   const s = useInvoicesList(actionConfig);
 
   return (
@@ -24,7 +32,7 @@ function InvoicesInner({ role, actionConfig }: { readonly role: InvoicesRole; re
       <PageHeader
         title="Invoices"
         subtitle={`${s.total} invoice${s.total === 1 ? "" : "s"} — click a row to open the PDF. Create one from an order (Orders → Create Invoice) or with New invoice.`}
-        action={role === "SUPER_ADMIN" || role === "ACCOUNTANT" ? (
+        action={canGenerate ? (
           <Link href="/invoices/new" className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
             <Plus className="size-4" />New invoice
           </Link>

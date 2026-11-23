@@ -176,7 +176,13 @@ export async function effectivePermissionsForRole(
 // ── SA management surface ─────────────────────────────────────────────────────
 
 export interface PermissionMatrix {
-  catalog: { key: string; kind: PermissionKind; label: string; group: string }[];
+  catalog: {
+    key: string;
+    kind: PermissionKind;
+    label: string;
+    group: string;
+    defaults: Record<ConfigurableRole, boolean>;
+  }[];
   roles: Record<ConfigurableRole, Record<string, boolean>>;
 }
 
@@ -187,7 +193,14 @@ export async function getPermissionMatrix(sql: SqlClient): Promise<PermissionMat
     getRolePermissions(sql, "ACCOUNTANT"),
   ]);
   return {
-    catalog: PERMISSION_CATALOG.map(({ key, kind, label, group }) => ({ key, kind, label, group })),
+    catalog: PERMISSION_CATALOG.map(({ key, kind, label, group, defaults }) => ({
+      key,
+      kind,
+      label,
+      group,
+      // Clone so the per-request matrix never aliases the module-level catalog.
+      defaults: { MANAGER: defaults.MANAGER, ACCOUNTANT: defaults.ACCOUNTANT },
+    })),
     roles: { MANAGER: manager, ACCOUNTANT: accountant },
   };
 }

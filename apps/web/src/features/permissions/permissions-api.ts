@@ -12,6 +12,7 @@ export interface PermissionCatalogEntry {
   kind: PermissionKind;
   label: string;
   group: string;
+  defaults: Record<ConfigurableRole, boolean>;
 }
 
 export interface PermissionMatrix {

@@ -16,8 +16,10 @@ const DEFAULT_TERMS = `1. Goods once sold will not be taken back.
 type Godown = { name: string; city: string; state: string; stateCode: string };
 type DuesBand = { fromDays: string; toDays: string; label: string };
 interface Data {
-  admin: { name: string; designation: string };
-  company: { legalName: string; gstin: string; tradeName: string; contactPhone: string; contactEmail: string };
+  // Name / email / phone are already collected at signup — only the designation
+  // is asked here.
+  admin: { designation: string };
+  company: { legalName: string; gstin: string; tradeName: string };
   address: { line1: string; line2: string; city: string; state: string; pincode: string };
   bank: { bankName: string; accountName: string; accountNumber: string; ifsc: string; upiId: string };
   invoice: { prefix: string; finYear: string; startSeq: string; terms: string };
@@ -27,8 +29,8 @@ interface Data {
 }
 
 const EMPTY: Data = {
-  admin: { name: "", designation: "" },
-  company: { legalName: "", gstin: "", tradeName: "", contactPhone: "", contactEmail: "" },
+  admin: { designation: "" },
+  company: { legalName: "", gstin: "", tradeName: "" },
   address: { line1: "", line2: "", city: "", state: "", pincode: "" },
   bank: { bankName: "", accountName: "", accountNumber: "", ifsc: "", upiId: "" },
   invoice: { prefix: "", finYear: "2026-27", startSeq: "1", terms: DEFAULT_TERMS },
@@ -52,8 +54,6 @@ const LAST = STEPS.length - 1;
 const GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$/i;
 const IFSC_RE = /^[A-Z]{4}0[A-Z0-9]{6}$/i;
 const PIN_RE = /^[1-9][0-9]{5}$/;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^[+]?[0-9][0-9\s-]{6,14}$/;
 const UPI_RE = /^[\w.-]{2,}@[a-zA-Z]{2,}$/;
 const ACCT_RE = /^[0-9]{6,18}$/;
 const CODE_RE = /^[0-9]{2}$/;
@@ -69,7 +69,7 @@ function validateStep(i: number, d: Data): Errors {
   };
   switch (i) {
     case 0:
-      req(!d.admin.name.trim(), "admin.name", "Enter the administrator’s name.");
+      // Name/email/phone came from signup; only the designation is asked here.
       req(!d.admin.designation.trim(), "admin.designation", "Enter a designation.");
       break;
     case 1:
@@ -77,10 +77,6 @@ function validateStep(i: number, d: Data): Errors {
       // GSTIN is optional — but if provided it must be a valid 15-character GSTIN.
       if (d.company.gstin.trim() && !GSTIN_RE.test(d.company.gstin.trim())) e["company.gstin"] = "Enter a valid 15-character GSTIN.";
       req(!d.company.tradeName.trim(), "company.tradeName", "Enter a trade / display name.");
-      if (!d.company.contactPhone.trim()) e["company.contactPhone"] = "Enter a business phone.";
-      else if (!PHONE_RE.test(d.company.contactPhone.trim())) e["company.contactPhone"] = "Enter a valid phone number.";
-      if (!d.company.contactEmail.trim()) e["company.contactEmail"] = "Enter a business email.";
-      else if (!EMAIL_RE.test(d.company.contactEmail.trim())) e["company.contactEmail"] = "Enter a valid email address.";
       break;
     case 2:
       req(!d.address.line1.trim(), "address.line1", "Enter address line 1.");
@@ -428,9 +424,8 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
               ) : null}
 
               {step === 0 && (
-                <Step headingRef={headingRef} title="Administrator" lead="You'll be the first Super Admin for this company." required>
+                <Step headingRef={headingRef} title="Administrator" lead="You'll be the first Super Admin for this company. We'll use the name, email and phone from your signup." required>
                   <div className="grid gap-3.5 sm:grid-cols-2">
-                    <Field label="Full name" error={err("admin.name")}><Input value={data.admin.name} onChange={(e) => upd("admin", { name: capWords(e.target.value) })} autoComplete="name" /></Field>
                     <Field label="Designation" error={err("admin.designation")}><Input value={data.admin.designation} onChange={(e) => upd("admin", { designation: capWords(e.target.value) })} placeholder="e.g. Director" /></Field>
                   </div>
                 </Step>
@@ -442,10 +437,6 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
                   <div className="grid gap-3.5 sm:grid-cols-2">
                     <Field label="GSTIN" optional error={err("company.gstin")}><Input className="font-mono uppercase" value={data.company.gstin} onChange={(e) => upd("company", { gstin: e.target.value.toUpperCase() })} /></Field>
                     <Field label="Trade / display name" error={err("company.tradeName")}><Input value={data.company.tradeName} onChange={(e) => upd("company", { tradeName: capWords(e.target.value) })} /></Field>
-                  </div>
-                  <div className="grid gap-3.5 sm:grid-cols-2">
-                    <Field label="Business phone" error={err("company.contactPhone")}><Input inputMode="tel" value={data.company.contactPhone} onChange={(e) => upd("company", { contactPhone: e.target.value })} /></Field>
-                    <Field label="Business email" error={err("company.contactEmail")}><Input type="email" value={data.company.contactEmail} onChange={(e) => upd("company", { contactEmail: e.target.value })} /></Field>
                   </div>
                 </Step>
               )}
@@ -533,8 +524,8 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
               {step === 8 && (
                 <Step headingRef={headingRef} title="Review & submit" lead="Check everything, then submit for approval. You can't use the app until it's approved.">
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Rev title="Administrator" to={0} go={goTo} rows={[["Name", data.admin.name], ["Role", data.admin.designation]]} />
-                    <Rev title="Company" to={1} go={goTo} rows={[["Legal", data.company.legalName], ["GSTIN", data.company.gstin], ["Phone", data.company.contactPhone], ["Email", data.company.contactEmail]]} />
+                    <Rev title="Administrator" to={0} go={goTo} rows={[["Designation", data.admin.designation]]} />
+                    <Rev title="Company" to={1} go={goTo} rows={[["Legal", data.company.legalName], ["GSTIN", data.company.gstin], ["Trade name", data.company.tradeName]]} />
                     <Rev title="Address" to={2} go={goTo} rows={[["Line 1", data.address.line1], ["City", data.address.city], ["State", `${data.address.state}${data.address.pincode ? ` · ${data.address.pincode}` : ""}`]]} />
                     <Rev title="Banking" to={3} go={goTo} rows={[["Bank", data.bank.bankName], ["A/C", data.bank.accountNumber], ["IFSC", data.bank.ifsc], ["UPI", data.bank.upiId]]} />
                     <Rev title="Invoicing" to={4} go={goTo} rows={[["Series", `${data.invoice.prefix}${data.invoice.startSeq}`], ["Terms", `${data.invoice.terms.split("\n").filter(Boolean).length} clauses`]]} />

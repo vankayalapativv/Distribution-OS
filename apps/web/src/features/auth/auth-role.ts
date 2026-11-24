@@ -84,46 +84,78 @@ export function isWebRole(role: AppRole | null): role is "SUPER_ADMIN" | "MANAGE
   return role !== null && WEB_ROLES.includes(role);
 }
 
-export type OnboardingState = "no_account" | "draft" | "pending" | "active" | "rejected";
+export type OnboardingState =
+  | "no_account"
+  | "draft"
+  | "pending"
+  | "active"
+  | "rejected"
+  // The enterprise exists but is suspended by the platform owner. A first-class
+  // state end-to-end so a suspended tenant sees a clear "account suspended" screen
+  // instead of being logged out with `?error=not_registered`.
+  | "suspended"
+  // Sentinel: we could NOT determine the state (network blip / 5xx / token hiccup),
+  // as distinct from a genuine 200 "no_account". Never clears the session — an
+  // active tenant must not be logged out by a transient failure.
+  | "unknown";
 
 /**
  * The signed-in account's onboarding state (from /onboarding/me). Used to route a
  * returning user: a half-finished signup resumes the wizard, a submitted one sees
- * "awaiting approval", a rejected one sees the reason — instead of being rejected
- * at /login. Fails safe to "no_account" (which still routes to /onboarding, where
- * the wizard bootstraps a fresh draft).
+ * "awaiting approval", a rejected one sees the reason, a suspended one sees the
+ * suspended screen — instead of being rejected at /login.
+ *
+ * A genuine 200 with no enterprise is "no_account"; a transient failure (network
+ * throw, 5xx, 408/429) returns "unknown" so the caller keeps the session rather
+ * than clearing it. One quick retry absorbs a single blip.
  */
 export async function getOnboardingState(): Promise<OnboardingState> {
   const token = await getAuthToken();
   if (!token) return "no_account";
-  try {
-    const res = await serverApiFetch("/onboarding/me", {
-      cache: "no-store",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return "no_account";
-    const body = (await res.json()) as { data?: { state?: OnboardingState } };
-    return body.data?.state ?? "no_account";
-  } catch {
-    return "no_account";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await serverApiFetch("/onboarding/me", {
+        cache: "no-store",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const body = (await res.json()) as { data?: { state?: OnboardingState } };
+        return body.data?.state ?? "no_account";
+      }
+      // A transient server-side failure: retry once, then report "unknown" (never
+      // "no_account", which would log an active tenant out). A 4xx that is not a
+      // rate-limit/timeout is treated as a genuine miss.
+      if (res.status >= 500 || res.status === 408 || res.status === 429) continue;
+      return "no_account";
+    } catch {
+      // Network-level failure — retry once, then "unknown".
+    }
   }
+  return "unknown";
 }
 
 /**
  * Where an authenticated session should land. The dashboard is reached ONLY by a
  * web role whose enterprise is active; every onboarding-stage account (draft /
  * no_account / pending / rejected) goes to /onboarding, which renders the right
- * surface (resume wizard, pending, or rejected). A non-web role on an active
- * enterprise (SE / Logistics) has no web app, so its session is cleared.
+ * surface (resume wizard, pending, rejected, or suspended). A non-web role on an
+ * active enterprise (SE / Logistics) has no web app, so its session is cleared.
  */
 export function landingPathFor(role: AppRole | null, state: OnboardingState): string {
   if (state === "active") {
     return isWebRole(role) ? "/" : "/api/auth/logout?error=no_web_access";
   }
   // A signup account with a users row but no enterprise yet — resume the wizard or
-  // show its submitted/rejected status.
-  if (state === "draft" || state === "pending" || state === "rejected") {
+  // show its submitted / rejected / suspended status. All render under /onboarding.
+  if (state === "draft" || state === "pending" || state === "rejected" || state === "suspended") {
     return "/onboarding";
+  }
+  // "unknown": a transient failure — do NOT clear the session. A web role goes to
+  // the dashboard (its own guard re-resolves /me); anyone else to /onboarding,
+  // which tolerates the failure and shows the wizard. Neither path bounces an
+  // authenticated token, so there is no redirect loop and no false logout.
+  if (state === "unknown") {
+    return isWebRole(role) ? "/" : "/onboarding";
   }
   // "no_account": authenticated but NOT an enterprise app user — a platform owner
   // who came through the wrong door, or an orphan Neon identity. Not a dashboard

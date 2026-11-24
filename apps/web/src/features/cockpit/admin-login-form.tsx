@@ -25,7 +25,7 @@ export function AdminLoginForm() {
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) { setError(body.error ?? "Could not sign in."); setBusy(false); return; }
-      router.push("/admin");
+      router.push("/owner");
       router.refresh();
     } catch {
       setError("Network error. Please try again.");

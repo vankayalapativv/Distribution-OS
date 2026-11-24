@@ -38,6 +38,29 @@ export interface BillingConfig {
   /** Per-enterprise enforcement opt-in. The global BILLING_ENFORCED is the master
    *  switch; this decides whether THIS enterprise is actually gated/blocked. */
   enforced: boolean;
+  /** Free until this instant (ISO). A month whose period_start is before this is a
+   *  free month; null = no time-boxed free period. Set by the owner cockpit. */
+  freeUntil: string | null;
+  /** Open-ended free: every month is free until the owner turns billing on. Wins
+   *  over freeUntil. */
+  freeForever: boolean;
+}
+
+/**
+ * Whether the calendar month starting on `monthStartIso` (an IST YYYY-MM-DD) is a
+ * FREE month for this config: open-ended free, or before the time-boxed free end.
+ * Pure (unit-tested). The DB paths below replicate this in SQL.
+ */
+export function isMonthFree(config: BillingConfig, monthStartIso: string): boolean {
+  if (config.freeForever) return true;
+  if (!config.freeUntil) return false;
+  // Compare the month-start date against the free-until instant's IST calendar date.
+  const freeUntilIstDate = new Date(
+    new Date(config.freeUntil).getTime() + 5.5 * 60 * 60 * 1000,
+  )
+    .toISOString()
+    .slice(0, 10);
+  return monthStartIso < freeUntilIstDate;
 }
 
 /**
@@ -50,7 +73,9 @@ export async function getEnterpriseBillingConfig(sql: SqlClient): Promise<Billin
     /* billing_v2_config */
     select model, unit_amount_paisa as "unitAmountPaisa",
            flat_amount_paisa as "flatAmountPaisa", gst_rate_bp as "gstRateBp",
-           billing_enforced as "enforced"
+           billing_enforced as "enforced",
+           to_char(free_until at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as "freeUntil",
+           free_forever as "freeForever"
     from enterprise_billing_config
     limit 1
   `) as Array<Record<string, unknown>>;
@@ -61,6 +86,8 @@ export async function getEnterpriseBillingConfig(sql: SqlClient): Promise<Billin
     flatAmountPaisa: row.flatAmountPaisa == null ? null : Number(row.flatAmountPaisa),
     gstRateBp: Number(row.gstRateBp ?? 1800),
     enforced: Boolean(row.enforced),
+    freeUntil: (row.freeUntil as string | null) ?? null,
+    freeForever: Boolean(row.freeForever),
   };
 }
 
@@ -428,12 +455,24 @@ export async function ensureCurrentCharge(
   const seats = await getActiveSeatCount(sql);
   const amountPaisa = chargeAmountForConfig(cfg, seats);
 
+  // A new month is FREE when the config says so (open-ended, or before the
+  // time-boxed free end); otherwise it's a priced pending charge. Decided in SQL
+  // so the month-start comparison is IST-consistent with the rest of the file.
   const [row] = (await sql`
-    /* billing_v2_insert_pending */
+    /* billing_v2_insert_month */
+    with m as (
+      select date_trunc('month', (now() at time zone 'Asia/Kolkata')::date)::date as mstart,
+             (date_trunc('month', (now() at time zone 'Asia/Kolkata')::date) + interval '1 month' - interval '1 day')::date as mend,
+             (${cfg.freeForever}
+              or (${cfg.freeUntil}::timestamptz is not null
+                  and date_trunc('month', (now() at time zone 'Asia/Kolkata')::date)::date
+                      < (${cfg.freeUntil}::timestamptz at time zone 'Asia/Kolkata')::date)) as is_free
+    )
     insert into billing_charges (period_start, period_end, seats, amount_paisa, status)
-    select date_trunc('month', (now() at time zone 'Asia/Kolkata')::date)::date,
-           (date_trunc('month', (now() at time zone 'Asia/Kolkata')::date) + interval '1 month' - interval '1 day')::date,
-           ${seats}, ${amountPaisa}, 'pending'
+    select mstart, mend, ${seats},
+           case when is_free then 0 else ${amountPaisa} end,
+           case when is_free then 'free' else 'pending' end
+    from m
     on conflict (enterprise_id, period_start) do nothing
     returning id, period_start as "periodStart"
   `) as Record<string, unknown>[];

@@ -1,7 +1,9 @@
-import { AdminLoginForm } from "../../../features/cockpit/admin-login-form";
+import { redirect } from "next/navigation";
+import { OWNER_HOST } from "../../../lib/owner-host";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminLoginPage() {
-  return <AdminLoginForm />;
+// Deprecated apex cockpit login → the owner subdomain's login.
+export default function AdminLoginRedirect() {
+  redirect(`https://${OWNER_HOST}/owner/login`);
 }

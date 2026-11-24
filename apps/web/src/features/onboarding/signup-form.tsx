@@ -315,10 +315,10 @@ export function SignupForm() {
 
             <div className="mt-8 flex flex-col gap-4">
               <Feature
-                title="GST tax invoices"
+                title="GST invoicing"
                 icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" /><path d="M9 13h6M9 17h4" /></svg>}
               >
-                Compliant billing with e-way-ready exports.
+                Compliant tax invoices with HSN, GST splits and e-way bill.
               </Feature>
               <Feature
                 title="Live field tracking"

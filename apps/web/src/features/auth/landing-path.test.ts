@@ -34,4 +34,20 @@ describe("landingPathFor", () => {
     expect(landingPathFor(null, "no_account")).toBe("/api/auth/logout?error=not_registered");
     expect(landingPathFor("SUPER_ADMIN", "no_account")).toBe("/api/auth/logout?error=not_registered");
   });
+
+  it("suspended enterprise → suspended screen, NOT a not_registered logout", () => {
+    // A suspended tenant keeps its session and sees the clear "access paused" page.
+    expect(landingPathFor("SUPER_ADMIN", "suspended")).toBe("/onboarding");
+    expect(landingPathFor("MANAGER", "suspended")).toBe("/onboarding");
+    expect(landingPathFor(null, "suspended")).toBe("/onboarding");
+  });
+
+  it("unknown (transient /onboarding/me failure) → NEVER clears the session", () => {
+    // The live bug: a blip must not log an active tenant out. A web role goes to the
+    // dashboard (its own guard re-resolves); anyone else to /onboarding. No logout.
+    expect(landingPathFor("SUPER_ADMIN", "unknown")).toBe("/");
+    expect(landingPathFor("ACCOUNTANT", "unknown")).toBe("/");
+    expect(landingPathFor(null, "unknown")).toBe("/onboarding");
+    expect(landingPathFor("SALES_EXECUTIVE", "unknown")).toBe("/onboarding");
+  });
 });

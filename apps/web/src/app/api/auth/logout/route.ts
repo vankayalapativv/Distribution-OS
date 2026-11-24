@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { neonSignOut } from "../../../../lib/neon-auth-server";
+import { isOwnerHost } from "../../../../lib/owner-host";
 
 /**
  * Clear the web session and return to /login. Supports both POST (the logout
@@ -15,8 +16,10 @@ async function clearSessionAndRedirect(request: Request): Promise<NextResponse> 
     await neonSignOut(session); // best-effort revoke of the Neon session
   }
 
+  // On the owner subdomain, land back on the cockpit login — not the tenant one.
+  const loginPath = isOwnerHost(request.headers.get("host")) ? "/owner/login" : "/login";
   const error = new URL(request.url).searchParams.get("error");
-  const dest = new URL(error ? `/login?error=${encodeURIComponent(error)}` : "/login", request.url);
+  const dest = new URL(error ? `${loginPath}?error=${encodeURIComponent(error)}` : loginPath, request.url);
   const response = NextResponse.redirect(dest);
   const clear = {
     httpOnly: true,

@@ -13,7 +13,7 @@ import { isUniqueViolation } from "../lib/pg-errors";
 import { validateDuesBands } from "./dues";
 import type { SqlClient } from "../lib/db";
 
-export type OnboardingState = "no_account" | "draft" | "pending" | "active" | "rejected";
+export type OnboardingState = "no_account" | "draft" | "pending" | "active" | "rejected" | "suspended";
 
 interface UserRow {
   id: string;
@@ -155,8 +155,10 @@ interface DuesBand {
   label: string;
 }
 export interface OnboardingPayload {
-  admin: { name: string; designation: string };
-  company: { legalName: string; gstin: string; tradeName: string; contactPhone: string; contactEmail: string };
+  // The admin's name / email / phone come from the SIGNUP account (the `users`
+  // row), not the wizard — so the wizard only collects the designation here.
+  admin: { designation: string };
+  company: { legalName: string; gstin: string; tradeName: string };
   address: { line1: string; line2?: string | null; city: string; state: string; pincode: string };
   bank: { bankName: string; accountName: string; accountNumber: string; ifsc: string; upiId: string };
   invoice: { prefix: string; finYear: string; startSeq: number; terms: string };
@@ -175,15 +177,14 @@ function req(value: unknown, field: string): string {
 /** Validate every mandatory field. GSTIN is the one optional field. */
 export function validateOnboarding(p: OnboardingPayload): OnboardingPayload {
   if (!p || typeof p !== "object") throw new ApiError("VALIDATION", "Onboarding data is required.", 422);
-  req(p.admin?.name, "admin.name");
+  // admin.name / company contact email+phone are NOT collected here — they come
+  // from the signup account (see submitOnboarding), so they aren't validated.
   req(p.admin?.designation, "admin.designation");
   req(p.company?.legalName, "company.legalName");
   // GSTIN is optional — normalize to a trimmed string (empty when omitted). The
   // enterprises.gstin column is NOT NULL, so a blank value is stored as "".
   if (p.company) p.company.gstin = typeof p.company.gstin === "string" ? p.company.gstin.trim() : "";
   req(p.company?.tradeName, "company.tradeName");
-  req(p.company?.contactPhone, "company.contactPhone");
-  req(p.company?.contactEmail, "company.contactEmail");
   req(p.address?.line1, "address.line1");
   req(p.address?.city, "address.city");
   req(p.address?.state, "address.state");
@@ -226,12 +227,22 @@ export async function submitOnboarding(
   const p = validateOnboarding(raw);
   const entId = crypto.randomUUID();
 
+  // The admin's identity (name / email / phone) is the signup account — don't ask
+  // for it twice. Source it from the `users` row the signup created.
+  const [u] = (await sql`
+    /* onboarding_signup_identity */
+    select name, email, phone from users where id = ${userId} limit 1
+  `) as Array<{ name: string | null; email: string | null; phone: string | null }>;
+  const adminName = (u?.name ?? "").trim() || "Administrator";
+  const adminEmail = (u?.email ?? "").trim();
+  const adminPhone = (u?.phone ?? "").trim();
+
   const settings: Array<[string, string]> = [
     ["company_legal_name", p.company.legalName],
     ["company_trade_name", p.company.tradeName],
     ["company_gstin", p.company.gstin],
-    ["company_phone", p.company.contactPhone],
-    ["company_email", p.company.contactEmail],
+    ["company_phone", adminPhone],
+    ["company_email", adminEmail],
     ["company_city", p.address.city],
     ["company_state", p.address.state],
     ["company_pincode", p.address.pincode],
@@ -253,7 +264,7 @@ export async function submitOnboarding(
          address_line1, address_line2, address_city, address_state, address_pincode, status, created_by)
       values
         (${entId}, ${p.company.tradeName}, ${p.company.legalName}, ${p.company.gstin},
-         ${p.admin.name}, ${p.company.contactPhone}, ${p.company.contactEmail},
+         ${adminName}, ${adminPhone}, ${adminEmail},
          ${p.address.line1}, ${p.address.line2 ?? null}, ${p.address.city}, ${p.address.state},
          ${p.address.pincode}, 'pending', ${userId})
     `,

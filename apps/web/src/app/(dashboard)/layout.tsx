@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { isWebRole, requireSessionRole } from "@/features/auth/auth-role";
+import { getOnboardingState, isWebRole, requireSessionRole } from "@/features/auth/auth-role";
 import { BillingBlockedScreen } from "@/features/billing/billing-blocked-screen";
 import { BillingGuardV2 } from "@/features/billing/billing-guard-v2";
 import { loadBillingAccess } from "@/features/billing/billing-v2-api";
+import { OnboardingStatus } from "@/features/onboarding/onboarding-status";
 import { PopupLinkRouter } from "@/features/shell/popup-link-router";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +39,18 @@ export default async function DashboardLayout({
     redirect(auth.isProviderAdmin ? "/admin" : "/onboarding");
   }
 
-  const { access, actionConfig } = await loadBillingAccess();
+  // Enterprise suspension is enforced here on EVERY navigation (the core auth
+  // path doesn't read enterprise status, so an already-logged-in tenant would
+  // otherwise keep working until re-login). A suspended tenant sees the clean
+  // "access paused" screen instead of the app — never `?error=not_registered`.
+  // Parallel with the billing read so it adds no serial latency.
+  const [onboardingState, { access, actionConfig }] = await Promise.all([
+    getOnboardingState(),
+    loadBillingAccess(),
+  ]);
+  if (onboardingState === "suspended") {
+    return <OnboardingStatus state="suspended" />;
+  }
 
   // Hard block: render only the payment screen (no app, no data fetch, no 402).
   // `role` draws a static, inert dashboard chrome behind the card.

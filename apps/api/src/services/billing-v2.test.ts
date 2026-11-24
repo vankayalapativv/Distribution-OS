@@ -5,7 +5,8 @@ const { createOrder, orderIsUsable } = vi.hoisted(() => ({ createOrder: vi.fn(),
 vi.mock("./system-settings", () => ({ getSystemSettings }));
 vi.mock("../lib/razorpay", () => ({ createOrder, orderIsUsable }));
 
-import { chargeAmountForConfig, chargeAmountPaisa, computeAccess, ensureCurrentCharge, ensureOrderForCharge, getBillingAccess, getEnterpriseBillingConfig, getReceipt, listCharges } from "./billing-v2";
+import { chargeAmountForConfig, chargeAmountPaisa, computeAccess, ensureCurrentCharge, ensureOrderForCharge, getBillingAccess, getEnterpriseBillingConfig, getReceipt, isMonthFree, listCharges } from "./billing-v2";
+import type { BillingConfig } from "./billing-v2";
 import { makeSql } from "../test/sql-mock";
 
 afterEach(() => vi.clearAllMocks());
@@ -20,11 +21,27 @@ describe("getEnterpriseBillingConfig / chargeAmountForConfig", () => {
   });
   it("reads a per-seat config", async () => {
     const c = await getEnterpriseBillingConfig(makeSql({ billing_v2_config: CONFIG }));
-    expect(c).toEqual({ model: "per_seat", unitAmountPaisa: 70800, flatAmountPaisa: null, gstRateBp: 1800, enforced: false });
+    expect(c).toEqual({ model: "per_seat", unitAmountPaisa: 70800, flatAmountPaisa: null, gstRateBp: 1800, enforced: false, freeUntil: null, freeForever: false });
   });
   it("per-seat amount = unit × seats; flat amount is seat-independent", () => {
-    expect(chargeAmountForConfig({ model: "per_seat", unitAmountPaisa: 70800, flatAmountPaisa: null, gstRateBp: 1800, enforced: false }, 3)).toBe(212400);
-    expect(chargeAmountForConfig({ model: "flat", unitAmountPaisa: null, flatAmountPaisa: 500000, gstRateBp: 1800, enforced: false }, 99)).toBe(500000);
+    expect(chargeAmountForConfig({ model: "per_seat", unitAmountPaisa: 70800, flatAmountPaisa: null, gstRateBp: 1800, enforced: false, freeUntil: null, freeForever: false }, 3)).toBe(212400);
+    expect(chargeAmountForConfig({ model: "flat", unitAmountPaisa: null, flatAmountPaisa: 500000, gstRateBp: 1800, enforced: false, freeUntil: null, freeForever: false }, 99)).toBe(500000);
+  });
+});
+
+describe("isMonthFree (free-period resolution)", () => {
+  const base: BillingConfig = { model: "flat", unitAmountPaisa: null, flatAmountPaisa: 117882, gstRateBp: 1800, enforced: true, freeUntil: null, freeForever: false };
+  it("bill-immediately: no free settings → never free", () => {
+    expect(isMonthFree(base, "2026-11-01")).toBe(false);
+  });
+  it("open-ended: freeForever → always free", () => {
+    expect(isMonthFree({ ...base, freeForever: true }, "2030-01-01")).toBe(true);
+  });
+  it("time-boxed: month before free_until IST date is free, on/after is billed", () => {
+    // free_until = 2026-12-01 00:00 IST (= 2026-11-30T18:30:00Z)
+    const cfg = { ...base, freeUntil: "2026-11-30T18:30:00Z" };
+    expect(isMonthFree(cfg, "2026-11-01")).toBe(true);
+    expect(isMonthFree(cfg, "2026-12-01")).toBe(false);
   });
 });
 
@@ -66,8 +83,8 @@ describe("listCharges / getReceipt", () => {
 describe("ensureCurrentCharge", () => {
   it("no-op existing / create / race", async () => {
     expect(await ensureCurrentCharge(makeSql({ billing_v2_go_live_set: [], billing_v2_current_exists: [{ id: "ch1" }] }))).toEqual({ created: false });
-    expect(await ensureCurrentCharge(makeSql({ billing_v2_go_live_set: [], billing_v2_current_exists: [], billing_v2_config: CONFIG, billing_v2_seat_count: [{ n: 3 }], billing_v2_insert_pending: [{ id: "ch9" }] }))).toEqual({ created: true, chargeId: "ch9" });
-    expect(await ensureCurrentCharge(makeSql({ billing_v2_go_live_set: [], billing_v2_current_exists: [], billing_v2_config: CONFIG, billing_v2_seat_count: [{ n: 3 }], billing_v2_insert_pending: [] }))).toEqual({ created: false });
+    expect(await ensureCurrentCharge(makeSql({ billing_v2_go_live_set: [], billing_v2_current_exists: [], billing_v2_config: CONFIG, billing_v2_seat_count: [{ n: 3 }], billing_v2_insert_month: [{ id: "ch9" }] }))).toEqual({ created: true, chargeId: "ch9" });
+    expect(await ensureCurrentCharge(makeSql({ billing_v2_go_live_set: [], billing_v2_current_exists: [], billing_v2_config: CONFIG, billing_v2_seat_count: [{ n: 3 }], billing_v2_insert_month: [] }))).toEqual({ created: false });
     // Unpriced enterprise: no config → no charge created.
     expect(await ensureCurrentCharge(makeSql({ billing_v2_go_live_set: [], billing_v2_current_exists: [], billing_v2_config: [] }))).toEqual({ created: false });
   });

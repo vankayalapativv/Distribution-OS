@@ -393,8 +393,14 @@ export async function checkOut(sql: SqlClient, context: CheckOutContext) {
     throw new ApiError("OUT_OF_RANGE", "You're too far from the shop to check out. Move within 100 m.", 422);
   }
 
-  // Mandatory no-outcome reason: no order AND no collection by this SE for this
-  // customer on the visit day → require a reason before closing the visit.
+  // Mandatory no-outcome reason: no order AND no collection for this customer on
+  // the visit day → require a reason before closing the visit. The outcome is
+  // matched to the person doing the visit by EITHER the attributed SE
+  // (sales_executive_id / collected_by_user_id) OR who created it (created_by):
+  // an order placed during the visit by a super-admin/manager — or by an SE
+  // covering another SE's customer — carries the customer's ASSIGNED SE as its
+  // sales_executive_id, not the visitor, so matching the attributed SE alone
+  // wrongly reported "no outcome" and forced a reason even after a real order.
   const reason = context.reason?.trim() || null;
   if (!reason) {
     const [outcome] = (await sql`
@@ -403,14 +409,14 @@ export async function checkOut(sql: SqlClient, context: CheckOutContext) {
         exists (
           select 1 from orders o
           where o.customer_id = ${str(visit.customerId)}::uuid
-            and o.sales_executive_id = ${context.userId}::uuid
+            and (o.sales_executive_id = ${context.userId}::uuid or o.created_by = ${context.userId}::uuid)
             and o.order_date = ${str(visit.visitDate)}::date
             and o.order_status <> 'cancelled'
         )
         or exists (
           select 1 from collections cl
           where cl.customer_id = ${str(visit.customerId)}::uuid
-            and cl.collected_by_user_id = ${context.userId}::uuid
+            and (cl.collected_by_user_id = ${context.userId}::uuid or cl.created_by = ${context.userId}::uuid)
             and cl.collection_date = ${str(visit.visitDate)}::date
         )
       ) as "hasOutcome"

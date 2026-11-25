@@ -59,7 +59,7 @@ export function useOrderDraft({
     setIsCreating(true);
     setCreateError(null);
     const picked = collectDraftItems(oil.lineItems, products);
-    const err = validateDraft({ ...picked, lockedLines });
+    const err = validateDraft({ ...picked, lockedLines, selectedSalesExecId });
     if (err) {
       setCreateError(err);
       setIsCreating(false);

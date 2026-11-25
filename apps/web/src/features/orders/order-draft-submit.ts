@@ -20,10 +20,15 @@ export function collectDraftItems(oilItems: LineItemDraft[], products: Product[]
 export interface DraftValidation {
   validItems: LineItemDraft[];
   lockedLines: LockedLine[];
+  /** The Sales Executive / Super Admin the order is credited to — now required. */
+  selectedSalesExecId: string;
 }
 
 /** First blocking validation message for the draft, or null when it's ready. */
 export function validateDraft(a: DraftValidation): string | null {
+  if (!a.selectedSalesExecId) {
+    return "Select who this order is for (a Sales Executive or Super Admin).";
+  }
   if (a.validItems.length === 0 && a.lockedLines.length === 0) {
     return "Add at least one oil line item.";
   }
@@ -51,7 +56,7 @@ export interface PayloadInput {
 export function buildOrderPayload(a: PayloadInput) {
   return {
     customerId: a.selectedCustomerId,
-    salesExecutiveId: a.selectedSalesExecId || null,
+    salesExecutiveId: a.selectedSalesExecId,
     orderDate: a.orderDate ? format(a.orderDate, "yyyy-MM-dd") : null,
     items: [
       ...a.validItems.map((i) => ({

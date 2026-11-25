@@ -46,11 +46,13 @@ function base(over: Partial<Parameters<typeof OrderHeaderFields>[0]> = {}) {
 }
 
 describe("OrderHeaderFields", () => {
-  it("renders the customer picker, date field and SE select (with a leading None)", () => {
+  it("renders the customer picker, date field and a required SE/SA select (no None)", () => {
     base();
     expect(screen.getByTestId("customer-picker")).toBeInTheDocument();
     expect(screen.getByTestId("date-field")).toBeInTheDocument();
-    expect(screen.getByTestId("se-select")).toHaveTextContent(":None,se1:Anika");
+    // No synthetic "None" entry — the picker is required now.
+    expect(screen.getByTestId("se-select")).toHaveTextContent("se1:Anika");
+    expect(screen.getByTestId("se-select")).not.toHaveTextContent("None");
   });
 
   it("shows the customer read-only when locked", () => {

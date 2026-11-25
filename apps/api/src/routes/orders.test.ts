@@ -120,6 +120,11 @@ vi.mock("@neondatabase/serverless", () => {
       return [sampleOrderItem];
     }
 
+    if (query.includes("is_attributable_user")) {
+      // A Manager/Accountant id is NOT attributable (not SE/SA) → empty row.
+      return values.includes(MANAGER_ID) || values.includes(ACCOUNTANT_ID) ? [] : [{ ok: 1 }];
+    }
+
     if (query.includes("next_order_code")) {
       return [{ next_seq: 1 }];
     }
@@ -316,7 +321,23 @@ describe("POST /orders", () => {
     expect(body.data.order).toBeDefined();
   });
 
-  test("MANAGER can create an order", async () => {
+  test("MANAGER can create an order (must name who it's for)", async () => {
+    const { default: app } = await import("../index");
+    // A Manager/Accountant has no implicit field role, so the order must name a
+    // Sales Executive or Super Admin to credit (2026-11-25).
+    const res = await app.request(
+      "/orders",
+      {
+        method: "POST",
+        headers: { ...authHeaders("neon-manager"), "Content-Type": "application/json" },
+        body: JSON.stringify({ ...validPayload, salesExecutiveId: SUPER_ADMIN_ID }),
+      },
+      env,
+    );
+    expect(res.status).toBe(201);
+  });
+
+  test("MANAGER order with no one named is rejected (422)", async () => {
     const { default: app } = await import("../index");
     const res = await app.request(
       "/orders",
@@ -327,7 +348,22 @@ describe("POST /orders", () => {
       },
       env,
     );
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(422);
+  });
+
+  test("order credited to a non-SE/SA (e.g. an Accountant) is rejected (422)", async () => {
+    const { default: app } = await import("../index");
+    // is_attributable_user returns empty for a Manager/Accountant id → guard fires.
+    const res = await app.request(
+      "/orders",
+      {
+        method: "POST",
+        headers: { ...authHeaders("neon-manager"), "Content-Type": "application/json" },
+        body: JSON.stringify({ ...validPayload, salesExecutiveId: ACCOUNTANT_ID }),
+      },
+      env,
+    );
+    expect(res.status).toBe(422);
   });
 
   test("creates an order line for a quantity-unit product (no pack size)", async () => {

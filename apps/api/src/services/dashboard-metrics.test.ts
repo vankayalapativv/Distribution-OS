@@ -71,6 +71,85 @@ describe("getMetricAgents — every metric branch", () => {
   });
 });
 
+// A Super Admin who does field work is credited and shown just like a Sales
+// Executive (2026-11-25). These guard the drill-downs against any future change
+// that would filter out, hide, or otherwise single out super-admin rows — the
+// returns/cancel math itself keys only on the attribution column, never on role,
+// so a SA order/delivery is reduced by the identical formula as an SE's.
+describe("super-admin parity in the drill-downs", () => {
+  type AgentRow = { agentId: string; isSuperAdmin: boolean; litres?: number; amount?: number; productiveVisits?: number };
+
+  it("ordered: a SA row survives next to an SE with equal litres and carries the badge", async () => {
+    const rows = (await getMetricAgents(
+      makeSql({
+        agents_ordered: [
+          { agentId: "se-1", agentName: "Asha", isSuperAdmin: false, litres: "40", orders: "2", customers: "2" },
+          { agentId: "sa-1", agentName: "Boss", isSuperAdmin: true, litres: "40", orders: "2", customers: "2" },
+        ],
+      }),
+      CTX,
+      "ordered" as never,
+      RANGE,
+    )) as AgentRow[];
+    const se = rows.find((r) => r.agentId === "se-1")!;
+    const sa = rows.find((r) => r.agentId === "sa-1")!;
+    expect(rows).toHaveLength(2);
+    expect(se.isSuperAdmin).toBe(false);
+    expect(sa.isSuperAdmin).toBe(true);
+    expect(sa.litres).toBe(se.litres); // identical treatment, not dropped/halved
+  });
+
+  it("sold oils (litres): a SA delivered row is reduced/kept identically and flagged", async () => {
+    const rows = (await getMetricAgents(
+      makeSql({
+        agents_delivered: [
+          { agentId: "se-1", agentName: "Asha", isSuperAdmin: false, litres: "30", orders: "1", customers: "1" },
+          { agentId: "sa-1", agentName: "Boss", isSuperAdmin: true, litres: "30", orders: "1", customers: "1" },
+        ],
+      }),
+      CTX,
+      "litres" as never,
+      RANGE,
+    )) as AgentRow[];
+    expect(rows.find((r) => r.agentId === "sa-1")!.isSuperAdmin).toBe(true);
+    expect(rows.find((r) => r.agentId === "sa-1")!.litres).toBe(rows.find((r) => r.agentId === "se-1")!.litres);
+  });
+
+  it("collections: a SA collector row survives and is flagged", async () => {
+    const rows = (await getMetricAgents(
+      makeSql({
+        agents_collections: [
+          { agentId: "sa-1", agentName: "Boss", isSuperAdmin: true, amount: "5000", verified: "4000", collections: "2", customers: "2" },
+        ],
+      }),
+      CTX,
+      "collections" as never,
+      RANGE,
+    )) as AgentRow[];
+    expect(rows).toHaveLength(1);
+    expect(rows[0].isSuperAdmin).toBe(true);
+    expect(rows[0].amount).toBe(5000);
+  });
+
+  it("productivity: a SA visit row is kept as its own row and flagged", async () => {
+    const rows = (await getMetricAgents(
+      makeSql({
+        agents_visits: [
+          { agentId: "se-1", agentName: "Asha", isSuperAdmin: false, visits: 10, productiveVisits: 8, customers: 4, avgDuration: "20" },
+          { agentId: "sa-1", agentName: "Boss", isSuperAdmin: true, visits: 4, productiveVisits: 4, customers: 2, avgDuration: "18" },
+        ],
+      }),
+      CTX,
+      "productivity" as never,
+      RANGE,
+    )) as AgentRow[];
+    const sa = rows.find((r) => r.agentId === "sa-1")!;
+    expect(sa).toBeDefined();
+    expect(sa.isSuperAdmin).toBe(true);
+    expect(sa.productiveVisits).toBe(4);
+  });
+});
+
 describe("getMetricAgentCustomers — every metric branch", () => {
   const cases: Record<string, Record<string, Record<string, unknown>[]>> = {
     executives: { agent_day_timeline: [{ day: "2026-06-01" }] },

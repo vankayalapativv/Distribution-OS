@@ -85,7 +85,7 @@ export function OrdersCreateDialog(props: Readonly<OrdersCreateDialogProps>) {
             <Button type="button" variant="outline" onClick={draft.closeCreate}>
               Cancel
             </Button>
-            <Button type="submit" disabled={draft.isCreating || !draft.selectedCustomerId}>
+            <Button type="submit" disabled={draft.isCreating || !draft.selectedCustomerId || !draft.selectedSalesExecId}>
               {submitLabel}
             </Button>
           </DialogFooter>

@@ -85,6 +85,11 @@ vi.mock("@neondatabase/serverless", () => {
     if (query.includes("assert_customer_visible")) {
       return values.includes(CUSTOMER_ID) ? [{ id: CUSTOMER_ID }] : [];
     }
+
+    if (query.includes("is_attributable_user")) {
+      // A Manager/Accountant id is NOT attributable (not SE/SA) → empty row.
+      return values.includes(MANAGER_ID) || values.includes(ACCOUNTANT_ID) ? [] : [{ ok: 1 }];
+    }
     if (query.includes("get_invoice_for_allocation")) {
       if (values.includes(INVOICE_ID)) {
         return [{ id: INVOICE_ID, customerId: CUSTOMER_ID }];
@@ -448,7 +453,25 @@ describe("collections routes", () => {
       });
     });
 
-    test("Manager can create a collection", async () => {
+    test("Manager can create a collection (must name the collector)", async () => {
+      const { default: app } = await import("../index");
+
+      // A Manager/Accountant must name who collected (an SE or Super Admin);
+      // there is no silent "customer's SE" fallback (2026-11-25).
+      const res = await app.request(
+        "/api/v1/collections",
+        {
+          method: "POST",
+          headers: headers("neon-manager"),
+          body: JSON.stringify({ ...newCollectionBody, collectedByUserId: SE_ID }),
+        },
+        env,
+      );
+
+      expect(res.status).toBe(201);
+    });
+
+    test("Manager collection with no collector named is rejected (422)", async () => {
       const { default: app } = await import("../index");
 
       const res = await app.request(
@@ -461,7 +484,23 @@ describe("collections routes", () => {
         env,
       );
 
-      expect(res.status).toBe(201);
+      expect(res.status).toBe(422);
+    });
+
+    test("collection credited to a non-SE/SA (e.g. an Accountant) is rejected (422)", async () => {
+      const { default: app } = await import("../index");
+      // is_attributable_user returns empty for an Accountant id → guard fires.
+      const res = await app.request(
+        "/api/v1/collections",
+        {
+          method: "POST",
+          headers: headers("neon-manager"),
+          body: JSON.stringify({ ...newCollectionBody, collectedByUserId: ACCOUNTANT_ID }),
+        },
+        env,
+      );
+
+      expect(res.status).toBe(422);
     });
 
     test("invoiceId allocates the collection to that invoice", async () => {

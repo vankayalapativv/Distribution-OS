@@ -225,12 +225,10 @@ export async function createOrder(
 
   const { enrichedItems, totalLitres } = await prepareOrderItems(sql, input.items);
 
-  // Attribute to the customer's owning SE when the creator didn't name one (a
-  // Super Admin recording an order for a customer). An SE creating their own
-  // order already has salesExecutiveId forced to self upstream, so this only
-  // fills the office-role gap. Not racy → computed once, outside the retry.
-  const salesExecutiveId =
-    input.salesExecutiveId ?? (await customerOwnerSE(sql, input.customerId));
+  // Order credit is resolved by the route (SE→self, SA→picked-or-self,
+  // Manager/Accountant→must pick) — whoever is named owns it, with no silent
+  // "customer's SE" fallback (2026-11-25). Stored verbatim.
+  const salesExecutiveId = input.salesExecutiveId ?? null;
 
   // Header + all line items in ONE atomic round-trip (architecture audit G-0402).
   // The ORD-#### code is max(seq)+1, which races under concurrent creates, so code

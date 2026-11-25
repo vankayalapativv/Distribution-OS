@@ -18,6 +18,7 @@ vi.mock("../services/orders", () => ({
   listProducts: vi.fn().mockResolvedValue([]),
   listRecentOrdersByCustomerBulk: vi.fn().mockResolvedValue({ byCustomer: {} }),
   listSalesExecutives: vi.fn().mockResolvedValue([]),
+  resolveAttributedUser: vi.fn().mockResolvedValue("se-1"),
   orderFulfillmentSummary: vi.fn().mockResolvedValue({ ordered: 0 }),
   updateOrder: vi.fn().mockResolvedValue({ id: "o1", orderCode: "ORD-1" }),
 }));

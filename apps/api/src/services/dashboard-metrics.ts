@@ -116,6 +116,13 @@ export async function getDashboardMetrics(
       ))::int as "productiveVisits"
     from visits v
     where v.visit_date between ${range.from}::date and ${range.to}::date
+      -- Productivity headline is a pure Sales-Executive field metric: Super Admin
+      -- visits are excluded here (shown as their own drill-down rows instead,
+      -- 2026-11-25).
+      and exists (
+        select 1 from user_roles ur join roles r on r.id = ur.role_id
+        where ur.user_id = v.executive_id and r.code = 'SALES_EXECUTIVE'
+      )
   `,
       // GROSS ordered oils = every oil order line's ORIGINAL litres (raw demand),
   // INCLUDING cancelled orders and BEFORE subtracting returns — deliberately
@@ -285,6 +292,8 @@ export async function getMetricAgents(
       select
         u.id as "agentId",
         u.name as "agentName",
+        exists (select 1 from user_roles ur join roles r on r.id = ur.role_id
+                where ur.user_id = u.id and r.code = 'SUPER_ADMIN') as "isSuperAdmin",
         count(*)::int as "visits",
         count(*) filter (where exists (
         select 1 from orders po
@@ -318,6 +327,7 @@ export async function getMetricAgents(
       .map((r: Row) => ({
         agentId: str(r.agentId),
         agentName: str(r.agentName),
+        isSuperAdmin: Boolean(r.isSuperAdmin),
         visits: num(r.visits),
         productiveVisits: num(r.productiveVisits),
         customers: num(r.customers),
@@ -342,6 +352,8 @@ export async function getMetricAgents(
       select
         u.id as "agentId",
         u.name as "agentName",
+        exists (select 1 from user_roles ur join roles r on r.id = ur.role_id
+                where ur.user_id = u.id and r.code = 'SUPER_ADMIN') as "isSuperAdmin",
         coalesce(sum((oi.quantity_units + coalesce(oi.cancelled_units, 0)) * oi.pack_size_litres) filter (where oi.product_id is not null), 0)::numeric as "litres",
         count(distinct o.id)::int as "orders",
         count(distinct o.customer_id)::int as "customers"
@@ -350,12 +362,13 @@ export async function getMetricAgents(
       left join order_items oi on oi.order_id = o.id
       where o.order_date between ${range.from}::date and ${range.to}::date
       group by u.id, u.name
-      order by 3 desc
+      order by "litres" desc
     `;
     return rows
       .map((r: Row) => ({
         agentId: str(r.agentId),
         agentName: str(r.agentName),
+        isSuperAdmin: Boolean(r.isSuperAdmin),
         litres: num(r.litres),
         orders: num(r.orders),
         customers: num(r.customers),
@@ -371,6 +384,8 @@ export async function getMetricAgents(
       select
         coalesce(i.sales_executive_id, o.sales_executive_id) as "agentId",
         u.name as "agentName",
+        exists (select 1 from user_roles ur join roles r2 on r2.id = ur.role_id
+                where ur.user_id = u.id and r2.code = 'SUPER_ADMIN') as "isSuperAdmin",
         coalesce(sum(i.total_litres - coalesce(r.rl, 0)), 0)::numeric as "litres",
         count(*)::int as "orders",
         count(distinct i.customer_id)::int as "customers"
@@ -386,13 +401,14 @@ export async function getMetricAgents(
       where i.approval_status <> 'rejected' and i.doc_status <> 'cancelled'
         and exists (select 1 from delivery_run_stops ds where ds.invoice_id = i.id)
         and i.invoice_date between ${range.from}::date and ${range.to}::date
-      group by coalesce(i.sales_executive_id, o.sales_executive_id), u.name
-      order by 3 desc
+      group by coalesce(i.sales_executive_id, o.sales_executive_id), u.id, u.name
+      order by "litres" desc
     `;
     return rows
       .map((r: Row) => ({
         agentId: str(r.agentId),
         agentName: str(r.agentName),
+        isSuperAdmin: Boolean(r.isSuperAdmin),
         litres: num(r.litres),
         orders: num(r.orders), // delivered invoices
         customers: num(r.customers),
@@ -407,6 +423,8 @@ export async function getMetricAgents(
     select
       u.id as "agentId",
       u.name as "agentName",
+      exists (select 1 from user_roles ur join roles r on r.id = ur.role_id
+              where ur.user_id = u.id and r.code = 'SUPER_ADMIN') as "isSuperAdmin",
       coalesce(sum(c.collection_amount), 0)::numeric as "amount",
       coalesce(sum(c.collection_amount) filter (where c.accountant_approval_status = 'verified'), 0)::numeric as "verified",
       count(*)::int as "collections",
@@ -416,11 +434,12 @@ export async function getMetricAgents(
     where c.collection_date between ${range.from}::date and ${range.to}::date
       and c.payment_mode <> 'credit_note'  -- credit notes aren't cash collected
     group by u.id, u.name
-    order by 3 desc
+    order by "amount" desc
   `;
   return rows.map((r: Row) => ({
     agentId: str(r.agentId),
     agentName: str(r.agentName),
+    isSuperAdmin: Boolean(r.isSuperAdmin),
     amount: num(r.amount),
     verified: num(r.verified),
     collections: num(r.collections),

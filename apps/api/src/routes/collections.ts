@@ -20,6 +20,7 @@ import {
   VALID_COLLECTION_TYPES,
 } from "../services/collections";
 import { getCollectionProof, uploadCollectionProof } from "../services/collection-proofs";
+import { resolveAttributedUser } from "../services/orders";
 import { photoGeoFromForm } from "../lib/geocode";
 import { assertCustomerVisible } from "../services/customers";
 import { customerName, executiveFirstName, inr, notifyOfficeWebPush, vapidFromEnv } from "../services/web-push-notify";
@@ -170,10 +171,15 @@ export const collectionsRoutes = new Hono<ApiEnv>()
       await assertCustomerVisible(sql, { userId: auth.userId!, role: auth.role }, customerId);
     }
 
-    // Collector attribution: a SE recording from mobile is always themselves;
-    // a web user (SA/Manager) names the field staff who actually collected.
-    const collectedByUserId =
-      auth.role === "SALES_EXECUTIVE" ? auth.userId! : optionalString(body, "collectedByUserId");
+    // Collector credit = whoever is named, resolved by the shared rule (no silent
+    // "customer's SE" fallback, 2026-11-25).
+    const collectedByUserId = await resolveAttributedUser(
+      sql,
+      auth.role!,
+      auth.userId!,
+      optionalString(body, "collectedByUserId"),
+      "collection",
+    );
 
     const collection = await createCollection(sql, { userId: auth.userId! }, {
       customerId,

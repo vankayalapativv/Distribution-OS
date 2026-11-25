@@ -19,9 +19,12 @@ export function useCreateCustomer(actionConfig: ActionConfig, onOpenChange: (ope
   const seQuery = useQuery({
     queryKey: ["sales-executives"],
     queryFn: () =>
-      apiGet<{ salesExecutives: { id: string; name: string }[] }>(actionConfig, "/orders/sales-executives"),
+      apiGet<{ salesExecutives: { id: string; name: string; isSuperAdmin?: boolean }[] }>(actionConfig, "/orders/sales-executives"),
   });
-  const salesExecutives = seQuery.data?.salesExecutives ?? [];
+  // A customer's DEDICATED executive must be a real Sales Executive — the shared
+  // endpoint also returns Super Admins (for order/collection credit), so exclude
+  // them from the assignment picker (2026-11-25).
+  const salesExecutives = (seQuery.data?.salesExecutives ?? []).filter((s) => !s.isSuperAdmin);
 
   function reset() {
     setCustomerType("");

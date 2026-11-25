@@ -4,7 +4,6 @@ import type { Role } from "../types";
 import { isUniqueViolation, retryOnUniqueViolation } from "../lib/pg-errors";
 import { recomputeCustomerBalances } from "./reconcile-recompute";
 import { resolvePage, resolveSort } from "../lib/pagination";
-import { customerOwnerSE } from "./orders";
 import {
   allocateOldestFirst,
   capAndSpillExplicit,
@@ -70,6 +69,11 @@ export async function listCollectors(sql: SqlClient) {
     left join user_roles ur on ur.user_id = u.id
     left join roles r on r.id = ur.role_id
     where u.status = 'active'
+      and exists (
+        select 1 from user_roles ur2
+        join roles r2 on r2.id = ur2.role_id
+        where ur2.user_id = u.id and r2.code in ('SALES_EXECUTIVE', 'SUPER_ADMIN')
+      )
     group by u.id, u.name
     order by rank, u.name
   `;
@@ -353,12 +357,14 @@ export async function createCollection(
     }
   }
 
-  // Attribute to the customer's owning SE when no collector was named (a Super
-  // Admin recording a collection on mobile). An SE recording their own already
-  // has collectedByUserId set upstream. Falls back to the creator only if the
-  // customer somehow has no SE owner. Not racy → computed once, outside the retry.
-  const collectedByUserId =
-    input.collectedByUserId ?? (await customerOwnerSE(sql, input.customerId)) ?? context.userId;
+  // Collector credit is resolved by the route (resolveAttributedUser: SE→self,
+  // SA→picked-or-self, Manager/Accountant→must pick). The service never guesses
+  // an owner — a missing collector is a programming error, not a silent credit to
+  // the creating office user (who may not even be attributable) (2026-11-25).
+  const collectedByUserId = input.collectedByUserId;
+  if (!collectedByUserId) {
+    throw new ApiError("INVALID_FIELD", "A collection must name who collected it.", 422);
+  }
 
   // The COLL-#### code is max(seq)+1 — race-prone under concurrent creates — so
   // code generation + the insert are retried on a collection_code collision.

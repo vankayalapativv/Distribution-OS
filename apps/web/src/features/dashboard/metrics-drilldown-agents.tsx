@@ -67,7 +67,14 @@ export function AgentLevel({
           >
             <Avatar name={a.agentName} />
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-foreground">{a.agentName}</span>
+              <span className="flex items-center gap-1.5">
+                <span className="block text-sm font-semibold text-foreground">{a.agentName}</span>
+                {a.isSuperAdmin ? (
+                  <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                    Super Admin
+                  </span>
+                ) : null}
+              </span>
               <span className="block text-xs text-muted-foreground">{secondary}</span>
             </span>
             <span className="flex shrink-0 items-center gap-2">

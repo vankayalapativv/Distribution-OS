@@ -19,6 +19,7 @@ import {
   listProducts,
   listRecentOrdersByCustomerBulk,
   listSalesExecutives,
+  resolveAttributedUser,
   orderFulfillmentSummary,
   updateOrder,
 } from "../services/orders";
@@ -192,19 +193,25 @@ export const ordersRoutes = new Hono<ApiEnv>()
       orderItemId: optionalString(item, "orderItemId"),
     }));
 
+    const sql = getSqlClient(c);
+
     if (auth.role === "SALES_EXECUTIVE") {
       await assertCustomerVisible(
-        getSqlClient(c),
+        sql,
         { userId: auth.userId!, role: auth.role },
         customerId,
       );
     }
 
-    // A sales executive always creates orders for themselves.
-    const salesExecutiveId =
-      auth.role === "SALES_EXECUTIVE"
-        ? auth.userId!
-        : optionalString(body, "salesExecutiveId");
+    // Order credit (sales_executive_id) = whoever is named, resolved by the
+    // shared rule (no silent "customer's SE" fallback, 2026-11-25).
+    const salesExecutiveId = await resolveAttributedUser(
+      sql,
+      auth.role!,
+      auth.userId!,
+      optionalString(body, "salesExecutiveId"),
+      "order",
+    );
 
     // Office/web users may back-date an order but never future-date it (IST). The
     // mobile field-salesperson flow (SALES_EXECUTIVE) is exempt.
@@ -216,7 +223,6 @@ export const ordersRoutes = new Hono<ApiEnv>()
       );
     }
 
-    const sql = getSqlClient(c);
     const order = await createOrder(
       sql,
       { userId: auth.userId! },
@@ -309,9 +315,18 @@ export const ordersRoutes = new Hono<ApiEnv>()
     }
 
     const sql = getSqlClient(c);
+    // Edits must honour the same attribution rule as create — never NULL out or
+    // misattribute the credit on edit (2026-11-25).
+    const salesExecutiveId = await resolveAttributedUser(
+      sql,
+      auth.role!,
+      auth.userId!,
+      optionalString(body, "salesExecutiveId"),
+      "order",
+    );
     const order = await updateOrder(sql, { userId: auth.userId! }, assertUuidParam(c.req.param("id"), "Order"), {
       customerId,
-      salesExecutiveId: optionalString(body, "salesExecutiveId"),
+      salesExecutiveId,
       orderDate,
       items,
     });

@@ -35,6 +35,8 @@ export type MetricKey =
 export interface AgentRow {
   agentId: string;
   agentName: string;
+  /** True when this agent is a Super Admin doing field work (badged apart from SEs). */
+  isSuperAdmin?: boolean;
   // executives
   live?: boolean;
   lastPingAt?: string | null;

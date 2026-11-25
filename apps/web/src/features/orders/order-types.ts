@@ -21,6 +21,9 @@ export interface OrderItem {
 export interface SalesExecutive {
   id: string;
   name: string;
+  /** True when this user is a Super Admin (who also does field work), so the
+   *  picker can badge them apart from Sales Executives. */
+  isSuperAdmin?: boolean;
 }
 
 export interface Order {

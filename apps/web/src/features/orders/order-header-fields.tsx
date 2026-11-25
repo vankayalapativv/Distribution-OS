@@ -28,9 +28,6 @@ interface OrderHeaderFieldsProps {
   readonly onOrderDateOpenChange: (open: boolean) => void;
 }
 
-/** Sales Executive is optional — a leading "None" entry clears the selection. */
-const NONE_SE: SalesExecutive = { id: "", name: "None" };
-
 /** The New-Order header row: customer + order date + sales executive. */
 export function OrderHeaderFields({
   actionConfig,
@@ -77,18 +74,28 @@ export function OrderHeaderFields({
 
       <div className="flex flex-col gap-1.5">
         <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          Sales Executive
+          Credit to <span className="text-destructive">*</span>
         </Label>
         <SearchSelect
-          items={[NONE_SE, ...salesExecutives]}
+          items={salesExecutives}
           valueKey={selectedSalesExecId}
           getKey={(s) => s.id}
           getLabel={(s) => s.name}
           onSelect={onSalesExecChange}
-          placeholder="None"
+          placeholder="Select who it's for"
           searchPlaceholder="Search executive…"
           emptyText="No executives found"
           contentClassName="w-[260px] p-0"
+          renderOption={(s) => (
+            <span className="flex w-full items-center justify-between gap-2">
+              <span className="truncate">{s.name}</span>
+              {s.isSuperAdmin ? (
+                <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                  Super Admin
+                </span>
+              ) : null}
+            </span>
+          )}
         />
       </div>
     </div>

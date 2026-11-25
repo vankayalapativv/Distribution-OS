@@ -5,6 +5,7 @@
  */
 import { ApiError } from "../lib/errors";
 import type { SqlClient } from "../lib/db";
+import type { Role } from "../types";
 import { resolvePage, resolveSort } from "../lib/pagination";
 import {
   type OrderContext,
@@ -26,19 +27,94 @@ import {
 } from "./orders-shared";
 
 export async function listSalesExecutives(sql: SqlClient, context: OrderContext) {
+  // Order/collection credit can go to a Sales Executive OR a Super Admin (a SA
+  // does field work too — decided 2026-11-25). The picker lists only those two
+  // roles; `isSuperAdmin` lets the UI badge the SA rows.
   const rows = await sql`
     /* list_sales_executives */
     select
       u.id,
-      u.name
+      u.name,
+      exists (
+        select 1 from user_roles ur2
+        join roles r2 on r2.id = ur2.role_id
+        where ur2.user_id = u.id and r2.code = 'SUPER_ADMIN'
+      ) as "isSuperAdmin"
     from users u
-    join user_roles ur on ur.user_id = u.id
-    join roles r on r.id = ur.role_id
-    where r.code = 'SALES_EXECUTIVE'
-      and u.status = 'active'
-    order by u.name
+    where u.status = 'active'
+      and exists (
+        select 1 from user_roles ur
+        join roles r on r.id = ur.role_id
+        where ur.user_id = u.id and r.code in ('SALES_EXECUTIVE', 'SUPER_ADMIN')
+      )
+    order by "isSuperAdmin", u.name
   `;
-  return rows.map((row: Row) => ({ id: str(row.id), name: str(row.name) }));
+  return rows.map((row: Row) => ({
+    id: str(row.id),
+    name: str(row.name),
+    isSuperAdmin: Boolean(row.isSuperAdmin),
+  }));
+}
+
+/**
+ * Whether a user may be credited as the order/collection owner — i.e. holds the
+ * SALES_EXECUTIVE or SUPER_ADMIN role (and is active). Guards the office-role
+ * write paths so a stale client can't attribute to a Manager/Accountant.
+ */
+export async function isAttributableUser(sql: SqlClient, userId: string): Promise<boolean> {
+  const [row] = await sql`
+    /* is_attributable_user */
+    select 1 as ok
+    from users u
+    where u.id = ${userId}::uuid
+      and u.status = 'active'
+      and exists (
+        select 1 from user_roles ur
+        join roles r on r.id = ur.role_id
+        where ur.user_id = u.id and r.code in ('SALES_EXECUTIVE', 'SUPER_ADMIN')
+      )
+    limit 1
+  `;
+  return Boolean(row);
+}
+
+/**
+ * Resolve who an order/collection is credited to (2026-11-25). The single source
+ * of truth for the attribution rule, shared by order create, collection create,
+ * and order edit so they can never drift:
+ *  • SALES_EXECUTIVE → always themselves (the mobile field flow).
+ *  • a named `picked` id → used verbatim, but must be a Sales Executive or Super
+ *    Admin (isAttributableUser), else 422.
+ *  • SUPER_ADMIN with nothing picked → themselves (a mobile field order has no
+ *    picker).
+ *  • MANAGER/ACCOUNTANT with nothing picked → 422 (they must name someone).
+ * Throws ApiError(422) on an invalid/absent pick; never returns null, so callers
+ * always store a concrete, attributable owner.
+ */
+export async function resolveAttributedUser(
+  sql: SqlClient,
+  role: Role,
+  userId: string,
+  picked: string | null | undefined,
+  noun: "order" | "collection",
+): Promise<string> {
+  if (role === "SALES_EXECUTIVE") return userId;
+  if (picked) {
+    if (!(await isAttributableUser(sql, picked))) {
+      throw new ApiError(
+        "INVALID_FIELD",
+        `A${noun === "order" ? "n order" : " collection"} can only be credited to a Sales Executive or Super Admin.`,
+        422,
+      );
+    }
+    return picked;
+  }
+  if (role === "SUPER_ADMIN") return userId;
+  throw new ApiError(
+    "INVALID_FIELD",
+    noun === "order" ? "Select who this order is for." : "Select who collected this payment.",
+    422,
+  );
 }
 
 export async function listProducts(

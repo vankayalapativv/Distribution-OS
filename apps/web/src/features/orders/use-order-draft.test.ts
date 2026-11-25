@@ -34,8 +34,18 @@ describe("useOrderDraft — create mode", () => {
     expect(result.current.isEdit).toBe(false);
     expect(result.current.selectedCustomerId).toBe("c9");
   });
+  it("requires naming who the order is for", async () => {
+    oilItems = [{ uid: "o1", brand: "", segment: "", productId: "p1", packSizeLitres: 1, quantityUnits: 5 }];
+    const { result } = renderHook(() => useOrderDraft(args({ initialCustomerId: "c1" })));
+    await act(async () => {
+      await result.current.handleCreate(ev);
+    });
+    expect(result.current.createError).toMatch(/Select who this order is for/);
+    expect(apiRequest).not.toHaveBeenCalled();
+  });
   it("blocks an empty order", async () => {
     const { result } = renderHook(() => useOrderDraft(args()));
+    act(() => result.current.setSelectedSalesExecId("se1"));
     await act(async () => {
       await result.current.handleCreate(ev);
     });
@@ -48,6 +58,7 @@ describe("useOrderDraft — create mode", () => {
     const onOpenChange = vi.fn();
     const onCreated = vi.fn();
     const { result } = renderHook(() => useOrderDraft(args({ initialCustomerId: "c1", onOpenChange, onCreated })));
+    act(() => result.current.setSelectedSalesExecId("se1"));
     await act(async () => {
       await result.current.handleCreate(ev);
     });
@@ -60,6 +71,7 @@ describe("useOrderDraft — create mode", () => {
     oilItems = [{ uid: "o1", brand: "", segment: "", productId: "p1", packSizeLitres: 1, quantityUnits: 5 }];
     apiRequest.mockRejectedValue(new Error("boom"));
     const { result } = renderHook(() => useOrderDraft(args({ initialCustomerId: "c1" })));
+    act(() => result.current.setSelectedSalesExecId("se1"));
     await act(async () => {
       await result.current.handleCreate(ev);
     });

@@ -41,12 +41,16 @@ describe("collectDraftItems", () => {
   });
 });
 
-const base = { validItems: [oil({ productId: "p1", packSizeLitres: 1 })], lockedLines: [] };
+const base = { validItems: [oil({ productId: "p1", packSizeLitres: 1 })], lockedLines: [], selectedSalesExecId: "se1" };
 
 describe("validateDraft", () => {
   it("passes a valid draft (incl. a whole locked line at/above its billed amount)", () => {
     expect(validateDraft(base)).toBeNull();
     expect(validateDraft({ ...base, lockedLines: [locked({ quantityUnits: "5", invoicedUnits: 3 })] })).toBeNull();
+  });
+
+  it("requires naming who the order is for (SE or Super Admin)", () => {
+    expect(validateDraft({ ...base, selectedSalesExecId: "" })).toMatch(/Select who this order is for/);
   });
 
   it("rejects an empty draft", () => {
@@ -82,16 +86,16 @@ describe("buildOrderPayload", () => {
     ]);
   });
 
-  it("nulls a blank sales-exec / date / segment", () => {
+  it("passes the chosen sales-exec through and nulls a blank date / segment", () => {
     const payload = buildOrderPayload({
       selectedCustomerId: "c1",
-      selectedSalesExecId: "",
+      selectedSalesExecId: "sa1",
       orderDate: undefined,
       validItems: [oil({ productId: "p1", packSizeLitres: 1, segment: "" })],
       lockedLines: [],
       products,
     });
-    expect(payload.salesExecutiveId).toBeNull();
+    expect(payload.salesExecutiveId).toBe("sa1");
     expect(payload.orderDate).toBeNull();
     expect(payload.items[0]).toMatchObject({ segment: null });
   });

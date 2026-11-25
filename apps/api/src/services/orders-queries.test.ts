@@ -15,9 +15,17 @@ const CTX = { userId: "u1", role: "SUPER_ADMIN" as const };
 const ORDER_ROW = { id: "ord-1", orderCode: "ORD-0001", customerId: "c1", orderStatus: "approved" };
 
 describe("listSalesExecutives / listProducts", () => {
-  it("lists active SEs", async () => {
-    const sql = makeSql({ list_sales_executives: [{ id: "se-1", name: "Asha" }] });
-    expect(await listSalesExecutives(sql, CTX)).toEqual([{ id: "se-1", name: "Asha" }]);
+  it("lists active SEs + Super Admins, flagging the SA rows", async () => {
+    const sql = makeSql({
+      list_sales_executives: [
+        { id: "se-1", name: "Asha", isSuperAdmin: false },
+        { id: "sa-1", name: "Boss", isSuperAdmin: true },
+      ],
+    });
+    expect(await listSalesExecutives(sql, CTX)).toEqual([
+      { id: "se-1", name: "Asha", isSuperAdmin: false },
+      { id: "sa-1", name: "Boss", isSuperAdmin: true },
+    ]);
   });
   it("lists products with default (omitted) filters", async () => {
     const sql = makeSql({ list_products: [{ id: "p1", productName: "Titan", brand: "Fuchs", unit: "litres", segments: ["Car"], packSizes: [5] }] });

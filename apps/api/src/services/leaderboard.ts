@@ -50,6 +50,12 @@ export async function oilLeaderboard(sql: SqlClient) {
       group by order_item_id
     ) ret on ret.order_item_id = oi.id
     where u.status = 'active'
+      -- SE leaderboard only: exclude anyone who also holds SUPER_ADMIN so a
+      -- dual-role user can't surface here (2026-11-25).
+      and not exists (
+        select 1 from user_roles ur2 join roles r2 on r2.id = ur2.role_id
+        where ur2.user_id = u.id and r2.code = 'SUPER_ADMIN'
+      )
     group by u.id, u.name
   `) as Row[];
   return rows.map((r) => ({
@@ -113,6 +119,11 @@ export async function oilSegmentLeaderboard(sql: SqlClient): Promise<SegmentSale
       group by order_item_id
     ) ret on ret.order_item_id = oi.id
     where u.status = 'active'
+      -- Sales-Executive breakdown only: exclude dual-role SUPER_ADMIN users.
+      and not exists (
+        select 1 from user_roles ur2 join roles r2 on r2.id = ur2.role_id
+        where ur2.user_id = u.id and r2.code = 'SUPER_ADMIN'
+      )
     group by u.id, u.name, oi.segment
   `) as Row[];
 

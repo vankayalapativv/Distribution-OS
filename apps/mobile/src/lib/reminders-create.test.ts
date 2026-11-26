@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { createTestDb } from "../test/node-sqlite-db";
 import { migrateLocalDb } from "./local-db";
-import { cancelled, notificationsMock, scheduled } from "./reminders.support";
+import { cancelled, notificationsMock, scheduled } from "./reminders.test-support";
 
 vi.mock("expo-notifications", () => notificationsMock());
 

@@ -28,6 +28,9 @@ export default defineConfig({
         "src/**/*.test-support.ts",
         "src/**/*.d.ts",
         "src/test/**",
+        // Pure native glue — the single `require("expo-sqlite")` call that
+        // cannot load under Node. All db.ts logic around it IS covered.
+        "src/lib/native-sqlite.ts",
       ],
     },
     projects: [

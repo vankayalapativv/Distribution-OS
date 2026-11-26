@@ -9,6 +9,7 @@
 import { Platform } from "react-native";
 import type { SQLiteDatabase } from "expo-sqlite";
 import { migrateLocalDb, type LocalDb, type SqlValue } from "./local-db";
+import { openNativeDb } from "./native-sqlite";
 
 function wrapExpoDb(db: SQLiteDatabase): LocalDb {
   return {
@@ -28,9 +29,7 @@ let instance: LocalDb | null = null;
 export function getLocalDb(): LocalDb | null {
   if (Platform.OS === "web") return null;
   if (!instance) {
-    // Lazy require so the web bundle never touches the native module.
-    const { openDatabaseSync } = require("expo-sqlite") as typeof import("expo-sqlite");
-    instance = wrapExpoDb(openDatabaseSync("distribution-os.db"));
+    instance = wrapExpoDb(openNativeDb());
     migrateLocalDb(instance);
   }
   return instance;

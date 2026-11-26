@@ -1,0 +1,84 @@
+/**
+ * jsdom setup for the `components` test project. Registers `@testing-library`
+ * matchers, auto-unmounts React trees between tests, and stubs the native-only
+ * modules that can't run under react-native-web + jsdom. Mocks here are global
+ * (vitest hoists `vi.mock` in a setup file across every test in the project);
+ * a test that needs different behaviour overrides with its own `vi.mock`.
+ */
+// `vi.mock` factories are hoisted above imports, so they can't close over
+// module-scope imports — they `require("react-native-web")` lazily instead.
+/* eslint-disable @typescript-eslint/no-require-imports */
+import "@testing-library/jest-dom/vitest";
+import { afterEach, vi } from "vitest";
+import { cleanup } from "@testing-library/react";
+import React from "react";
+
+afterEach(() => cleanup());
+
+// --- expo-router: a stubbed router + navigation primitives -------------------
+const routerStub = {
+  push: vi.fn(),
+  replace: vi.fn(),
+  back: vi.fn(),
+  dismiss: vi.fn(),
+  dismissAll: vi.fn(),
+  navigate: vi.fn(),
+  setParams: vi.fn(),
+  canGoBack: vi.fn(() => true),
+};
+vi.mock("expo-router", () => {
+  const passthrough = ({ children }: { children?: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children);
+  const Link = ({ children }: { children?: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children);
+  const Stack = Object.assign(passthrough, { Screen: () => null });
+  const Tabs = Object.assign(passthrough, { Screen: () => null });
+  return {
+    router: routerStub,
+    useRouter: () => routerStub,
+    useLocalSearchParams: () => ({}),
+    useGlobalSearchParams: () => ({}),
+    useSegments: () => [],
+    usePathname: () => "/",
+    useFocusEffect: () => {},
+    useNavigation: () => ({ setOptions: vi.fn(), addListener: vi.fn(() => vi.fn()) }),
+    Link,
+    Stack,
+    Tabs,
+    Redirect: () => null,
+    SplashScreen: { hideAsync: vi.fn(), preventAutoHideAsync: vi.fn() },
+  };
+});
+
+// --- safe-area: zero insets, SafeAreaView passes through ---------------------
+vi.mock("react-native-safe-area-context", () => {
+  const View = require("react-native-web").View;
+  const insets = { top: 0, bottom: 0, left: 0, right: 0 };
+  return {
+    useSafeAreaInsets: () => insets,
+    useSafeAreaFrame: () => ({ x: 0, y: 0, width: 390, height: 844 }),
+    SafeAreaView: View,
+    SafeAreaProvider: ({ children }: { children?: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+    SafeAreaInsetsContext: React.createContext(insets),
+  };
+});
+
+// --- keyboard-controller: inert views/hooks ----------------------------------
+vi.mock("react-native-keyboard-controller", () => {
+  const ScrollView = require("react-native-web").ScrollView;
+  return {
+    KeyboardAwareScrollView: ScrollView,
+    KeyboardProvider: ({ children }: { children?: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+    KeyboardController: { dismiss: vi.fn() },
+    useKeyboardHandler: () => {},
+    useReanimatedKeyboardAnimation: () => ({ height: { value: 0 }, progress: { value: 0 } }),
+  };
+});
+
+// --- expo-image: render as a plain RN Image ----------------------------------
+vi.mock("expo-image", () => {
+  const RNWeb = require("react-native-web");
+  return { Image: RNWeb.Image };
+});

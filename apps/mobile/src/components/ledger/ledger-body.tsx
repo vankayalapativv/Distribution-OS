@@ -5,6 +5,7 @@
  * statement doesn't mount every row at once.
  */
 import { FlatList, RefreshControl, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { LedgerData, LedgerRow as LedgerRowType } from "../../lib/ledger";
 import { balanceLabel, fmtDate, rupees } from "../../lib/ledger-format";
 import { LedgerRow } from "./ledger-row";
@@ -18,6 +19,7 @@ export function LedgerBody({
   readonly refreshing: boolean;
   readonly onRefresh: () => void;
 }) {
+  const insets = useSafeAreaInsets();
   const closing = balanceLabel(data.totals.closingBalance);
 
   const header = (
@@ -51,7 +53,11 @@ export function LedgerBody({
   return (
     <FlatList<LedgerRowType>
       className="flex-1"
-      contentContainerClassName="gap-2 px-5 pb-8 pt-2"
+      contentContainerClassName="gap-2 px-5 pt-2"
+      // Clear the device navigation bar (edge-to-edge): the Debit/Credit/Closing
+      // footer is the list's last item, so without the bottom inset it sits under
+      // the nav bar on 3-button / gesture-pill phones.
+      contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
       data={data.rows}
       keyExtractor={(_, i) => String(i)}
       renderItem={({ item }) => <LedgerRow row={item} />}

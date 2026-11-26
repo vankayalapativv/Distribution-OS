@@ -56,4 +56,25 @@ describe("offline collection queue", () => {
     expect(row?.geocoded_address).toBe("12 Market St");
     expect(getQueueStats(db)).toEqual({ pending: 1, failed: 0 });
   });
+
+  test("stores null geo when the photo carries no coordinates/address", () => {
+    const db = freshDb();
+    const bare = { uri: "file:///cache/p.jpg", type: "image/jpeg" } as unknown as PickedPhoto;
+    recordCollection(
+      db,
+      {
+        clientUuid: "dddddddd-0000-4000-8000-000000000002",
+        customerId: CUST, collectionDate: "2026-10-14", paymentMode: "cheque",
+        collectionType: "advance", collectionAmount: 100,
+        paymentReferenceNumber: "chq-9", bankName: "HDFC", photo: bare,
+      },
+      NOW,
+    );
+    const row = db.first<{ latitude: number | null; longitude: number | null; geocoded_address: string | null }>(
+      "select latitude, longitude, geocoded_address from collections where client_uuid = 'dddddddd-0000-4000-8000-000000000002'",
+    );
+    expect(row?.latitude).toBeNull();
+    expect(row?.longitude).toBeNull();
+    expect(row?.geocoded_address).toBeNull();
+  });
 });

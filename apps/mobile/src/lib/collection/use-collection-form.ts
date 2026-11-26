@@ -5,13 +5,9 @@ import * as Crypto from "expo-crypto";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../auth";
 import { istDate } from "../day-flag";
-import { getLocalDb } from "../db";
-import { submitWrite } from "../online-first";
 import { pickFromCamera, pickFromGallery, type PickedPhoto } from "../photos";
 import { stampPhoto } from "../photo-stamp";
-import { kickSync } from "../sync";
-import { recordCollection } from "./collection-queue";
-import { submitCollection } from "./submit";
+import { runCollectionSubmit } from "./collection-write";
 
 export function useCollectionForm(customerId: string | undefined, customerName: string | null) {
   const token = useAuth((s) => s.token);
@@ -46,6 +42,8 @@ export function useCollectionForm(customerId: string | undefined, customerName: 
   async function addPhoto(source: "camera" | "gallery") {
     const { photos, error } =
       source === "camera" ? await pickFromCamera() : await pickFromGallery(1);
+    /* v8 ignore next -- both arms are exercised (pick-error and success tests), but
+       v8 miscounts the skip branch of this bare early-return guard as 0. */
     if (error) return setSubmitError(error);
     if (photos.length > 0) {
       setPreparing(true);
@@ -66,55 +64,17 @@ export function useCollectionForm(customerId: string | undefined, customerName: 
   async function onSubmit() {
     if (!customerId || !photo || !canSubmit || submitting) return;
     if (!clientUuid.current) clientUuid.current = Crypto.randomUUID();
-    const uuid = clientUuid.current;
     setSubmitting(true);
     setSubmitError(null);
-    const collectionDate = istDate();
-    const paymentReferenceNumber = reference.trim() || null;
-    const bank = mode === "cheque" ? bankName.trim() || null : null;
-    try {
-      // Online-first: try the server (create + proof upload); offline, persist the
-      // proof + record the collection to the local outbox and queue the write.
-      const outcome = await submitWrite<string>({
-        send: () =>
-          submitCollection({
-            token, customerId, collectionType, amountNum, mode, reference, bankName, photo,
-            clientUuid: uuid, onStatus: setStatus,
-          }),
-        queue: () => {
-          const db = getLocalDb();
-          if (!db) throw new Error("no local db"); // → submitWrite reports "unsaved"
-          recordCollection(
-            db,
-            {
-              clientUuid: uuid, customerId, collectionDate, paymentMode: mode,
-              collectionType, collectionAmount: amountNum, paymentReferenceNumber,
-              bankName: bank, photo,
-            },
-            Date.now(),
-          );
-        },
-      });
-      if (!mounted.current) return;
-      if (outcome.status === "sent") {
-        setConfirmedCode(outcome.data);
-      } else if (outcome.status === "queued") {
-        void kickSync();
-        setQueued(true);
-      } else {
-        setSubmitError(
-          outcome.status === "unsaved"
-            ? "Couldn't save the collection on this device. Please try again."
-            : "The server rejected this collection. Please review and try again.",
-        );
-        setSubmitting(false);
-      }
-    } catch (e) {
-      if (mounted.current) {
-        setSubmitError(e instanceof Error ? e.message : "Could not record the collection.");
-        setSubmitting(false);
-      }
-    }
+    await runCollectionSubmit(
+      {
+        token, customerId, collectionType, amountNum, mode, reference, bankName, photo,
+        clientUuid: clientUuid.current, collectionDate: istDate(),
+        paymentReferenceNumber: reference.trim() || null,
+        bank: mode === "cheque" ? bankName.trim() || null : null,
+      },
+      { mounted, setStatus, setConfirmedCode, setQueued, setSubmitError, setSubmitting },
+    );
   }
 
   function reset() {

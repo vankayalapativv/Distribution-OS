@@ -46,4 +46,12 @@ describe("sliceLedger", () => {
     const s = sliceLedger(full, "2026-07-20", "2026-08-05");
     expect(s.rows.map((r) => r.vchNo)).toEqual(["A2", "A3"]);
   });
+
+  it("treats a null debit as zero when totalling a receipt-only window", () => {
+    // The 15 Jun receipt has debit: null — its ?? 0 fallback must not NaN the total.
+    const s = sliceLedger(full, "2026-06-01", "2026-06-30");
+    expect(s.rows.map((r) => r.type)).toEqual(["Rcpt"]);
+    expect(s.totals.debit).toBe(0);
+    expect(s.totals.credit).toBe(400);
+  });
 });

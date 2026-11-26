@@ -1,11 +1,12 @@
 import { router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import * as Crypto from "expo-crypto";
 import { useAuth } from "../auth";
 import { getCheckInFix, reverseGeocodeFix } from "../gps";
 import { EMPTY_CUSTOMER, type CreatedCustomer, type NewCustomerFields } from "./new-customer";
 import { computeCustomerErrors } from "./new-customer-validation";
 import { submitNewCustomer } from "./submit-new-customer";
+import { useAutoClearCustomerErrors } from "./use-new-customer-errors";
 import { usePhotoStaging } from "./use-photo-staging";
 
 /** Field capture of a new customer (SE — active immediately, decided 2026-07-09). */
@@ -41,17 +42,7 @@ export function useNewCustomerForm() {
     return Object.keys(errors).length === 0;
   }
 
-  // Once errors are shown, clear each field's error as soon as the SE fixes it
-  // (never surface NEW errors until the next Save press).
-  useEffect(() => {
-    setFieldErrors((prev) => {
-      if (Object.keys(prev).length === 0) return prev;
-      const fresh = computeCustomerErrors(v, isSuperAdmin, photo.photos.length, geo != null);
-      const next: Record<string, string> = {};
-      for (const key of Object.keys(prev)) if (fresh[key]) next[key] = fresh[key];
-      return Object.keys(next).length === Object.keys(prev).length ? prev : next;
-    });
-  }, [v, isSuperAdmin, photo.photos.length, geo]);
+  useAutoClearCustomerErrors(v, isSuperAdmin, photo.photos.length, geo, setFieldErrors);
 
   function onSelectSalesExec(id: string | null, name: string | null) {
     set("salesExecutiveId")(id);

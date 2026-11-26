@@ -65,10 +65,9 @@ export function startSyncEngine(): void {
 export function stopSyncEngine(): void {
   if (!started) return;
   started = false;
-  if (heartbeatTimer) {
-    clearInterval(heartbeatTimer);
-    heartbeatTimer = null;
-  }
+  // Always set alongside `started`; clearInterval tolerates a null no-op.
+  clearInterval(heartbeatTimer as ReturnType<typeof setInterval>);
+  heartbeatTimer = null;
   netSub?.remove();
   netSub = null;
   appStateSub?.remove();

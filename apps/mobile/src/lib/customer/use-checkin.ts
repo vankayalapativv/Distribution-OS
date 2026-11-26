@@ -31,17 +31,8 @@ interface Args {
  * synchronous re-entry guard so rapid taps can't fire concurrent requests.
  */
 export function useCheckIn({
-  id,
-  token,
-  userId,
-  role,
-  customerName,
-  saved,
-  serverVisitedToday,
-  serverCheckedOut,
-  serverVisitId,
-  confirm,
-  onChanged,
+  id, token, userId, role, customerName, saved,
+  serverVisitedToday, serverCheckedOut, serverVisitId, confirm, onChanged,
 }: Args) {
   const { promptReason, sheet: reasonSheet } = useNoOutcomeReason();
   const { pickDateTime, sheet: followupSheet } = useFollowupPicker();

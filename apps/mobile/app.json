@@ -2,7 +2,7 @@
   "expo": {
     "name": "Distribution OS",
     "slug": "distribution-os",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
@@ -117,7 +117,7 @@
       "eas": {
         "projectId": "43210552-690b-4cf4-b935-43d90d7ea97b"
       },
-      "otaBuild": "1.0.0.0",
+      "otaBuild": "1.0.1.0",
       "releaseNotes": []
     },
     "owner": "vardhansystems_support"

@@ -42,8 +42,6 @@ export type StartDayResult =
   | { ok: true; mode: "background" | "foreground" }
   | { ok: false; reason: "permission_denied" | "day_ended" };
 
-export type LocationStatus = "ready" | "foreground_only" | "off";
-
 /** Resolve `p`, but give up after `ms` and yield `fallback` — for native promises
  *  that can hang with no timeout of their own. Also swallows rejections. */
 export function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {

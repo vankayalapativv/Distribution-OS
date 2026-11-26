@@ -10,11 +10,10 @@
  * public entry point. Importing it also registers the background task (via
  * gps-recording, pulled in by gps-start/gps-watchdog below).
  */
-export { GPS_TASK, type StartDayResult, type LocationStatus } from "./gps-config";
 export { setNativeSignedIn } from "./gps-native";
 export { getCheckInFix, reverseGeocodeFix } from "./gps-geocode";
 export { startDayTracking } from "./gps-start";
 export { stopDayTracking } from "./gps-stop";
 export { dayEndedToday, markDayEndedToday } from "./gps-session";
-export { getLocationStatus, hasBackgroundLocationPermission, isDayTracking } from "./gps-status";
-export { installGpsWatchdog, reconcileServerClosedTrackingSession } from "./gps-watchdog";
+export { isDayTracking } from "./gps-status";
+export { installGpsWatchdog } from "./gps-watchdog";

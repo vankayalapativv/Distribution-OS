@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getLocationStatus, hasBackgroundLocationPermission, isDayTracking } from "./gps-status";
+import { isDayTracking } from "./gps-status";
 
-const getForegroundPermissionsAsync = vi.fn();
-const getBackgroundPermissionsAsync = vi.fn();
 const hasStartedLocationUpdatesAsync = vi.fn();
 const getNativeTracking = vi.fn();
 const dayEndedToday = vi.fn<() => Promise<boolean>>();
@@ -10,8 +8,6 @@ const dayStartedToday = vi.fn<() => Promise<boolean>>();
 const getForegroundWatch = vi.fn();
 
 vi.mock("expo-location", () => ({
-  getForegroundPermissionsAsync: () => getForegroundPermissionsAsync(),
-  getBackgroundPermissionsAsync: () => getBackgroundPermissionsAsync(),
   hasStartedLocationUpdatesAsync: (...a: unknown[]) => hasStartedLocationUpdatesAsync(...a),
 }));
 vi.mock("./gps-config", () => ({ GPS_TASK: "task" }));
@@ -27,41 +23,6 @@ beforeEach(() => {
   hasStartedLocationUpdatesAsync.mockResolvedValue(false);
 });
 afterEach(() => vi.clearAllMocks());
-
-describe("hasBackgroundLocationPermission", () => {
-  it("is true only when background is granted", async () => {
-    getBackgroundPermissionsAsync.mockResolvedValue({ granted: true });
-    expect(await hasBackgroundLocationPermission()).toBe(true);
-    getBackgroundPermissionsAsync.mockResolvedValue({ granted: false });
-    expect(await hasBackgroundLocationPermission()).toBe(false);
-    getBackgroundPermissionsAsync.mockRejectedValue(new Error("x"));
-    expect(await hasBackgroundLocationPermission()).toBe(false);
-  });
-});
-
-describe("getLocationStatus", () => {
-  it("off when foreground is not granted", async () => {
-    getForegroundPermissionsAsync.mockResolvedValue({ granted: false });
-    expect(await getLocationStatus()).toBe("off");
-  });
-  it("ready when background is granted", async () => {
-    getForegroundPermissionsAsync.mockResolvedValue({ granted: true });
-    getBackgroundPermissionsAsync.mockResolvedValue({ granted: true });
-    expect(await getLocationStatus()).toBe("ready");
-  });
-  it("foreground_only when only foreground is granted", async () => {
-    getForegroundPermissionsAsync.mockResolvedValue({ granted: true });
-    getBackgroundPermissionsAsync.mockResolvedValue({ granted: false });
-    expect(await getLocationStatus()).toBe("foreground_only");
-  });
-  it("treats permission-read failures as not granted", async () => {
-    getForegroundPermissionsAsync.mockRejectedValue(new Error("x"));
-    expect(await getLocationStatus()).toBe("off");
-    getForegroundPermissionsAsync.mockResolvedValue({ granted: true });
-    getBackgroundPermissionsAsync.mockRejectedValue(new Error("x"));
-    expect(await getLocationStatus()).toBe("foreground_only");
-  });
-});
 
 describe("isDayTracking", () => {
   it("is false once the day has been ended", async () => {

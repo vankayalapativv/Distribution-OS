@@ -10,9 +10,8 @@ import {
   USER_KEY,
 } from "./auth-storage";
 import { neonProbeSession } from "./neon-auth";
+import { rearmNativeTracking } from "./native-rearm";
 import { setTokenMinter } from "./token-refresh";
-
-export type { AuthUser };
 
 export const useAuth = create<AuthState>((set) => ({
   token: null,
@@ -30,7 +29,7 @@ export const useAuth = create<AuthState>((set) => ({
       hydrated: true,
     });
     // Re-affirm the native "signed in" guard for an already-logged-in install.
-    if (token) void import("./gps").then((gps) => gps.setNativeSignedIn(true)).catch(() => undefined);
+    if (token) void rearmNativeTracking();
   },
 
   login: (email, password) => actions.login(set, email, password),
@@ -44,7 +43,7 @@ export const useAuth = create<AuthState>((set) => ({
     await storage.set(TOKEN_KEY, token).catch(() => undefined);
     // Hand the fresh token to the native GPS uploader too, so background pings
     // keep authenticating without waiting for the next app-open.
-    void import("./gps").then((gps) => gps.setNativeSignedIn(true)).catch(() => undefined);
+    void rearmNativeTracking();
   },
 
   expireSession: async () => {
@@ -90,7 +89,7 @@ setTokenMinter(async () => {
     // Persist + adopt into the live store (and re-arm the native GPS uploader).
     await storage.set(TOKEN_KEY, token).catch(() => undefined);
     useAuth.setState({ token });
-    void import("./gps").then((gps) => gps.setNativeSignedIn(true)).catch(() => undefined);
+    void rearmNativeTracking();
     return { status: "active", token };
   }
   return status === "revoked" ? { status: "revoked" } : { status: "unavailable" };

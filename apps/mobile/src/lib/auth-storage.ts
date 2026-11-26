@@ -45,11 +45,6 @@ export interface AuthUser {
   enterpriseId: string | null;
 }
 
-export interface LoginResponse {
-  token: string;
-  user: AuthUser;
-}
-
 /** Narrow zustand setter — every call in the store/actions passes a partial. */
 export type AuthSet = (partial: Partial<AuthState>) => void;
 

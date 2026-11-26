@@ -27,7 +27,7 @@ export function fetchSummary(
   config: ActionConfig,
   range: ReportRange,
   brand?: string,
-): Promise<{ period: ReportPeriod; generatedAt: string; summary: ReportsSummary }> {
+): Promise<{ period: ReportPeriod; generatedAt: string; enterpriseName: string | null; summary: ReportsSummary }> {
   return apiGet(config, withRange(range, "summary", brand));
 }
 

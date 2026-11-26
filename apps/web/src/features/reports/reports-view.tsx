@@ -58,10 +58,12 @@ function ReportDetail({
   selected,
   reportQuery,
   onBack,
+  legalName,
 }: Readonly<{
   selected: Selected;
   reportQuery: UseQueryResult<ReportSlice>;
   onBack: () => void;
+  legalName?: string | null;
 }>) {
   const heading =
     selected.brand === "all"
@@ -77,7 +79,12 @@ function ReportDetail({
           <ChevronLeft className="mr-1 size-4" /> All reports
         </Button>
         {reportQuery.data ? (
-          <ReportDownloadButtons reportKey={selected.key} title={heading} slice={reportQuery.data} />
+          <ReportDownloadButtons
+            reportKey={selected.key}
+            title={heading}
+            slice={reportQuery.data}
+            legalName={legalName}
+          />
         ) : null}
       </div>
       {note ? (
@@ -179,7 +186,14 @@ function ReportsViewInner({ actionConfig, role }: { readonly actionConfig: Actio
     if (profitOpen)
       return <ReportsProfitDetail actionConfig={actionConfig} range={range} onBack={goBack} />;
     if (selected)
-      return <ReportDetail selected={selected} reportQuery={reportQuery} onBack={goBack} />;
+      return (
+        <ReportDetail
+          selected={selected}
+          reportQuery={reportQuery}
+          onBack={goBack}
+          legalName={summary?.enterpriseName}
+        />
+      );
     if (summaryQuery.isError)
       return (
         <ReportsError

@@ -715,7 +715,7 @@ export interface ReportsSummary {
 export async function buildSummary(
   sql: SqlClient,
   opts: ReportOptions,
-): Promise<{ period: ReportPeriod; generatedAt: string; summary: ReportsSummary }> {
+): Promise<{ period: ReportPeriod; generatedAt: string; enterpriseName: string | null; summary: ReportsSummary }> {
   const { period, generatedAt } = await resolveCtx(sql, opts);
   const s = period.start;
   const e = period.end;
@@ -780,9 +780,13 @@ export async function buildSummary(
   const oil = (oilRows as Row[])[0];
   const back = (backRows as Row[])[0];
   const pend = (pendRows as Row[])[0];
+  // The tenant's own enterprise legal name (RLS scopes `enterprises` to the one
+  // row via the `enterprise_self` SELECT policy) — used for the download filename.
+  const entRow = (await sql`/* reports_enterprise_name */ select legal_name as "legalName" from enterprises limit 1`)[0];
   return {
     period,
     generatedAt,
+    enterpriseName: typeof entRow?.legalName === "string" ? entRow.legalName : null,
     summary: {
       oilLitres: num(oil?.litres),
       oilSegments: num(oil?.segments),

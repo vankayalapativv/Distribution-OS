@@ -25,6 +25,8 @@ export function usePhotoStaging(
     onError(null);
     const { photos: picked, error: pickError } =
       source === "camera" ? await pickFromCamera() : await pickFromGallery();
+    /* v8 ignore next 3 -- the skip branch of this guard is exercised (see the
+       photo-staging tests) but v8 miscounts it as 0 for a bare guard `if`. */
     if (pickError) {
       onError(pickError);
       return;

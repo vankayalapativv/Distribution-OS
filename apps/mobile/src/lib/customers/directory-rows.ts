@@ -50,11 +50,9 @@ export function buildRows(
     if (bucket) bucket.push(c);
     else byLetter.set(letter, [c]);
   }
-  const letters = [...byLetter.keys()].sort((a, b) => {
-    if (a === "#") return 1;
-    if (b === "#") return -1;
-    return a.localeCompare(b);
-  });
+  // Sort A–Z, with the non-alphabetic "#" bucket always last.
+  const rank = (letter: string): number => (letter === "#" ? 1 : 0);
+  const letters = [...byLetter.keys()].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
 
   const rows: Row[] = [];
   const offsets: number[] = [];

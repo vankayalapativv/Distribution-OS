@@ -8,7 +8,7 @@ const getNotifPermissionsAsync = vi.fn();
 const getNetworkStateAsync = vi.fn();
 const getPowerStateAsync = vi.fn();
 const isBatteryOptimizationEnabledAsync = vi.fn();
-const buildStartDayHealthChecklist = vi.fn(() => ({ ready: true }));
+const buildStartDayHealthChecklist = vi.fn<(...a: unknown[]) => { ready: boolean }>(() => ({ ready: true }));
 
 vi.mock("expo-location", () => ({
   getForegroundPermissionsAsync: () => getForegroundPermissionsAsync(),

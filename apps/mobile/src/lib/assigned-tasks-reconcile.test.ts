@@ -66,6 +66,18 @@ describe("assigned tasks (reconcile)", () => {
     expect(cancelled).toContain("notif-1");
   });
 
+  test("reads back null optional fields from the cache", async () => {
+    const db = createTestDb();
+    migrateLocalDb(db);
+    await reconcileAssignedTasks(db, [serverTask({ description: null, customerId: null, customerName: null, createdByName: null })], NOW);
+    expect(listAssignedTasks(db)[0]).toMatchObject({ description: null, customerId: null, customerName: null, createdByName: null });
+  });
+
+  test("openAssignedTaskCount defaults to 0 when the count query yields nothing", () => {
+    const stub = { first: () => undefined } as unknown as Parameters<typeof openAssignedTaskCount>[0];
+    expect(openAssignedTaskCount(stub)).toBe(0);
+  });
+
   test("defaults a missing priority to medium", async () => {
     const db = createTestDb();
     migrateLocalDb(db);

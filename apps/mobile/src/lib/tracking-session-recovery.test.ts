@@ -19,6 +19,29 @@ describe("reconcileServerTrackingSession", () => {
     expect(clearAuth).toHaveBeenCalledTimes(1);
   });
 
+  test("stops tracking without clearing auth when closure-logout is off (or no clearAuth)", async () => {
+    const stopLocalTracking = vi.fn().mockResolvedValue(undefined);
+    const clearAuth = vi.fn().mockResolvedValue(undefined);
+    const result = await reconcileServerTrackingSession({
+      isLocalTrackingOn: async () => true,
+      getActiveSession: async () => null,
+      stopLocalTracking,
+      clearAuth,
+      clearAuthOnClosure: false, // closure does not log the user out
+    });
+    expect(result).toEqual({ recovered: true, reason: "server_closed" });
+    expect(stopLocalTracking).toHaveBeenCalled();
+    expect(clearAuth).not.toHaveBeenCalled();
+    // clearAuthOnClosure true but no clearAuth provided → the optional call is a no-op.
+    const r2 = await reconcileServerTrackingSession({
+      isLocalTrackingOn: async () => true,
+      getActiveSession: async () => null,
+      stopLocalTracking: vi.fn(),
+      clearAuthOnClosure: true,
+    });
+    expect(r2.recovered).toBe(true);
+  });
+
   test("does nothing while the server still has an active session", async () => {
     const stopLocalTracking = vi.fn();
 

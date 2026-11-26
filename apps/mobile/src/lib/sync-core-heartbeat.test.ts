@@ -15,6 +15,11 @@ describe("gps heartbeat", () => {
     });
   });
 
+  test("getGpsHeartbeatState defaults to empty when the queries return nothing", () => {
+    const stub = { first: () => undefined } as unknown as Parameters<typeof getGpsHeartbeatState>[0];
+    expect(getGpsHeartbeatState(stub)).toEqual({ queuedPointCount: 0, lastLocationAt: null });
+  });
+
   test("buildTrackingHeartbeat includes device health and local queue health", () => {
     const payload = buildTrackingHeartbeat({
       capturedAt: "2026-07-09T09:06:00.000Z",

@@ -46,6 +46,18 @@ describe("offline order queue", () => {
     expect(getQueueStats(db)).toEqual({ pending: 1, failed: 0 });
   });
 
+  test("defaults nullable item fields (no product id / pack size / segment)", () => {
+    const db = freshDb();
+    const uuid = "cccccccc-0000-4000-8000-000000000009";
+    recordOrder(db, { clientUuid: uuid, customerId: CUST, orderDate: "2026-10-14", items: [{ quantityUnits: 3 }] }, NOW);
+    const item = db.first<{ product_id: string | null; pack_size_litres: number | null; segment: string | null }>(
+      "select product_id, pack_size_litres, segment from order_items where order_client_uuid = ?",
+      [uuid],
+    );
+    expect(item).toMatchObject({ product_id: null, pack_size_litres: null, segment: null });
+    expect(db.first<{ total_litres: number }>("select total_litres from orders where client_uuid = ?", [uuid])?.total_litres).toBe(0);
+  });
+
   test("flushing an order maps the server id + code onto the local row", async () => {
     const db = freshDb();
     recordOrder(

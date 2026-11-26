@@ -66,6 +66,18 @@ describe("assigned tasks (completion)", () => {
     expect(row?.done_synced).toBe(1); // confirmed server-side
   });
 
+  test("marking done works for a task that never had an alarm (null notification id)", async () => {
+    stubDonePost();
+    const db = createTestDb();
+    migrateLocalDb(db);
+    // A past-due task is cached but gets no scheduled alarm → notification_id is null.
+    await reconcileAssignedTasks(db, [serverTask({ remindAt: new Date(NOW - 3_600_000).toISOString() })], NOW);
+    const [task] = listAssignedTasks(db);
+    await markAssignedTaskDone(db, task, "tok");
+    expect(listAssignedTasks(db)).toHaveLength(0);
+    expect(cancelled).toHaveLength(0); // nothing to cancel
+  });
+
   test("a 404 (already closed server-side) still marks it done locally", async () => {
     stubDonePost(404);
     const db = createTestDb();

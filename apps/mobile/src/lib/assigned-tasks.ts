@@ -24,11 +24,15 @@ function rowToTask(r: Record<string, unknown>): AssignedTask {
     id: r.id as string,
     title: r.title as string,
     description: (r.description as string | null) ?? null,
+    // priority is NOT NULL (default 'medium') in the schema, so the ?? is defensive.
+    /* v8 ignore next */
     priority: (r.priority as string) ?? "medium",
     customerId: (r.customer_id as string | null) ?? null,
     customerName: (r.customer_name as string | null) ?? null,
     remindAt: r.remind_at as number,
     createdByName: (r.created_by_name as string | null) ?? null,
+    // status is NOT NULL (default 'open') in the schema, so the ?? is defensive.
+    /* v8 ignore next */
     status: (r.status as string) ?? "open",
   };
 }

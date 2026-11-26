@@ -41,6 +41,8 @@ export function PhotoStampHost() {
   function finishJob(j: Job, stampedUri: string | null) {
     if (j.resolved) return;
     j.resolved = true;
+    /* v8 ignore next 3 -- a settled job always has its watchdog armed (pump arms
+       it before rendering), so the null-skip branch is defensive and unreachable. */
     if (watchdog.current) {
       clearTimeout(watchdog.current);
       watchdog.current = null;
@@ -58,7 +60,8 @@ export function PhotoStampHost() {
     const next = queue.current.shift();
     if (!next) return;
     busy.current = true;
-    if (watchdog.current) clearTimeout(watchdog.current);
+    // (No stale watchdog to clear here: a watchdog is only ever armed together
+    // with busy=true, and we reach this line only after the busy=false guard.)
     watchdog.current = setTimeout(() => finishJob(next, null), STAMP_JOB_TIMEOUT_MS);
     setJob(next);
   }
@@ -75,6 +78,8 @@ export function PhotoStampHost() {
   }, []);
 
   async function onImageReady() {
+    /* v8 ignore next -- onImageReady is only ever the composer's onReady, and the
+       composer renders only while `job` is set, so the null-guard never fires. */
     if (!job) return;
     const current = job;
     try {

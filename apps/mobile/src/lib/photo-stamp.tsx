@@ -28,8 +28,9 @@ const MAX_WIDTH = 1080;
 const STAMP_PIPELINE_TIMEOUT_MS = 16000;
 
 /** Resolve `p`, but give up after `ms` and yield `fallback` — guarantees the
- *  stamp pipeline always settles even if an inner native call hangs. */
-function withStampTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+ *  stamp pipeline always settles even if an inner native call hangs. Exported
+ *  for direct unit testing of its fail-open paths. */
+export function withStampTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
   return Promise.race([
     Promise.resolve(p).catch(() => fallback),
     new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),

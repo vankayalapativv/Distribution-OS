@@ -9,7 +9,7 @@ const h = vi.hoisted(() => ({
 const kickSync = vi.fn();
 const sendTrackingHeartbeatNow = vi.fn();
 const getItemAsync = vi.fn<() => Promise<string | null>>(() => Promise.resolve("dayon"));
-const dayFlagIsForToday = vi.fn(() => true);
+const dayFlagIsForToday = vi.fn<(...a: unknown[]) => boolean>(() => true);
 
 vi.mock("expo-network", () => ({ addNetworkStateListener: (cb: typeof h.netCb) => { h.netCb = cb; return { remove: h.netRemove }; } }));
 vi.mock("expo-secure-store", () => ({ getItemAsync: () => getItemAsync() }));

@@ -20,6 +20,7 @@ import {
   dayOnKey,
   dayStartOdoKey,
   serverSessionKey,
+  stopHourKey,
 } from "./gps-keys";
 
 // SecureStore only accepts keys matching this; anything else throws "Invalid key"
@@ -32,6 +33,7 @@ describe("gps per-user SecureStore keys", () => {
     expect(dayOnKey()).toBe(DAY_ON_KEY);
     expect(clientSessionKey()).toBe(CLIENT_SESSION_KEY);
     expect(serverSessionKey()).toBe(SERVER_SESSION_KEY);
+    expect(stopHourKey()).toBe(SE_STOP_HOUR_KEY);
   });
 
   it("namespaces every key by the signed-in userId", () => {

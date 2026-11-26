@@ -65,4 +65,43 @@ describe("assigned tasks (reconcile)", () => {
     expect(scheduled).toHaveLength(2);
     expect(cancelled).toContain("notif-1");
   });
+
+  test("defaults a missing priority to medium", async () => {
+    const db = createTestDb();
+    migrateLocalDb(db);
+    await reconcileAssignedTasks(db, [serverTask({ priority: undefined })], NOW);
+    expect(db.first<{ priority: string }>("select priority from assigned_tasks where id = 'task-1'")?.priority).toBe("medium");
+  });
+
+  test("skips a server task that has no reminder time", async () => {
+    const db = createTestDb();
+    migrateLocalDb(db);
+    await reconcileAssignedTasks(db, [serverTask({ remindAt: null })], NOW);
+    expect(listAssignedTasks(db)).toHaveLength(0);
+  });
+
+  test("schedules an alarm for an in-progress task", async () => {
+    const db = createTestDb();
+    migrateLocalDb(db);
+    await reconcileAssignedTasks(db, [serverTask({ status: "in_progress" })], NOW);
+    expect(scheduled).toHaveLength(1);
+  });
+
+  test("drops a task that has disappeared from the server (cancelling its alarm)", async () => {
+    const db = createTestDb();
+    migrateLocalDb(db);
+    await reconcileAssignedTasks(db, [serverTask()], NOW);
+    await reconcileAssignedTasks(db, [], NOW); // task-1 gone from the server
+    expect(listAssignedTasks(db)).toHaveLength(0);
+    expect(cancelled).toContain("notif-1");
+  });
+
+  test("does not revive a task that was marked done offline (done_synced = 0)", async () => {
+    const db = createTestDb();
+    migrateLocalDb(db);
+    await reconcileAssignedTasks(db, [serverTask()], NOW);
+    db.run("update assigned_tasks set status = 'done', done_synced = 0 where id = 'task-1'");
+    await reconcileAssignedTasks(db, [serverTask()], NOW); // server still says open
+    expect(db.first<{ status: string }>("select status from assigned_tasks where id = 'task-1'")?.status).toBe("done");
+  });
 });

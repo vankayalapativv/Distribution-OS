@@ -53,4 +53,32 @@ describe("buildStartDayHealthChecklist", () => {
       "network",
     ]);
   });
+
+  test("blocks Start Day when foreground location is denied", () => {
+    const health = buildStartDayHealthChecklist({
+      isLocationEnabled: true,
+      foregroundPermission: "denied",
+      backgroundPermission: "granted",
+      notificationPermission: "granted",
+      batteryOptimizationStatus: "unrestricted",
+      isConnected: true,
+    });
+    expect(health.items.find((item) => item.id === "foreground_location")?.status).toBe("blocker");
+    expect(health.summary).toBe("Action needed");
+    expect(health.canStart).toBe(false);
+  });
+
+  test("summarises as Warnings when a permission is undetermined but nothing blocks", () => {
+    const health = buildStartDayHealthChecklist({
+      isLocationEnabled: true,
+      foregroundPermission: "undetermined", // not granted, not denied → warning
+      backgroundPermission: "granted",
+      notificationPermission: "granted",
+      batteryOptimizationStatus: "unrestricted",
+      isConnected: true,
+    });
+    expect(health.canStart).toBe(true);
+    expect(health.summary).toBe("Warnings");
+    expect(health.items.find((item) => item.id === "foreground_location")?.status).toBe("warning");
+  });
 });

@@ -32,5 +32,7 @@ export function istHour(ms: number = Date.now()): number {
   })
     .formatToParts(new Date(ms))
     .find((p) => p.type === "hour")?.value;
+  // `?? "0"` is defensive — formatToParts always yields an hour part.
+  /* v8 ignore next */
   return Number(h ?? "0") % 24;
 }

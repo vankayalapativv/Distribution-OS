@@ -51,6 +51,11 @@ describe("read-cache", () => {
     expect(typeof cachedUpdatedAt("k")).toBe("number");
   });
 
+  test("readCache returns null on a corrupt (non-JSON) cached payload", () => {
+    db!.run("insert into read_cache (key, payload_json, cached_at) values ('bad', '{not json', 1)");
+    expect(readCache("bad")).toBeNull();
+  });
+
   test("no local DB (web) degrades to no-cache without throwing", async () => {
     db = null;
     writeCache("k", { a: 1 });

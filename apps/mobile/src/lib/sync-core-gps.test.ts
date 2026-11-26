@@ -3,6 +3,18 @@ import { flushGpsPings, insertGpsPing } from "./sync-core";
 import { freshDb } from "./sync-core.test-support";
 
 describe("gps pings (insert + flush)", () => {
+  test("insertGpsPing falls back to a pseudo-random id without crypto.randomUUID", () => {
+    vi.stubGlobal("crypto", {}); // Hermes-without-randomUUID path
+    try {
+      const db = freshDb();
+      insertGpsPing(db, { clientSessionId: "s1", latitude: 1, longitude: 2, accuracy: 1, batteryPercentage: 50, recordedAt: "2026-07-09T09:00:00.000Z" });
+      const row = db.first<{ location_point_id: string }>("select location_point_id from gps_pings");
+      expect(row?.location_point_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   test("insertGpsPing creates a stable locationPointId before upload", () => {
     const db = freshDb();
     insertGpsPing(db, {

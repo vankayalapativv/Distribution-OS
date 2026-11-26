@@ -1,34 +1,30 @@
-import { describe, expect, test } from "vitest";
-import { dayFlagIsForToday, istDate } from "./day-flag";
+import { describe, expect, it } from "vitest";
+import { dayFlagIsForToday, istDate, istHour } from "./day-flag";
 
 describe("istDate", () => {
-  test("formats an IST calendar date as yyyy-mm-dd", () => {
-    // 2026-07-28 09:00 IST (03:30 UTC)
-    expect(istDate(Date.UTC(2026, 6, 28, 3, 30))).toBe("2026-07-28");
-  });
-
-  test("rolls to the next IST day for a late-night UTC timestamp", () => {
-    // 2026-07-27 20:00 UTC = 2026-07-28 01:30 IST → the IST date is the 28th.
-    expect(istDate(Date.UTC(2026, 6, 27, 20, 0))).toBe("2026-07-28");
+  it("formats a timestamp as the IST calendar date", () => {
+    // 2026-11-26T20:00:00Z is 2026-11-27 01:30 IST → next day in IST.
+    expect(istDate(Date.parse("2026-11-26T20:00:00Z"))).toBe("2026-11-27");
+    expect(istDate(Date.parse("2026-11-27T05:00:00Z"))).toBe("2026-11-27");
   });
 });
 
-describe("dayFlagIsForToday — the stale 'Day is on' bug", () => {
-  const today = "2026-07-28";
-
-  test("today's date is valid → tracking is on", () => {
-    expect(dayFlagIsForToday("2026-07-28", today)).toBe(true);
+describe("dayFlagIsForToday", () => {
+  it("is true only when the stored flag matches today's IST date", () => {
+    expect(dayFlagIsForToday("2026-11-27", "2026-11-27")).toBe(true);
+    expect(dayFlagIsForToday("2026-11-26", "2026-11-27")).toBe(false);
+    expect(dayFlagIsForToday(null, "2026-11-27")).toBe(false);
+    expect(dayFlagIsForToday("1", "2026-11-27")).toBe(false); // legacy value
   });
+});
 
-  test("a previous day's date is stale → not on", () => {
-    expect(dayFlagIsForToday("2026-07-27", today)).toBe(false);
-  });
-
-  test("the legacy '1' value is stale → not on (self-heals after update)", () => {
-    expect(dayFlagIsForToday("1", today)).toBe(false);
-  });
-
-  test("no flag → not on", () => {
-    expect(dayFlagIsForToday(null, today)).toBe(false);
+describe("istHour", () => {
+  it("returns the IST hour of day (0-23)", () => {
+    // 03:30 UTC = 09:00 IST
+    expect(istHour(Date.parse("2026-11-27T03:30:00Z"))).toBe(9);
+    // 18:30 UTC = 00:00 IST (next day) → 0, exercising the % 24 normalisation
+    expect(istHour(Date.parse("2026-11-27T18:30:00Z"))).toBe(0);
+    // 14:30 UTC = 20:00 IST (the 8 PM cutoff)
+    expect(istHour(Date.parse("2026-11-27T14:30:00Z"))).toBe(20);
   });
 });

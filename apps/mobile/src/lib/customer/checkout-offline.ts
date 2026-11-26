@@ -1,7 +1,8 @@
 import { getLocalDb } from "../db";
 import { istDate } from "../day-flag";
 import { kickSync } from "../sync";
-import { ensureCheckoutQueued, localVisitHasOutcome } from "./visit-queue";
+import { ensureCheckoutQueued } from "./visit-queue";
+import { localVisitHasOutcome } from "./visit-outcome";
 import { captureNoOutcome, mirrorFollowup } from "./checkout-helpers";
 import type { Captured, CheckOutOpts, Fix } from "./checkout-types";
 

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { createTestDb } from "../../test/node-sqlite-db";
 import { migrateLocalDb } from "../local-db";
 import { getOpenFollowup, recordFollowup, resolveFollowupLocal } from "./followups-store";
@@ -53,5 +53,19 @@ describe("customer follow-ups (local mirror)", () => {
     recordFollowup(db, { customerId: "c2", reason: "B", followUpAt: null }, 1000);
     expect(getOpenFollowup(db, "c1")?.reason).toBe("A");
     expect(getOpenFollowup(db, "c2")?.reason).toBe("B");
+  });
+
+  describe("uuid fallback when crypto.randomUUID is unavailable", () => {
+    afterEach(() => vi.unstubAllGlobals());
+    test("still generates a client_uuid and inserts the row", () => {
+      vi.stubGlobal("crypto", {}); // no randomUUID → pseudo-random fallback path
+      const db = freshDb();
+      recordFollowup(db, { customerId: "c1", customerName: "Balaji", reason: "pay", followUpAt: null }, 1000);
+      expect(getOpenFollowup(db, "c1")?.reason).toBe("pay");
+      const row = db.first<{ client_uuid: string }>(
+        "select client_uuid from customer_followups where customer_id = 'c1'",
+      );
+      expect(row?.client_uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    });
   });
 });

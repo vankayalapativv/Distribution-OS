@@ -12,10 +12,8 @@ const mirrorFollowup = vi.fn();
 vi.mock("../db", () => ({ getLocalDb: () => ({}) }));
 vi.mock("../day-flag", () => ({ istDate: () => istDate() }));
 vi.mock("../sync", () => ({ kickSync: () => kickSync() }));
-vi.mock("./visit-queue", () => ({
-  ensureCheckoutQueued: (...a: unknown[]) => ensureCheckoutQueued(...a),
-  localVisitHasOutcome: (...a: unknown[]) => localVisitHasOutcome(...a),
-}));
+vi.mock("./visit-queue", () => ({ ensureCheckoutQueued: (...a: unknown[]) => ensureCheckoutQueued(...a) }));
+vi.mock("./visit-outcome", () => ({ localVisitHasOutcome: (...a: unknown[]) => localVisitHasOutcome(...a) }));
 vi.mock("./checkout-helpers", () => ({
   captureNoOutcome: (...a: unknown[]) => captureNoOutcome(...a),
   mirrorFollowup: (...a: unknown[]) => mirrorFollowup(...a),

@@ -6,14 +6,10 @@
 import { apiFetch } from "../api";
 import { resolveFollowupLocal } from "./followups-store";
 
-export {
-  getOpenFollowup,
-  listFollowupReminders,
-  pendingFollowupCount,
-  recordFollowup,
-  resolveFollowupLocal,
-} from "./followups-store";
-export type { FollowupReminder, LocalFollowup } from "./followups-store";
+export { getOpenFollowup, recordFollowup, resolveFollowupLocal } from "./followups-store";
+export type { LocalFollowup } from "./followups-store";
+export { listFollowupReminders, pendingFollowupCount } from "./followup-reminders";
+export type { FollowupReminder } from "./followup-reminders";
 
 /** Mark a customer's open follow-up done: locally now, then best-effort on the
  *  server (so the office view updates and the reminder push stops). Shared by the

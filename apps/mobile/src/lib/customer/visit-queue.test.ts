@@ -67,6 +67,24 @@ describe("offline visit check-in / check-out queue", () => {
     expect(getQueueStats(db)).toEqual({ pending: 0, failed: 0 });
   });
 
+  test("a check-out on an unsynced local row keeps server_id null and carries the follow-up", () => {
+    const db = freshDb();
+    recordVisitCheckin(db, { clientUuid: CHECKIN_UUID, customerId: CUST, latitude: 17.4, longitude: 78.5 }, NOW);
+    // Existing local row, server id not yet known (serverId null) + a picked reminder.
+    ensureCheckoutQueued(
+      db,
+      { clientUuid: CHECKIN_UUID, serverId: null, customerId: CUST, latitude: 17.4, longitude: 78.5, noOutcomeReason: "pay next week", followUpAt: "2026-12-01T09:00:00.000Z" },
+      NOW + 1000,
+    );
+    const visit = db.first<{ server_id: string | null; status: string }>(
+      "select server_id, status from visits where client_uuid = ?",
+      [CHECKIN_UUID],
+    );
+    expect(visit?.server_id).toBeNull();
+    expect(visit?.status).toBe("completed");
+    expect(getQueueStats(db)).toEqual({ pending: 2, failed: 0 });
+  });
+
   test("a check-out for a header-only visit seeds a local row with the server id", () => {
     const db = freshDb();
     // No prior local row (visit checked in on a synced day, app reopened).

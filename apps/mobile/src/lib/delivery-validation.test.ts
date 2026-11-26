@@ -46,4 +46,11 @@ describe("validateEndForm", () => {
   it("requires a photo", () => {
     expect(validateEndForm({ ...ok, hasPhoto: false }).photo).toMatch(/photo/i);
   });
+  it("requires a meter reading", () => {
+    expect(validateEndForm({ ...ok, endOdo: "  " }).odo).toMatch(/required/i);
+  });
+  it("rejects a non-numeric or non-positive end reading", () => {
+    expect(validateEndForm({ ...ok, endOdo: "abc" }).odo).toMatch(/valid meter reading/i);
+    expect(validateEndForm({ ...ok, endOdo: "0", startOdometer: null }).odo).toMatch(/valid meter reading/i);
+  });
 });

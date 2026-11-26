@@ -59,6 +59,17 @@ describe("performStartRun (online-first)", () => {
     await expect(performStartRun(START, io)).rejects.toThrow();
     expect(io.queue).not.toHaveBeenCalled();
   });
+
+  it("sends but skips the mirror when there's no local db", async () => {
+    const io = startIo({ db: null });
+    expect((await performStartRun(START, io)).id).toBe("srv-1");
+    expect(io.mirror).not.toHaveBeenCalled();
+  });
+
+  it("reports a device error when offline with no local db (unsaved)", async () => {
+    const io = startIo({ db: null, send: vi.fn().mockRejectedValue(new Error("offline")) });
+    await expect(performStartRun(START, io)).rejects.toThrow(/on this device/);
+  });
 });
 
 describe("performEndRun (online-first)", () => {
@@ -85,5 +96,27 @@ describe("performEndRun (online-first)", () => {
     expect(res.queued).toBe(true);
     expect(io.queue).toHaveBeenCalledOnce();
     expect(io.mirror).not.toHaveBeenCalled();
+  });
+
+  it("errors when the run has no server id and no local db to queue to", async () => {
+    const io = endIo({ db: null });
+    await expect(performEndRun({ ...END, runServerId: null }, io)).rejects.toThrow(/on this device/);
+  });
+
+  it("ends but skips the mirror when there's no local db", async () => {
+    const io = endIo({ db: null });
+    expect((await performEndRun(END, io)).id).toBe("srv-1");
+    expect(io.mirror).not.toHaveBeenCalled();
+  });
+
+  it("reports a device error when offline with no local db (unsaved)", async () => {
+    const io = endIo({ db: null, send: vi.fn().mockRejectedValue(new Error("offline")) });
+    await expect(performEndRun(END, io)).rejects.toThrow(/on this device/);
+  });
+
+  it("throws on a permanent server rejection (4xx)", async () => {
+    const io = endIo({ send: vi.fn().mockRejectedValue(rejected(422)) });
+    await expect(performEndRun(END, io)).rejects.toThrow(/server rejected/);
+    expect(io.queue).not.toHaveBeenCalled();
   });
 });

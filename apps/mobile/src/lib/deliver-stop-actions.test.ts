@@ -75,4 +75,20 @@ describe("performSaveDeliveryStop (online-first)", () => {
     await expect(performSaveDeliveryStop(INPUT, d)).rejects.toThrow();
     expect(d.queue).not.toHaveBeenCalled();
   });
+
+  it("errors when the run has no server id and no local db to queue to", async () => {
+    const d = io({ db: null });
+    await expect(performSaveDeliveryStop({ ...INPUT, runServerId: null }, d)).rejects.toThrow(/on this device/);
+  });
+
+  it("sends but skips the mirror when there's no local db", async () => {
+    const d = io({ db: null });
+    expect((await performSaveDeliveryStop(INPUT, d)).id).toBe("stop-9");
+    expect(d.mirror).not.toHaveBeenCalled();
+  });
+
+  it("reports a device error when offline with no local db (unsaved)", async () => {
+    const d = io({ db: null, sendStop: vi.fn().mockRejectedValue(new Error("offline")) });
+    await expect(performSaveDeliveryStop(INPUT, d)).rejects.toThrow(/on this device/);
+  });
 });

@@ -6,47 +6,10 @@
 // no server id yet — the stop is parked in the durable offline queue and syncs
 // on reconnect (idempotent by clientUuid; FIFO sends it after the run).
 
-import type { LocalDb } from "./local-db";
 import { submitWrite } from "./online-first";
-import type { DeliveryStopInput } from "./sync-core";
+import { toRecord, type StopInput, type StopIo, type StopResult } from "./deliver-stop-types";
 
-export interface StopInput {
-  clientUuid: string;
-  runClientUuid: string;
-  runServerId: string | null;
-  customerId: string;
-  customerName: string | null;
-  invoiceId: string;
-  invoiceNumber: string;
-  photoPaths: string[];
-  latitude: number | null;
-  longitude: number | null;
-}
-
-export interface StopIo {
-  token: string | null;
-  db: LocalDb | null;
-  sendStop: (runServerId: string, body: Record<string, unknown>, token: string | null) => Promise<{ id: string }>;
-  uploadPhoto: (runServerId: string, path: string, stopId: string, token: string | null, geo: { latitude: number | null; longitude: number | null }) => Promise<void>;
-  del: (path: string) => void;
-  mirror: (db: LocalDb, input: DeliveryStopInput & { serverId: string }, now: number) => void;
-  /** Offline fallback: record the stop locally + enqueue it. */
-  queue: (db: LocalDb, input: DeliveryStopInput, now: number) => void;
-}
-
-export type StopResult = { id: string; queued?: boolean };
-
-const toRecord = (i: StopInput): DeliveryStopInput => ({
-  clientUuid: i.clientUuid,
-  runClientUuid: i.runClientUuid,
-  customerId: i.customerId,
-  customerName: i.customerName,
-  latitude: i.latitude,
-  longitude: i.longitude,
-  invoiceId: i.invoiceId,
-  invoiceNumber: i.invoiceNumber,
-  photoPaths: i.photoPaths,
-});
+export type { StopInput, StopIo, StopResult } from "./deliver-stop-types";
 
 export async function performSaveDeliveryStop(input: StopInput, io: StopIo): Promise<StopResult> {
   const queueStop = () => {

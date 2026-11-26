@@ -59,5 +59,7 @@ export function subscribeOnline(cb: (online: boolean) => void): () => void {
 
 /** React hook: re-renders when connectivity flips. */
 export function useIsOnline(): boolean {
-  return useSyncExternalStore(subscribe, () => online, () => online);
+  // One snapshot getter for both client + server (RN never renders on a server).
+  const getSnapshot = () => online;
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }

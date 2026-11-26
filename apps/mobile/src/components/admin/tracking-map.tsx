@@ -9,6 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { router } from "expo-router";
 import { IndiaMapNative, type MapMarker, type MapRoute } from "vardhan-maps/react-native";
+import { operatingStatesOf, type LatLng } from "../../lib/operating-states";
 import {
   isLive,
   type CheckinMarker,
@@ -31,10 +32,13 @@ function markerColor(live: boolean): string {
   return live ? LIVE : STALE;
 }
 
-// Field area — Telangana + Andhra Pradesh. State borders bold, districts faint,
-// everything outside the two states dimmed (matches the web Live Tracking map).
-const STATES = ["Telangana", "Andhra Pradesh"];
-const REGION: [[number, number], [number, number]] = [[12.4, 76.5], [19.95, 84.85]];
+// India-wide (2026-11-26): no hard-coded region. The map draws state borders +
+// districts ONLY for the states the day's data actually touches (operatingStates,
+// derived geometrically), auto-frames to the data, and pans freely over all India.
+// When a day has NO data at all, the map opens on this India overview (so it never
+// drifts to a world view now that the old regional lock is gone).
+const INDIA_CENTER: [number, number] = [22.5, 80.0];
+const INDIA_ZOOM = 4;
 const LIVE = "#16a34a"; // green — fresh/live rep
 const STALE = "#9ca3af"; // grey — stale rep
 // GPS trail (web parity): a receding slate-400 line with slate-600 ping beads.
@@ -118,6 +122,17 @@ export function TrackingMap({
     [customerMarkers, checkinMarkers, markers],
   );
 
+  // The states the day's activity touches (markers + the selected route) — any
+  // Indian state, no hard-coding. Drives which states' boundaries + districts are
+  // drawn, so detail appears only where you operate. Empty → all-India outline.
+  const operatingStates = useMemo(() => {
+    const pts: LatLng[] = [
+      ...allMarkers.map((m) => ({ lat: m.lat, lng: m.lng })),
+      ...route.map((p) => ({ lat: p.latitude, lng: p.longitude })),
+    ];
+    return operatingStatesOf(pts);
+  }, [allMarkers, route]);
+
   // Coordinate → data lookups, so a tapped marker resolves to its record.
   const customerByCoord = useMemo(() => {
     const m = new Map<string, MapCustomer>();
@@ -166,12 +181,15 @@ export function TrackingMap({
 
   // Fit key. Two stages: `s:<id>` the instant a rep is selected → fly to their
   // last-known spot without waiting for the fetch; `r:<first ping>` once their
-  // route loads → fit the whole trail (stable across the 60s polls). Falls back to
-  // all markers when nobody is selected.
+  // route loads → fit the whole trail (stable across the 60s polls). With nobody
+  // selected, fit to EVERY marker (customers + check-ins + reps) so the map frames
+  // the operating area — not just reps: on a day with no tracked reps there are
+  // still customer dots, and without this the India-wide map (no region lock) would
+  // drift out to a world view. Truly empty → fall back to the India view below.
   let fitKey: string | undefined;
   if (routeReady) fitKey = `r:${route[0]?.recordedAt}`;
   else if (selectedId) fitKey = `s:${selectedId}`;
-  else if (markers.length) fitKey = "all";
+  else if (allMarkers.length) fitKey = `all:${allMarkers.length}`;
   else fitKey = undefined;
 
   // Content cross-fade (mirrors the web's framer-motion veil): on each rep change
@@ -233,18 +251,21 @@ export function TrackingMap({
   return (
     <View style={{ flex: 1 }}>
       <IndiaMapNative
-        level="both"
-        stateNames={STATES}
-        // Show ONLY Telangana + Andhra Pradesh: draw just these two states'
-        // boundaries (not all of India) and hard-clip the basemap at their border
-        // — everything outside is a flat land-coloured fill, no neighbour bleed.
-        clipToStates
-        maskStates={STATES}
-        lockBounds={REGION}
+        // India-wide: draw boundaries + districts only for the operating states
+        // (any state), over the full-India basemap — no region lock, no hard clip.
+        // When there's no located data yet, fall back to the all-India state
+        // outline (no districts) so the map still has context.
+        level={operatingStates.length ? "both" : "state"}
+        stateNames={operatingStates.length ? operatingStates : undefined}
+        dataKey={operatingStates.join(",")}
         stateStyle={{ color: "#475569", weight: 2 }}
         districtStyle={{ color: "#94a3b8", weight: 0.8, opacity: 0.6 }}
         fitTo="data"
         fitKey={fitKey}
+        // India overview when there's no data to fit to (keyless → used as the
+        // initial view; any markers/route re-fit over it via fitKey above).
+        center={INDIA_CENTER}
+        zoom={INDIA_ZOOM}
         markers={allMarkers}
         routes={routes}
         onMarkerClick={onMarkerTap}

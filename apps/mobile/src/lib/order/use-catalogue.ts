@@ -4,7 +4,8 @@
  *  The catalogue is organised by BRAND tabs (Fuchs / Savsol / …) — oils only;
  *  bearings are not offered on this screen. */
 import { useCallback, useMemo, useRef, useState } from "react";
-import { SEGMENT_ORDER, type Product } from "./types";
+import type { Product } from "./types";
+import { computeDefaultPack, orderSegments, resolveQuickAdd } from "./catalogue-logic";
 import type { OrderCart } from "./use-order-cart";
 
 export function useCatalogue({
@@ -41,8 +42,7 @@ export function useCatalogue({
   const availableSegments = useMemo(() => {
     const set = new Set<string>();
     brandProducts.forEach((p) => p.segments.forEach((s) => set.add(s)));
-    const ordered = SEGMENT_ORDER.filter((s) => set.has(s));
-    return [...ordered, ...[...set].filter((s) => !SEGMENT_ORDER.includes(s))];
+    return orderSegments(set);
   }, [brandProducts]);
 
   const filteredProducts = useMemo(() => {
@@ -65,28 +65,16 @@ export function useCatalogue({
    *  passed straight to the memoized ProductRow. */
   const addOrOpen = useCallback(
     (p: Product) => {
-      // Quantity product with a single segment → straight to cart (no pack to pick).
-      if (p.unit === "quantity" && p.segments.length <= 1) {
-        cart.addProductLine(p.id, null, p.segments[0] ?? null, 1);
-        return;
-      }
-      const packs = p.packSizes ?? [];
-      if (p.unit === "litres" && packs.length === 1 && p.segments.length <= 1) {
-        cart.addProductLine(p.id, packs[0], p.segments[0] ?? null, 1);
-        return;
-      }
-      setSheetProduct(p);
+      // No-choice products go straight to the cart; the rest open the pack sheet.
+      const quick = resolveQuickAdd(p);
+      if (quick) cart.addProductLine(p.id, quick.pack, quick.segment, 1);
+      else setSheetProduct(p);
     },
     [cart.addProductLine],
   );
 
-  const packs = sheetProduct?.packSizes ?? [];
   const remembered = sheetProduct ? packMemory.current[sheetProduct.id] : undefined;
-  // Quantity products carry no pack → default null.
-  let defaultPack: number | null;
-  if (sheetProduct?.unit === "quantity") defaultPack = null;
-  else if (remembered && packs.includes(remembered)) defaultPack = remembered;
-  else defaultPack = packs[0] ?? 0;
+  const defaultPack = computeDefaultPack(sheetProduct, remembered);
 
   function addFromSheet(pack: number | null, segment: string | null, qty: number) {
     if (!sheetProduct) return;

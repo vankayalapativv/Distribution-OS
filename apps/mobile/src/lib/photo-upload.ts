@@ -19,7 +19,7 @@ export async function uploadCollectionProof(
   geo?: PhotoGeo,
 ): Promise<void> {
   const form = new FormData();
-  const name = photoUri.split("/").pop() ?? "proof.jpg";
+  const name = photoUri.split("/").pop() || "proof.jpg";
   form.append("photo", new File(photoUri) as unknown as Blob, name);
   appendGeo(form, geo);
   await postPhotoUpload(
@@ -39,7 +39,7 @@ export async function uploadDeliveryPhoto(
   geo?: PhotoGeo,
 ): Promise<void> {
   const form = new FormData();
-  const name = photoUri.split("/").pop() ?? "photo.jpg";
+  const name = photoUri.split("/").pop() || "photo.jpg";
   form.append("photo", new File(photoUri) as unknown as Blob, name);
   form.append("kind", kind);
   if (stopId) form.append("stopId", stopId);

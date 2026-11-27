@@ -38,6 +38,7 @@ export function OrderDetailSheet({
     setFailed(false);
     if (target.orderId) {
       void fetchOrderDetail(target.orderId).then((result) => {
+        /* v8 ignore next -- unmount-safety guard */
         if (cancelled) return;
         if (result) setDetail(result);
         else setFailed(true);

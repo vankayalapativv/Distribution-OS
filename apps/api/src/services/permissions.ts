@@ -88,6 +88,10 @@ const ACTIONS: PermissionDef[] = [
   { key: "action:expenditures.claims.approve", kind: "action", label: "Approve expense claims", group: "Actions", defaults: d(T, T) },
   // Mark an approved reimbursement paid (settle what the company owes the SE).
   { key: "action:expenditures.reimbursements.pay", kind: "action", label: "Mark reimbursements paid", group: "Actions", defaults: d(T, T) },
+  // Record a direct salary advance (cash out to an SE/Logistics person).
+  { key: "action:expenditures.advances.manage", kind: "action", label: "Give / record advances", group: "Actions", defaults: d(T, T) },
+  // Approve or reject an SE's requested advance.
+  { key: "action:expenditures.advances.approve", kind: "action", label: "Approve advance requests", group: "Actions", defaults: d(T, T) },
   { key: "action:alerts.close", kind: "action", label: "Close alerts", group: "Actions", defaults: d(T, F) },
   { key: "action:targets.edit", kind: "action", label: "Edit targets", group: "Actions", defaults: d(T, F) },
 ];

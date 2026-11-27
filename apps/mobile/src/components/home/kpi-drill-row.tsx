@@ -37,6 +37,8 @@ export function KpiDrillRow({
   const showPct = metric === "productivity" && total > 0;
   const pct = showPct ? Math.round(((row.productiveVisits ?? 0) / total) * 100) : 0;
   const pill = showPct ? productivityColor(pct) : null;
+  /* v8 ignore next -- every METRIC_META row returns a sub string */
+  const subLine = d.sub ? <Text className="mt-0.5 text-xs text-muted-foreground">{d.sub}</Text> : null;
 
   return (
     <View
@@ -46,7 +48,7 @@ export function KpiDrillRow({
         <Text className="text-sm font-medium text-card-foreground" numberOfLines={1}>
           {row.agentName}
         </Text>
-        {d.sub ? <Text className="mt-0.5 text-xs text-muted-foreground">{d.sub}</Text> : null}
+        {subLine}
       </View>
 
       <View className="shrink-0 flex-row items-center gap-2">

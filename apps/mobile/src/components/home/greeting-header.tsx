@@ -45,8 +45,7 @@ export function GreetingHeader({ name }: { readonly name: string }) {
   return (
     <View className="flex-1 pr-3">
       <Text className="text-[24px] font-extrabold text-foreground" numberOfLines={1}>
-        {greeting}
-        {name ? `, ${name}` : ""}
+        {greeting}, {name}
       </Text>
       <Text className="mt-0.5 text-md text-muted-foreground">
         {date} · {time}

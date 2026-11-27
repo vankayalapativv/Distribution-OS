@@ -1,10 +1,9 @@
 import { Image } from "expo-image";
 import { Modal, Pressable, View, useWindowDimensions } from "react-native";
-import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import { Icon } from "./icon";
-
-const MAX_SCALE = 5;
+import { buildZoomGestures, type ZoomValues } from "./photo-zoom-gestures";
 
 /**
  * Full-screen image preview over a dark backdrop with pinch-to-zoom, pan (while
@@ -25,62 +24,22 @@ export function PhotoZoomViewer({
 }) {
   const { width, height } = useWindowDimensions();
 
-  const scale = useSharedValue(1);
-  const savedScale = useSharedValue(1);
-  const tx = useSharedValue(0);
-  const ty = useSharedValue(0);
-  const savedTx = useSharedValue(0);
-  const savedTy = useSharedValue(0);
-
-  const reset = () => {
-    scale.value = withTiming(1);
-    savedScale.value = 1;
-    tx.value = withTiming(0);
-    ty.value = withTiming(0);
-    savedTx.value = 0;
-    savedTy.value = 0;
+  const v: ZoomValues = {
+    scale: useSharedValue(1),
+    savedScale: useSharedValue(1),
+    tx: useSharedValue(0),
+    ty: useSharedValue(0),
+    savedTx: useSharedValue(0),
+    savedTy: useSharedValue(0),
   };
-
-  const pinch = Gesture.Pinch()
-    .onUpdate((e) => {
-      scale.value = Math.min(Math.max(savedScale.value * e.scale, 1), MAX_SCALE);
-    })
-    .onEnd(() => {
-      savedScale.value = scale.value;
-      if (scale.value <= 1) reset();
-    });
-
-  const pan = Gesture.Pan()
-    .onUpdate((e) => {
-      if (scale.value > 1) {
-        tx.value = savedTx.value + e.translationX;
-        ty.value = savedTy.value + e.translationY;
-      }
-    })
-    .onEnd(() => {
-      savedTx.value = tx.value;
-      savedTy.value = ty.value;
-    });
-
-  const doubleTap = Gesture.Tap()
-    .numberOfTaps(2)
-    .onEnd(() => {
-      if (scale.value > 1) {
-        reset();
-      } else {
-        scale.value = withTiming(2);
-        savedScale.value = 2;
-      }
-    });
-
-  const composed = Gesture.Simultaneous(Gesture.Race(doubleTap, pan), pinch);
+  const composed = buildZoomGestures(v);
 
   const imageStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: scale.value }],
+    transform: [{ translateX: v.tx.value }, { translateY: v.ty.value }, { scale: v.scale.value }],
   }));
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View className="flex-1 bg-black/95">
           <GestureDetector gesture={composed}>

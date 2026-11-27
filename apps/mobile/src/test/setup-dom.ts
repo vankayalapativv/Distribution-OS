@@ -93,6 +93,60 @@ vi.mock("expo-image", () => {
   return { Image: RNWeb.Image };
 });
 
+// --- react-native-reanimated: shared values are plain mutable refs, timing is
+//     identity, animated styles resolve once. Enough for render + logic tests.
+vi.mock("react-native-reanimated", () => {
+  const RNWeb = require("react-native-web");
+  const React = require("react");
+  const Animated = {
+    View: (props: Record<string, unknown>) => React.createElement(RNWeb.View, props),
+    Image: RNWeb.Image,
+    createAnimatedComponent: (C: unknown) => C,
+  };
+  return {
+    default: Animated,
+    useSharedValue: (init: unknown) => ({ value: init }),
+    withTiming: (v: unknown) => v,
+    withSpring: (v: unknown) => v,
+    useAnimatedStyle: (fn: () => unknown) => fn(),
+    runOnJS: (fn: unknown) => fn,
+  };
+});
+
+// --- react-native-gesture-handler: gesture builders capture their callbacks on
+//     `_cbs` so tests can invoke them; detectors/roots pass through.
+vi.mock("react-native-gesture-handler", () => {
+  const RNWeb = require("react-native-web");
+  const React = require("react");
+  const builder = () => {
+    const g: Record<string, unknown> = { _cbs: {} };
+    const chain = (key: string) => (cb: unknown) => {
+      (g._cbs as Record<string, unknown>)[key] = cb;
+      return g;
+    };
+    g.onUpdate = chain("update");
+    g.onBegin = chain("begin");
+    g.onEnd = chain("end");
+    g.onStart = chain("start");
+    g.numberOfTaps = () => g;
+    g.minDistance = () => g;
+    return g;
+  };
+  return {
+    Gesture: {
+      Pinch: builder,
+      Pan: builder,
+      Tap: builder,
+      Simultaneous: (...gs: unknown[]) => ({ _children: gs }),
+      Race: (...gs: unknown[]) => ({ _children: gs }),
+    },
+    GestureDetector: ({ children }: { children?: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+    GestureHandlerRootView: (props: Record<string, unknown>) =>
+      React.createElement(RNWeb.View, props),
+  };
+});
+
 // --- connectivity: online by default (expo-network can't load under jsdom). A
 //     test that needs the offline path overrides this with its own vi.mock.
 vi.mock("../lib/connectivity", () => ({

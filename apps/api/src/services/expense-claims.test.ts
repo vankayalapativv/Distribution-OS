@@ -126,11 +126,19 @@ describe("approveClaim", () => {
     await expect(approveClaim(sql, "mgr", ID, 500)).rejects.toMatchObject({ status: 422 });
     await expect(approveClaim(sql, "mgr", ID, 0)).rejects.toMatchObject({ status: 422 });
   });
-  it("approves in full (null → claimed amount)", async () => {
+  it("approves in full (null → claimed amount) and creates the payable", async () => {
     const sql = makeSql({ get_claim: [claimRow()] });
     const claim = await approveClaim(sql, "mgr", ID, null);
     expect(calledTag(sql, "approve_claim")).toBe(true);
+    expect(calledTag(sql, "create_reimbursement_payable")).toBe(true);
+    const payable = sql.calls.find((c) => c.tag === "create_reimbursement_payable")!;
+    expect(payable.params).toEqual([ID, SE, 450]); // expenditure, user, approved amount
     expect(claim.id).toBe(ID);
+  });
+
+  it("409 when a submitted claim somehow has no submitter", async () => {
+    await expect(approveClaim(makeSql({ get_claim: [claimRow({ submittedBy: null })] }), "mgr", ID, null))
+      .rejects.toMatchObject({ status: 409 });
   });
   it("approves a reduced amount within range", async () => {
     const sql = makeSql({ get_claim: [claimRow({ claimedAmount: "450" })] });

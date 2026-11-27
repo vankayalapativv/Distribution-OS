@@ -128,7 +128,9 @@ export async function listClaims(
   return rows.map(mapClaim);
 }
 
-/** Approve a submitted claim, optionally at a reduced amount → it books as spend. */
+/** Approve a submitted claim, optionally at a reduced amount → it books as spend
+ *  AND creates a reimbursement payable (company owes the submitter). One payable
+ *  per claim; the book + payable are written in one transaction (Phase 2). */
 export async function approveClaim(
   sql: SqlClient,
   approverId: string,
@@ -137,18 +139,27 @@ export async function approveClaim(
 ) {
   const claim = await getClaim(sql, id);
   if (claim.status !== "submitted") throw new ApiError("CONFLICT", "Only a submitted claim can be approved.", 409);
+  if (!claim.submittedBy) throw new ApiError("CONFLICT", "Claim has no submitter.", 409);
   if (approvedAmount != null && !(approvedAmount > 0 && approvedAmount <= claim.claimedAmount)) {
     throw new ApiError("VALIDATION", "Approved amount must be between 0 and the claimed amount.", 422);
   }
-  await sql`
-    /* approve_claim */
-    update expenditures set
-      status = 'approved',
-      amount = coalesce(${approvedAmount}, claimed_amount),
-      approved_by = ${approverId}::uuid, approved_at = now(),
-      reject_reason = null, updated_at = now()
-    where id = ${id}::uuid and status = 'submitted'
-  `;
+  const approved = approvedAmount ?? claim.claimedAmount;
+  await sql.transaction([
+    sql`
+      /* approve_claim */
+      update expenditures set
+        status = 'approved', amount = ${approved},
+        approved_by = ${approverId}::uuid, approved_at = now(),
+        reject_reason = null, updated_at = now()
+      where id = ${id}::uuid and status = 'submitted'
+    `,
+    sql`
+      /* create_reimbursement_payable */
+      insert into reimbursement_payables (expenditure_id, user_id, amount, status)
+      values (${id}::uuid, ${claim.submittedBy}::uuid, ${approved}, 'owed')
+      on conflict (expenditure_id) do nothing
+    `,
+  ]);
   return getClaim(sql, id);
 }
 

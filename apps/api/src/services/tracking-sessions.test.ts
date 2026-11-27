@@ -7,9 +7,9 @@ const conflict = () => Object.assign(new Error("dup"), { code: "23505", constrai
 
 describe("pure helpers", () => {
   it("trackingCutoffHour + isAfterAllowedEndTime", () => {
-    expect(trackingCutoffHour("SALES_EXECUTIVE", 19)).toBe(19);
-    expect(trackingCutoffHour("LOGISTICS", 19)).toBeNull();
-    expect(isAfterAllowedEndTime({ recordedAt: "2026-06-02T10:00:00+05:30", sessionDate: "2026-06-01", timezone: "Asia/Kolkata", cutoffHour: 19 })).toBe(true);
+    expect(trackingCutoffHour("SALES_EXECUTIVE")).toBe(20);
+    expect(trackingCutoffHour("LOGISTICS")).toBe(24);
+    expect(isAfterAllowedEndTime({ recordedAt: "2026-06-02T10:00:00+05:30", sessionDate: "2026-06-01", timezone: "Asia/Kolkata", cutoffHour: 20 })).toBe(true);
     expect(isAfterAllowedEndTime({ recordedAt: "x", sessionDate: "2026-06-01", timezone: "Asia/Kolkata", cutoffHour: null })).toBe(false);
   });
 });

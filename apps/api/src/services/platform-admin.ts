@@ -419,8 +419,8 @@ export async function updateEnterpriseProfile(
 }
 
 // The only system_settings keys the cockpit may write — banking, invoice terms,
-// field-tracking hours, and the admin designation. Everything else (and the
-// company_* mirror keys, whose source of truth is the enterprises row) is ignored.
+// and the admin designation. Everything else (and the company_* mirror keys,
+// whose source of truth is the enterprises row) is ignored.
 const EDITABLE_SETTING_KEYS = new Set([
   "company_bank_name",
   "company_bank_account_name",
@@ -428,13 +428,11 @@ const EDITABLE_SETTING_KEYS = new Set([
   "company_bank_ifsc",
   "company_upi_id",
   "company_terms",
-  "tracking_se_autostop_hour",
-  "tracking_logistics_autostop_hour",
   "admin_designation",
 ]);
 
 /** Upsert a whitelisted set of `system_settings` for one enterprise (banking,
- *  invoice terms, tracking hours, admin designation). Unknown keys are dropped.
+ *  invoice terms, admin designation). Unknown keys are dropped.
  *  One set-based upsert on the (enterprise_id, key) PK. */
 export async function updateEnterpriseSettings(
   sql: SqlClient,

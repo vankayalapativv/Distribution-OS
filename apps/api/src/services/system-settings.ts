@@ -34,20 +34,7 @@ export const REQUIRED_COMPANY_FIELDS: (keyof CompanyProfile)[] = [
   "pincode",
 ];
 
-/** Default SE tracking auto-stop hour (IST, 0–23) when the setting is unset. 19 = 7 PM. */
-export const DEFAULT_SE_TRACKING_STOP_HOUR = 19;
-
-/** Clamp an arbitrary value to a valid hour-of-day (0–23), falling back to the default. */
-function toStopHour(raw: string | undefined): number {
-  const n = Number.parseInt(raw ?? "", 10);
-  return Number.isInteger(n) && n >= 0 && n <= 23 ? n : DEFAULT_SE_TRACKING_STOP_HOUR;
-}
-
 export interface SystemSettings {
-  /** Hour of the IST day (0–23) at which Sales-Executive GPS tracking auto-stops
-   *  for the day (session force-closed, points past it dropped, re-start blocked
-   *  until tomorrow). Editable in Business Rules. Logistics has no auto-stop. */
-  seTrackingStopHour: number;
   company: CompanyProfile;
 }
 
@@ -81,7 +68,6 @@ export async function getSystemSettings(sql: SqlClient): Promise<SystemSettings>
   const map: Record<string, string> = {};
   for (const row of rows) map[String(row.key)] = String(row.value);
   return {
-    seTrackingStopHour: toStopHour(map.se_tracking_stop_hour),
     company: {
       legalName: map[COMPANY_KEYS.legalName] ?? "",
       gstin: map[COMPANY_KEYS.gstin] ?? "",
@@ -101,27 +87,6 @@ export async function getSystemSettings(sql: SqlClient): Promise<SystemSettings>
       caEmail: map[COMPANY_KEYS.caEmail] ?? "",
     },
   };
-}
-
-/** Upsert the SE tracking auto-stop hour (0–23; validated by the caller). */
-export async function setSeTrackingStopHour(sql: SqlClient, hour: number): Promise<void> {
-  await sql`
-    /* upsert_se_tracking_stop_hour */
-    insert into system_settings (key, value)
-    values ('se_tracking_stop_hour', ${String(hour)})
-    on conflict (enterprise_id, key) do update set value = excluded.value, updated_at = now()
-  `;
-}
-
-/** The SE tracking auto-stop hour (0–23, IST) — a lean single-key read for the
- *  GPS ingestion + the auto-stop cron, which don't need the whole settings map. */
-export async function getSeTrackingStopHour(sql: SqlClient): Promise<number> {
-  const rows = (await sql`
-    /* get_se_tracking_stop_hour */
-    select value from system_settings where key = 'se_tracking_stop_hour'
-  `) as Array<{ value?: unknown }>;
-  const v = rows[0]?.value;
-  return toStopHour(v === undefined || v === null ? undefined : String(v));
 }
 
 /**

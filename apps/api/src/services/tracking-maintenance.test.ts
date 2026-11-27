@@ -15,12 +15,20 @@ import { makeSql } from "../test/sql-mock";
 afterEach(() => vi.clearAllMocks());
 
 describe("capExpiredSeSessions", () => {
-  it("closes expired sessions and recalcs each (swallowing a failed admin push)", async () => {
-    const sql = makeSql({ cap_expired_se_tracking_sessions: [{ id: "s1", userId: "u1" }] });
+  it("closes an expired SE session, recalcs, and notifies admins (swallowing a failed push)", async () => {
+    const sql = makeSql({ cap_expired_tracking_sessions: [{ id: "s1", userId: "u1", cutoffHour: 20 }] });
     const res = await capExpiredSeSessions(sql, { now: "2026-06-02T00:00:00Z" });
     expect(res).toEqual({ closedSessions: 1 });
     expect(h.recalculateTrackingSessionDistance).toHaveBeenCalledWith(sql, "s1");
     expect(h.notifyAdminsOfDayEvent).toHaveBeenCalled();
+  });
+
+  it("closes an expired Logistics session (cutoff 24) WITHOUT an admin notification", async () => {
+    const sql = makeSql({ cap_expired_tracking_sessions: [{ id: "s2", userId: "u2", cutoffHour: 24 }] });
+    const res = await capExpiredSeSessions(sql, { now: "2026-06-02T00:00:00Z" });
+    expect(res).toEqual({ closedSessions: 1 });
+    expect(h.recalculateTrackingSessionDwell).toHaveBeenCalledWith(sql, "s2");
+    expect(h.notifyAdminsOfDayEvent).not.toHaveBeenCalled();
   });
 });
 
@@ -29,7 +37,7 @@ import { runTrackingMaintenance } from "./tracking-maintenance";
 describe("runTrackingMaintenance", () => {
   it("caps expired sessions and raises interruption alerts for stale ones", async () => {
     const sql = makeSql({
-      cap_expired_se_tracking_sessions: [],
+      cap_expired_tracking_sessions: [],
       find_stale_tracking_sessions: [
         { sessionId: "s1", userId: "u1", executiveName: "Asha", lastHeartbeatAt: "2026-06-01T09:00:00Z", lastRecordedAt: "2026-06-01T08:55:00Z" },
         { sessionId: "s2", userId: "u2", executiveName: null, lastHeartbeatAt: null, lastRecordedAt: null }, // → formatIstTime(null) path

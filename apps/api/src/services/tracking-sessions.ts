@@ -1,6 +1,5 @@
 import type { SqlClient } from "../lib/db";
 import { ApiError } from "../lib/errors";
-import { getSeTrackingStopHour } from "./system-settings";
 import { recalculateTrackingSessionDistance } from "./tracking-distance";
 import { recalculateTrackingSessionDwell } from "./tracking-dwell";
 
@@ -80,17 +79,21 @@ function localDateTimeParts(iso: string, timezone: string) {
   };
 }
 
-// Sales Executives are tracked until a configurable hour of their IST day
-// (`seStopHour`, default 7 PM): points recorded at or after that hour on the
-// session's day are dropped, and the auto-stop cron force-closes the session at
-// that hour (re-start blocked until tomorrow). SEs can also end early with the
-// in-app "End day" button. Logistics have NO cutoff (`null`) — a run ends only
-// when the driver ends it, even across midnight.
-export function trackingCutoffHour(
-  role: string | null | undefined,
-  seStopHour: number,
-): number | null {
-  return role === "SALES_EXECUTIVE" ? seStopHour : null;
+// Hard-coded tracking auto-close hours (IST), identical for every enterprise.
+// Sales Executives are tracked until 8 PM (20:00) of their IST day; Logistics
+// until the END of the IST day (hour 24). Points recorded at or after the hour on
+// the session's day are dropped, and the auto-stop cron force-closes the session
+// (SE re-start blocked until tomorrow). With the Logistics cutoff at 24, same-day
+// points are always kept (hour is 0-23, never >= 24) and only points spilling into
+// the next IST date are dropped — i.e. the run auto-closes at the date rollover.
+// SEs/Logistics can also end early with the in-app "End day" / "End run" button.
+export const SE_TRACKING_STOP_HOUR = 20;
+export const LOGISTICS_TRACKING_STOP_HOUR = 24;
+
+export function trackingCutoffHour(role: string | null | undefined): number | null {
+  if (role === "SALES_EXECUTIVE") return SE_TRACKING_STOP_HOUR;
+  if (role === "LOGISTICS") return LOGISTICS_TRACKING_STOP_HOUR;
+  return null;
 }
 
 export function isAfterAllowedEndTime(input: {
@@ -103,8 +106,9 @@ export function isAfterAllowedEndTime(input: {
   // hour and on any day, including after midnight, until the run is ended.
   if (input.cutoffHour === null) return false;
   const local = localDateTimeParts(input.recordedAt, input.timezone);
-  // Drop only points that spill past the session's start day. With the SE cutoff
-  // at hour 24, same-day points are always kept (hour is 0-23, never >= 24).
+  // Drop points past the session's start day. With a cutoff of 24 (Logistics),
+  // same-day points are always kept (hour is 0-23, never >= 24); the SE cutoff
+  // (20) drops same-day points at or after 8 PM.
   if (local.date > input.sessionDate) return true;
   if (local.date < input.sessionDate) return false;
   return local.hour >= input.cutoffHour;
@@ -450,8 +454,6 @@ export async function insertTrackingPoints(
   if (!session) throw new ApiError("NOT_FOUND", "Tracking session not found.", 404);
   const sessionDate = str(session.sessionDate).slice(0, 10);
   const timezone = nullStr(session.timezone) ?? "Asia/Kolkata";
-  // The SE auto-stop hour drives which late points are dropped (Logistics: none).
-  const seStopHour = await getSeTrackingStopHour(sql);
 
   // Split into validation-rejected vs. insert candidates first, so all DB writes
   // for one batch travel in a SINGLE round-trip instead of one HTTP request per
@@ -464,7 +466,7 @@ export async function insertTrackingPoints(
   for (const point of input.points) {
     if (point.latitude < -90 || point.latitude > 90 || point.longitude < -180 || point.longitude > 180) {
       rejected.set(point.locationPointId, "INVALID_COORDINATES");
-    } else if (isAfterAllowedEndTime({ recordedAt: point.recordedAt, sessionDate, timezone, cutoffHour: trackingCutoffHour(input.role, seStopHour) })) {
+    } else if (isAfterAllowedEndTime({ recordedAt: point.recordedAt, sessionDate, timezone, cutoffHour: trackingCutoffHour(input.role) })) {
       rejected.set(point.locationPointId, "AFTER_ALLOWED_END_TIME");
     } else {
       candidates.push(point);

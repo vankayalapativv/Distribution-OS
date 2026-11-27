@@ -1,6 +1,5 @@
 import type { SqlClient } from "../lib/db";
 import { notifyAdminsOfDayEvent } from "./admin-notify";
-import { getSeTrackingStopHour } from "./system-settings";
 import { recalculateTrackingSessionDistance } from "./tracking-distance";
 import { recalculateTrackingSessionDwell } from "./tracking-dwell";
 
@@ -51,16 +50,16 @@ export interface TrackingMaintenanceResult {
 }
 
 /**
- * SE tracking auto-stop: force-close any SE tracking session still 'active' once
- * the configured stop hour of its IST day has passed (default 7 PM) — OR its IST
- * day has fully rolled over (a session that somehow outlived the hour). SEs can
- * also end their own day early with the in-app "End day" button (ended_reason
- * 'manual'); this closes the rest. The close is dated to the stop moment
- * (session_date at the stop hour) and tagged 'server_auto_stop' so attendance
- * (which reports manual ends only) can tell it apart from a real end, and the
- * Start-day guard blocks a same-day re-start.
+ * Tracking auto-stop (hard-coded, every enterprise): force-close any tracking
+ * session still 'active' once its IST-day cutoff has passed — Sales Executives at
+ * 8 PM (hour 20), Logistics at the end of the IST day (hour 24 → closes once the
+ * date has rolled over). SEs/Logistics can also end early with the in-app "End
+ * day" / "End run" button (ended_reason 'manual'); this closes the rest. The close
+ * is dated to the cutoff moment (session_date at the cutoff hour; hour 24 →
+ * next-day midnight) and tagged 'server_auto_stop' so attendance (which reports
+ * manual ends only) can tell it apart from a real end, and the SE Start-day guard
+ * blocks a same-day re-start.
  *
- * Logistics never auto-close — a delivery run ends only when the driver ends it.
  * Runs on EVERY cron tick (not just the office-hours window).
  */
 export async function capExpiredSeSessions(
@@ -68,48 +67,56 @@ export async function capExpiredSeSessions(
   options: { now?: string } = {},
 ): Promise<{ closedSessions: number }> {
   const now = options.now ?? new Date().toISOString();
-  const stopHour = await getSeTrackingStopHour(sql);
   const closed = await sql`
-    /* cap_expired_se_tracking_sessions */
+    /* cap_expired_tracking_sessions */
     update gps_tracking_sessions s
     set
       status = 'ended',
       ended_at = coalesce(
         ended_at,
-        ((s.session_date::text || ' ' || lpad(${stopHour}::text, 2, '0') || ':00')::timestamp at time zone timezone)
+        ((s.session_date::text || ' ' || lpad(cutoff.hour::text, 2, '0') || ':00')::timestamp at time zone timezone)
       ),
       ended_reason = coalesce(ended_reason, 'server_auto_stop')
-    where status = 'active'
-      and exists (
-        select 1 from user_roles ur
-        join roles r on r.id = ur.role_id
-        where ur.user_id = s.user_id and r.code = 'SALES_EXECUTIVE'
-      )
+    from (
+      -- Per session, the most restrictive hard-coded cutoff hour of its user's
+      -- tracking role (SE 20 / Logistics 24). A user with both roles → the SE 20.
+      select s2.id, min(case when r.code = 'SALES_EXECUTIVE' then 20 else 24 end) as hour
+      from gps_tracking_sessions s2
+      join user_roles ur on ur.user_id = s2.user_id
+      join roles r on r.id = ur.role_id
+      where r.code in ('SALES_EXECUTIVE', 'LOGISTICS')
+      group by s2.id
+    ) cutoff
+    where s.id = cutoff.id
+      and s.status = 'active'
       and (
         (${now}::timestamptz at time zone timezone)::date > s.session_date
         or (
           (${now}::timestamptz at time zone timezone)::date = s.session_date
-          and extract(hour from (${now}::timestamptz at time zone timezone)) >= ${stopHour}
+          and extract(hour from (${now}::timestamptz at time zone timezone)) >= cutoff.hour
         )
       )
-    returning id, user_id as "userId"
+    returning id, user_id as "userId", cutoff.hour as "cutoffHour"
   ` as Row[];
 
-  // Recalculate distance/dwell for each capped session, and tell the Super
-  // Admins the system auto-closed this forgotten SE day (the notification body
-  // says it was ended by the system, not the SE). Only the call that actually
-  // closed the session reaches here, so no double-notify. Per-session work runs
-  // in parallel; a failed push is swallowed so it can't abort the others.
+  // Recalculate distance/dwell for each capped session, and (SE only) tell the
+  // Super Admins the system auto-closed this forgotten day (the notification body
+  // says it was ended by the system, not the SE). Logistics midnight closes are
+  // routine and not notified. Only the call that actually closed the session
+  // reaches here, so no double-notify. Per-session work runs in parallel; a failed
+  // push is swallowed so it can't abort the others.
   await Promise.all(
     closed.map(async (session) => {
       const sessionId = str(session.id);
       await recalculateTrackingSessionDistance(sql, sessionId);
       await recalculateTrackingSessionDwell(sql, sessionId);
-      await notifyAdminsOfDayEvent(sql, {
-        seUserId: str(session.userId),
-        kind: "auto_end",
-        at: null,
-      }).catch(() => undefined);
+      if (Number(session.cutoffHour) === 20) {
+        await notifyAdminsOfDayEvent(sql, {
+          seUserId: str(session.userId),
+          kind: "auto_end",
+          at: null,
+        }).catch(() => undefined);
+      }
     }),
   );
 

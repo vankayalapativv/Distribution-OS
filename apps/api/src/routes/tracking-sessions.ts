@@ -7,7 +7,6 @@ import { ApiError } from "../lib/errors";
 import { validate } from "../lib/validate";
 import { waitUntilSafe } from "../lib/wait-until";
 import { notifyAdminsOfDayEvent } from "../services/admin-notify";
-import { getSeTrackingStopHour } from "../services/system-settings";
 import {
   optionalBoolean,
   optionalNumber,
@@ -59,12 +58,6 @@ export const trackingSessionsRoutes = new Hono<ApiEnv>()
       startOdometer: assertOdometer(optionalNumber(body, "startOdometer")),
     });
 
-    // The device caps its own tracking at this IST hour (SE only; Logistics has
-    // no auto-stop → null). Lets the native service + JS watchdog self-stop at the
-    // configured hour without a second round-trip.
-    const seTrackingStopHour =
-      auth.role === "SALES_EXECUTIVE" ? await getSeTrackingStopHour(sql) : null;
-
     // A SALES_EXECUTIVE's FRESH Start day (not a re-tap / replay) → let the Super
     // Admins know on their mobiles. Best-effort; never blocks the field client.
     if (!result.existing && auth.role === "SALES_EXECUTIVE") {
@@ -78,10 +71,7 @@ export const trackingSessionsRoutes = new Hono<ApiEnv>()
       );
     }
 
-    return c.json(
-      success(c, { ...result.session, seTrackingStopHour }),
-      result.existing ? 200 : 201,
-    );
+    return c.json(success(c, { ...result.session }), result.existing ? 200 : 201);
   })
 
   .get("/active", async (c) => {

@@ -163,7 +163,6 @@ export interface OnboardingPayload {
   bank: { bankName: string; accountName: string; accountNumber: string; ifsc: string; upiId: string };
   invoice: { prefix: string; finYear: string; startSeq: number; terms: string };
   godowns: Godown[];
-  tracking: { seAutoStopHour: number; logisticsAutoStopHour: number };
   duesBands: DuesBand[];
 }
 
@@ -205,8 +204,6 @@ export function validateOnboarding(p: OnboardingPayload): OnboardingPayload {
     req(g.state, `godowns[${i}].state`);
     req(g.stateCode, `godowns[${i}].stateCode`);
   });
-  if (!Number.isFinite(p.tracking?.seAutoStopHour) || !Number.isFinite(p.tracking?.logisticsAutoStopHour))
-    throw new ApiError("VALIDATION", "SE and Logistics auto-stop times are required.", 422);
   // Exactly 4 contiguous bands (0 → ∞), ranges + labels editable — same rule the
   // Settings → Collection Dues editor enforces.
   validateDuesBands(p.duesBands);
@@ -253,8 +250,6 @@ export async function submitOnboarding(
     ["company_bank_ifsc", p.bank.ifsc],
     ["company_upi_id", p.bank.upiId],
     ["company_terms", p.invoice.terms],
-    ["tracking_se_autostop_hour", String(p.tracking.seAutoStopHour)],
-    ["tracking_logistics_autostop_hour", String(p.tracking.logisticsAutoStopHour)],
   ];
 
   const stmts = [

@@ -4,8 +4,10 @@ import { router } from "expo-router";
 
 const useMyClaims = vi.fn();
 const reimb = { owedTotal: 0 };
+const adv = { outstandingTotal: 0 };
 vi.mock("../../../lib/use-my-claims", () => ({ useMyClaims: () => useMyClaims() }));
 vi.mock("../../../lib/use-my-reimbursements", () => ({ useMyReimbursements: () => reimb }));
+vi.mock("../../../lib/use-my-advances", () => ({ useMyAdvances: () => adv }));
 vi.mock("expo-router", () => ({ router: { push: vi.fn(), back: vi.fn() } }));
 vi.mock("../../../components/error-state", () => ({ ErrorState: () => <span>error-state</span> }));
 vi.mock("../../../components/expenses/claim-row", () => ({
@@ -17,7 +19,7 @@ vi.mock("../../../components/expenses/claim-row", () => ({
 import MyExpensesScreen from "./index";
 
 const base = { claims: [], loading: false, error: null, retry: vi.fn(), refreshing: false, onRefresh: vi.fn() };
-beforeEach(() => { vi.clearAllMocks(); reimb.owedTotal = 0; useMyClaims.mockReturnValue({ ...base }); });
+beforeEach(() => { vi.clearAllMocks(); reimb.owedTotal = 0; adv.outstandingTotal = 0; useMyClaims.mockReturnValue({ ...base }); });
 
 describe("MyExpensesScreen", () => {
   it("shows the empty state, routes to New, and goes back", () => {
@@ -34,6 +36,15 @@ describe("MyExpensesScreen", () => {
     render(<MyExpensesScreen />);
     expect(screen.getByText("Company owes you")).toBeInTheDocument();
     expect(screen.getByText("₹450")).toBeInTheDocument();
+  });
+
+  it("shows advance outstanding and routes to the request screen", () => {
+    adv.outstandingTotal = 8000;
+    render(<MyExpensesScreen />);
+    expect(screen.getByText("Advance to repay")).toBeInTheDocument();
+    expect(screen.getByText("₹8,000")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Request an advance"));
+    expect(router.push).toHaveBeenCalledWith("/settings/expenses/advance");
   });
 
   it("shows a spinner while loading (no empty state)", () => {

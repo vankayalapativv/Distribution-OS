@@ -23,6 +23,12 @@ const COPY: Record<LocationBlockReason, { title: string; body: string; cta: stri
   },
 };
 
+/** The modal's Android back handler: a no-op, because this gate can't be
+ *  dismissed (the global BackHandler swallow is belt-and-suspenders). */
+export function swallowModalClose(): void {
+  /* intentionally empty */
+}
+
 function openFix(reason: LocationBlockReason): void {
   if (reason === "gps_off" && Linking.sendIntent) {
     void Linking.sendIntent("android.settings.LOCATION_SOURCE_SETTINGS").catch(() => Linking.openSettings());
@@ -40,7 +46,7 @@ function LocationGuardOverlay({ reason, onRecheck }: { readonly reason: Location
   }, []);
   const copy = COPY[reason];
   return (
-    <Modal visible animationType="fade" onRequestClose={() => undefined}>
+    <Modal visible animationType="fade" onRequestClose={swallowModalClose}>
       <SafeAreaView className="flex-1 items-center justify-center bg-secondary px-8">
         <View className="items-center gap-4">
           <View className="h-16 w-16 items-center justify-center rounded-full bg-red-100">

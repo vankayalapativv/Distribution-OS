@@ -12,7 +12,7 @@ import ChangePasswordScreen from "./password";
 describe("ChangePasswordScreen", () => {
   it("renders the form and triggers save", () => {
     const onSave = vi.fn();
-    useChangePassword.mockReturnValue({ current: "", setCurrent: vi.fn(), next: "", setNext: vi.fn(), confirm: "", setConfirm: vi.fn(), tooShort: false, mismatch: false, error: null, saved: false, busy: false, canSave: true, onSave });
+    useChangePassword.mockReturnValue({ current: "", setCurrent: vi.fn(), next: "", setNext: vi.fn(), confirm: "", setConfirm: vi.fn(), rules: { longEnough: false, hasLetter: false, hasNumber: false }, strength: 0, mismatch: false, wrongCurrent: false, error: null, saved: false, busy: false, canSave: true, onSave });
     render(<ChangePasswordScreen />);
     expect(screen.getByText("password-form")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Update password"));

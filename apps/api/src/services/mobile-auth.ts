@@ -137,3 +137,47 @@ export async function neonSignOut(env: Env, session: string): Promise<void> {
     /* best-effort */
   }
 }
+
+export type ChangePasswordResult = { ok: true } | { ok: false; status: number; error: string };
+
+/**
+ * Change the signed-in user's OWN password via Better Auth. Neon re-verifies
+ * `currentPassword` against the session's user. `revokeOtherSessions: false` so
+ * the caller's other live sessions survive — importantly, the real app session on
+ * this device (a DIFFERENT session from the throwaway one the route signs in with
+ * to run this) is not revoked, so the SE isn't logged out by changing their
+ * password. Mirrors apps/web/src/lib/neon-auth-server.ts `neonChangePassword`.
+ */
+export async function neonChangePassword(
+  env: Env,
+  session: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<ChangePasswordResult> {
+  let res: Response;
+  try {
+    res = await neonFetch(env, "/change-password", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: origin(env),
+        cookie: `${SESSION_COOKIE}=${session}`,
+      },
+      body: JSON.stringify({ currentPassword, newPassword, revokeOtherSessions: false }),
+    });
+  } catch {
+    return { ok: false, status: 503, error: "Could not reach the authentication server." };
+  }
+  if (!res.ok) {
+    // Better Auth returns 400 with a message when the current password is wrong.
+    let error = res.status === 400 ? "Your current password is incorrect." : "Could not change the password.";
+    try {
+      const b = (await res.json()) as { message?: string };
+      if (b.message) error = b.message;
+    } catch {
+      /* keep default */
+    }
+    return { ok: false, status: res.status === 400 ? 400 : 503, error };
+  }
+  return { ok: true };
+}

@@ -4,7 +4,7 @@ import { SaveBar } from "../../components/settings/save-bar";
 import { SettingsHeader } from "../../components/settings/settings-header";
 import { useChangePassword } from "../../lib/use-change-password";
 
-/** Change own password: current + new (min 8) + confirm. */
+/** Change own password: current + new (min 8, a letter and a number) + confirm. */
 export default function ChangePasswordScreen() {
   const f = useChangePassword();
 
@@ -19,8 +19,10 @@ export default function ChangePasswordScreen() {
         onNext={f.setNext}
         confirm={f.confirm}
         onConfirm={f.setConfirm}
-        tooShort={f.tooShort}
+        rules={f.rules}
+        strength={f.strength}
         mismatch={f.mismatch}
+        wrongCurrent={f.wrongCurrent}
         error={f.error}
         saved={f.saved}
         busy={f.busy}

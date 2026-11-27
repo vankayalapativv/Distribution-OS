@@ -1,8 +1,11 @@
 import { Hono } from "hono";
 import { success } from "../lib/api-response";
+import { ApiError } from "../lib/api-error";
 import { requireAuth, requireRole } from "../lib/authz";
 import { getSqlClient } from "../lib/db";
+import { isAcceptablePassword, PASSWORD_RULE_MESSAGE } from "../lib/password-policy";
 import { optionalString, readJsonObject, requiredString } from "../lib/request-body";
+import { neonChangePassword, neonSignIn, neonSignOut } from "../services/mobile-auth";
 import {
   clearNotifications,
   deleteNotification,
@@ -49,6 +52,51 @@ export const meRoutes = new Hono<ApiEnv>()
     });
 
     return c.json(success(c, profile));
+  })
+  .post("/me/change-password", async (c) => {
+    const auth = requireAuth(c);
+    const body = await readJsonObject(c);
+    const currentPassword = requiredString(body, "currentPassword");
+    const newPassword = requiredString(body, "newPassword");
+    if (!isAcceptablePassword(newPassword)) {
+      throw new ApiError("INVALID_FIELD", PASSWORD_RULE_MESSAGE, 422);
+    }
+
+    const sql = getSqlClient(c);
+    const profile = await getMyProfile(sql, auth.userId!);
+    if (!profile.email) {
+      throw new ApiError("NO_EMAIL", "This account has no email to change the password for.", 409);
+    }
+
+    // Email + password are owned by Neon Auth (Better Auth), not our DB. Verify
+    // the current password by signing in with it (this also yields a throwaway
+    // session we use to run the change), then swap the password, then sign that
+    // throwaway session out. The user's real app session is a DIFFERENT session
+    // and `neonChangePassword` leaves other sessions alone, so they stay logged in.
+    const signIn = await neonSignIn(c.env, profile.email, currentPassword);
+    if (!signIn.ok) {
+      if (signIn.status === 401) {
+        throw new ApiError("UNAUTHORIZED", "Your current password is incorrect.", 401);
+      }
+      throw new ApiError("AUTH_UNAVAILABLE", signIn.error, 503);
+    }
+
+    const changed = await neonChangePassword(c.env, signIn.session, currentPassword, newPassword);
+    await neonSignOut(c.env, signIn.session); // best-effort cleanup of the throwaway session
+    if (!changed.ok) {
+      const bad = changed.status === 400;
+      throw new ApiError(bad ? "INVALID_FIELD" : "AUTH_UNAVAILABLE", changed.error, bad ? 400 : 503);
+    }
+
+    await logAudit(sql, actorOf(auth), {
+      action: "user.password_change",
+      entityType: "user",
+      entityId: profile.id,
+      entityLabel: profile.name,
+      summary: "Changed own password",
+    });
+
+    return c.json(success(c, { ok: true }));
   })
   .post("/me/push-token", async (c) => {
     const auth = requireAuth(c);

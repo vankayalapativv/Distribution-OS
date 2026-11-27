@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { neonMintToken, neonSignIn, neonSignOut } from "./mobile-auth";
+import { neonChangePassword, neonMintToken, neonSignIn, neonSignOut } from "./mobile-auth";
 
 const ENV = { NEON_AUTH_BASE_URL: "https://auth.neon.test/", NEON_AUTH_ORIGIN: "http://localhost:3000" } as never;
 const SESSION = "sess-abc";
@@ -84,5 +84,30 @@ describe("neonSignOut", () => {
   it("swallows any error (best-effort)", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("down"));
     await expect(neonSignOut(ENV, SESSION)).resolves.toBeUndefined();
+  });
+});
+
+describe("neonChangePassword", () => {
+  it("succeeds and keeps other sessions alive (revokeOtherSessions:false)", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(res({}));
+    expect(await neonChangePassword(ENV, SESSION, "old", "abcd1234")).toEqual({ ok: true });
+    const init = fetchSpy.mock.calls[0][1] as RequestInit;
+    expect(JSON.parse(init.body as string)).toEqual({ currentPassword: "old", newPassword: "abcd1234", revokeOtherSessions: false });
+  });
+  it("maps a 400 to the wrong-current-password message", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(res({ message: "Invalid password" }, { status: 400 }));
+    expect(await neonChangePassword(ENV, SESSION, "bad", "abcd1234")).toEqual({ ok: false, status: 400, error: "Invalid password" });
+  });
+  it("defaults the 400 message when the body has none", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(res(null, { status: 400 }));
+    expect(await neonChangePassword(ENV, SESSION, "bad", "abcd1234")).toEqual({ ok: false, status: 400, error: "Your current password is incorrect." });
+  });
+  it("maps any other upstream status to 503", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(res({}, { status: 500 }));
+    expect(await neonChangePassword(ENV, SESSION, "old", "abcd1234")).toMatchObject({ ok: false, status: 503 });
+  });
+  it("returns 503 when Neon is unreachable", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("down"));
+    expect(await neonChangePassword(ENV, SESSION, "old", "abcd1234")).toMatchObject({ ok: false, status: 503 });
   });
 });

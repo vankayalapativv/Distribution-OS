@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Eye, MoreVertical, Pencil, Trash2, Undo2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { Expenditure } from "./expenditures-api";
@@ -17,11 +17,14 @@ export function ExpenditureRowActions({
   onEdit,
   onDelete,
   onViewBill,
+  onVoid,
 }: {
   readonly entry: Expenditure;
   readonly onEdit: (entry: Expenditure) => void;
   readonly onDelete: (entry: Expenditure) => void;
   readonly onViewBill: (entry: Expenditure) => void;
+  /** Reverse the booked entry (audited). Shown only when the caller may void. */
+  readonly onVoid?: (entry: Expenditure) => void;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -53,6 +56,16 @@ export function ExpenditureRowActions({
           >
             <Pencil className="size-4" /> Edit
           </button>
+          {onVoid && (
+            <button
+              type="button"
+              aria-label={`Reverse ${entry.expenditureCode}`}
+              className={cn(itemClass, "text-foreground")}
+              onClick={() => { setOpen(false); onVoid(entry); }}
+            >
+              <Undo2 className="size-4" /> Reverse
+            </button>
+          )}
           <button
             type="button"
             aria-label={`Delete ${entry.expenditureCode}`}

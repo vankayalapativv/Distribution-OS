@@ -7,6 +7,7 @@ import { rupeesExact } from "@/lib/format";
 import type { ActionConfig } from "@/lib/api-client";
 import { SetSalaryDialog } from "./set-salary-dialog";
 import { PaySalaryDialog } from "./pay-salary-dialog";
+import { VoidReasonDialog } from "./void-reason-dialog";
 import type { SalaryRow } from "./salary-api";
 import { useSalary } from "./use-salary";
 
@@ -16,9 +17,11 @@ import { useSalary } from "./use-salary";
 export function SalaryPanel({ actionConfig }: { readonly actionConfig: ActionConfig }) {
   const canView = useCan("action:salary.view");
   const canManage = useCan("action:salary.manage");
-  const { rows, staff, isLoading, setSalary, paySalary } = useSalary(actionConfig);
+  const canVoid = useCan("action:expenditures.void");
+  const { rows, staff, isLoading, setSalary, paySalary, voidSalary } = useSalary(actionConfig);
   const [setting, setSetting] = useState(false);
   const [paying, setPaying] = useState<SalaryRow | null>(null);
+  const [reversing, setReversing] = useState<{ name: string; paymentId: string } | null>(null);
 
   if (!canView || isLoading) return null;
 
@@ -43,6 +46,9 @@ export function SalaryPanel({ actionConfig }: { readonly actionConfig: ActionCon
                 </p>
               </div>
               {canManage && r.salary != null && !r.paidThisMonth ? <Button size="sm" onClick={() => setPaying(r)}>Pay</Button> : null}
+              {canManage && canVoid && r.paidThisMonth && r.paymentId ? (
+                <Button size="sm" variant="outline" onClick={() => setReversing({ name: r.userName ?? "the employee", paymentId: r.paymentId! })}>Reverse</Button>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -50,6 +56,14 @@ export function SalaryPanel({ actionConfig }: { readonly actionConfig: ActionCon
 
       <SetSalaryDialog open={setting} staff={staff} onOpenChange={(open) => !open && setSetting(false)} onSave={setSalary} />
       <PaySalaryDialog row={paying} onOpenChange={(open) => !open && setPaying(null)} onPay={paySalary} />
+      <VoidReasonDialog
+        open={reversing != null}
+        title="Reverse this salary run?"
+        description={`This undoes ${reversing?.name ?? "the employee"}'s pay for this month and restores any advance it recovered. The month can then be re-run.`}
+        confirmLabel="Reverse pay"
+        onOpenChange={(open) => !open && setReversing(null)}
+        onConfirm={async (reason) => { await voidSalary(reversing!.paymentId, reason); setReversing(null); }}
+      />
     </section>
   );
 }

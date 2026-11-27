@@ -62,7 +62,8 @@ export async function listSalaries(sql: SqlClient) {
     select u.id as "userId", u.name as "userName",
       (select monthly_amount from staff_salaries s where s.user_id = u.id and s.effective_from <= current_date order by s.effective_from desc limit 1) as "salary",
       coalesce((select sum(outstanding) from advances a where a.user_id = u.id and a.status = 'active'), 0) as "advanceOutstanding",
-      exists(select 1 from salary_payments p where p.user_id = u.id and p.period_month = date_trunc('month', current_date)::date) as "paidThisMonth"
+      exists(select 1 from salary_payments p where p.user_id = u.id and p.period_month = date_trunc('month', current_date)::date and p.reversed_at is null) as "paidThisMonth",
+      (select p.id from salary_payments p where p.user_id = u.id and p.period_month = date_trunc('month', current_date)::date and p.reversed_at is null limit 1) as "paymentId"
     from users u
     where coalesce(u.status, 'active') = 'active'
       and (exists(select 1 from staff_salaries s where s.user_id = u.id)
@@ -72,7 +73,7 @@ export async function listSalaries(sql: SqlClient) {
   return rows.map((r) => ({
     userId: str(r.userId), userName: strOrNull(r.userName),
     salary: numOrNull(r.salary), advanceOutstanding: num(r.advanceOutstanding),
-    paidThisMonth: r.paidThisMonth === true,
+    paidThisMonth: r.paidThisMonth === true, paymentId: strOrNull(r.paymentId),
   }));
 }
 
@@ -81,13 +82,13 @@ export async function listSalaries(sql: SqlClient) {
  *  whole balance; capped at the salary — the rest carries forward). */
 function planRecovery(advances: Row[], gross: number) {
   let remaining = gross;
-  const updates: { id: string; newOutstanding: number }[] = [];
+  const updates: { id: string; newOutstanding: number; recovered: number }[] = [];
   for (const a of advances) {
     if (remaining <= 0) break; // salary exhausted — the rest carries to next month
     const outstanding = num(a.outstanding);
     const due = str(a.recovery_plan) === "installment" ? Math.min(num(a.installment_amount) || outstanding, outstanding) : outstanding;
     const recover = Math.min(due, remaining); // > 0: remaining > 0 and outstanding > 0 (filtered)
-    updates.push({ id: str(a.id), newOutstanding: round2(outstanding - recover) });
+    updates.push({ id: str(a.id), newOutstanding: round2(outstanding - recover), recovered: recover });
     remaining = round2(remaining - recover);
   }
   return { recovered: round2(gross - remaining), updates };
@@ -100,7 +101,7 @@ export async function paySalary(sql: SqlClient, officeId: string, userId: string
   if (gross == null) throw new ApiError("VALIDATION", "Set this person's salary first.", 422);
 
   const [dupe] = (await sql`
-    /* salary_payment_dupe */ select 1 from salary_payments where user_id = ${userId}::uuid and period_month = date_trunc('month', ${periodMonth}::date)::date limit 1
+    /* salary_payment_dupe */ select 1 from salary_payments where user_id = ${userId}::uuid and period_month = date_trunc('month', ${periodMonth}::date)::date and reversed_at is null limit 1
   `) as Row[];
   if (dupe) throw new ApiError("CONFLICT", "Salary for this month is already paid.", 409);
 
@@ -121,17 +122,25 @@ export async function paySalary(sql: SqlClient, officeId: string, userId: string
   `) as Row[];
   const code = `EXP-${String(num(codeRow?.seq) || 1).padStart(4, "0")}`;
 
+  // Client-side ids so the payment, its booked expense, and its recovery rows
+  // all link up inside one transaction (the array form can't read back ids).
+  const paymentId = crypto.randomUUID();
+  const expenditureId = crypto.randomUUID();
+
   await sql.transaction([
     sql`
       /* record_salary_payment */
-      insert into salary_payments (user_id, period_month, gross_amount, advance_recovered, net_paid, payment_mode, paid_by)
-      values (${userId}::uuid, date_trunc('month', ${periodMonth}::date)::date, ${gross}, ${recovered}, ${net}, ${paymentMode}, ${officeId}::uuid)
+      insert into salary_payments (id, user_id, period_month, gross_amount, advance_recovered, net_paid, payment_mode, paid_by, expenditure_id)
+      values (${paymentId}::uuid, ${userId}::uuid, date_trunc('month', ${periodMonth}::date)::date, ${gross}, ${recovered}, ${net}, ${paymentMode}, ${officeId}::uuid, ${expenditureId}::uuid)
     `,
     sql`
       /* book_salary_expenditure */
-      insert into expenditures (expenditure_code, expenditure_date, category_id, amount, status, source, user_id, created_by, remarks)
-      values (${code}, date_trunc('month', ${periodMonth}::date)::date, ${str(cat.id)}::uuid, ${gross}, 'approved', 'office', ${userId}::uuid, ${officeId}::uuid, 'Monthly salary')
+      insert into expenditures (id, expenditure_code, expenditure_date, category_id, amount, status, source, user_id, created_by, remarks)
+      values (${expenditureId}::uuid, ${code}, date_trunc('month', ${periodMonth}::date)::date, ${str(cat.id)}::uuid, ${gross}, 'approved', 'office', ${userId}::uuid, ${officeId}::uuid, 'Monthly salary')
     `,
+    ...updates.map((u) => sql`
+      /* record_recovery */ insert into salary_payment_recoveries (salary_payment_id, advance_id, amount) values (${paymentId}::uuid, ${u.id}::uuid, ${u.recovered})
+    `),
     ...updates.map((u) => sql`
       /* recover_advance */ update advances set outstanding = ${u.newOutstanding}, status = ${u.newOutstanding <= 0 ? "cleared" : "active"}, updated_at = now() where id = ${u.id}::uuid
     `),
@@ -149,11 +158,44 @@ export async function mySalary(sql: SqlClient, userId: string) {
   const [paid] = (await sql`
     /* my_salary_this_month */
     select gross_amount as "gross", advance_recovered as "recovered", net_paid as "net"
-    from salary_payments where user_id = ${userId}::uuid and period_month = date_trunc('month', current_date)::date limit 1
+    from salary_payments where user_id = ${userId}::uuid and period_month = date_trunc('month', current_date)::date and reversed_at is null limit 1
   `) as Row[];
   return {
     monthlySalary: salary,
     advanceOutstanding: num(adv?.outstanding),
     thisMonth: paid ? { paid: true, gross: num(paid.gross), recovered: num(paid.recovered), net: num(paid.net) } : null,
   };
+}
+
+/** Void a salary run (Phase 5): reverse the booked expense and restore every
+ *  advance the run recovered to exactly what it was, then free the month for a
+ *  re-run. Kept for audit (reversed_at), never hard-deleted. */
+export async function voidSalaryPayment(sql: SqlClient, officeId: string, id: string, reason: string | null) {
+  const [payment] = (await sql`
+    /* get_salary_payment */
+    select p.id, p.user_id as "userId", u.name as "userName", p.gross_amount as "gross",
+      p.advance_recovered as "recovered", p.net_paid as "net", p.expenditure_id as "expenditureId", p.reversed_at as "reversedAt"
+    from salary_payments p left join users u on u.id = p.user_id where p.id = ${id}::uuid limit 1
+  `) as Row[];
+  if (!payment) throw new ApiError("NOT_FOUND", "Salary payment not found.", 404);
+  if (payment.reversedAt != null) throw new ApiError("CONFLICT", "This salary payment is already reversed.", 409);
+
+  const recoveries = (await sql`
+    /* salary_recoveries */ select advance_id as "advanceId", amount from salary_payment_recoveries where salary_payment_id = ${id}::uuid
+  `) as Row[];
+  const expenditureId = strOrNull(payment.expenditureId);
+
+  await sql.transaction([
+    sql`
+      /* reverse_salary_payment */ update salary_payments set reversed_at = now(), reversed_by = ${officeId}::uuid where id = ${id}::uuid and reversed_at is null
+    `,
+    ...(expenditureId
+      ? [sql`/* reverse_salary_expenditure */ update expenditures set reversed_at = now(), reversed_by = ${officeId}::uuid where id = ${expenditureId}::uuid and reversed_at is null`]
+      : []),
+    ...recoveries.map((r) => sql`
+      /* restore_advance */ update advances set outstanding = round(outstanding + ${num(r.amount)}, 2), status = 'active', updated_at = now() where id = ${str(r.advanceId)}::uuid
+    `),
+  ]);
+
+  return { id, userId: strOrNull(payment.userId), userName: strOrNull(payment.userName), gross: num(payment.gross), advanceRestored: num(payment.recovered), reason };
 }

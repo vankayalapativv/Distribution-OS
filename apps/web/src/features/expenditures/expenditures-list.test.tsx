@@ -10,6 +10,7 @@ const s = {
   setCategoryOpen: vi.fn(), openNew: vi.fn(), setBillFor: vi.fn(), handleEdit: vi.fn(),
   setDeleting: vi.fn(), setFormOpen: vi.fn(), setEditing: vi.fn(), confirmDelete: vi.fn(),
   formOpen: false, editing: null, categoryOpen: false, billFor: null, deleting: null,
+  reversing: null as { expenditureCode: string; categoryName: string } | null, setReversing: vi.fn(), confirmVoid: vi.fn(),
 };
 vi.mock("@/features/shell/use-can", () => ({ useCan: () => true }));
 vi.mock("./use-expenditures-list", () => ({ useExpendituresList: () => s }));
@@ -37,6 +38,9 @@ vi.mock("./expenditure-bill-dialog", () => ({
 }));
 vi.mock("./expenditure-delete-dialog", () => ({
   ExpenditureDeleteDialog: ({ onOpenChange }: any) => <div>DELETE<button onClick={() => onOpenChange(false)}>d-close</button></div>,
+}));
+vi.mock("./void-reason-dialog", () => ({
+  VoidReasonDialog: ({ open, onOpenChange, onConfirm }: any) => open ? <div>VOID<button onClick={() => onConfirm("why")}>v-do</button><button onClick={() => onOpenChange(false)}>v-close</button></div> : null,
 }));
 vi.mock("@/components/data-table/data-table", () => ({
   DataTable: ({ empty, onRowClick }: any) => <div><button onClick={() => onRowClick({ id: "e1", hasBill: true })}>row-bill</button><button onClick={() => onRowClick({ id: "e2", hasBill: false })}>row-edit</button>{empty}</div>,
@@ -100,5 +104,16 @@ describe("ExpendituresList", () => {
     s.error = { message: "Boom" };
     render(<ExpendituresList role="MANAGER" actionConfig={config} />);
     expect(screen.getByText("Boom")).toBeInTheDocument();
+  });
+
+  it("opens the reverse dialog for a targeted entry and wires confirm/close", () => {
+    s.reversing = { expenditureCode: "EXP-0007", categoryName: "Fuel" };
+    render(<ExpendituresList role="SUPER_ADMIN" actionConfig={config} />);
+    expect(screen.getByText("VOID")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("v-do"));
+    expect(s.confirmVoid).toHaveBeenCalledWith("why");
+    fireEvent.click(screen.getByText("v-close"));
+    expect(s.setReversing).toHaveBeenCalledWith(null);
+    s.reversing = null;
   });
 });

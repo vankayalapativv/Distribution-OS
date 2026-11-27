@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { SortingState } from "@tanstack/react-table";
 import { usePagedTable } from "@/components/data-table/use-paged-table";
 import { useTableUrlState } from "@/components/data-table/use-table-url-state";
+import { useCan } from "@/features/shell/use-can";
 import { apiRequest, errorMessage, type ActionConfig } from "@/lib/api-client";
 import { buildExpenditureColumns } from "./expenditures-columns";
 import { useExpenditureLookups } from "./use-expenditure-lookups";
@@ -38,6 +39,8 @@ export function useExpendituresList(actionConfig: ActionConfig) {
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [billFor, setBillFor] = useState<Expenditure | null>(null);
   const [deleting, setDeleting] = useState<Expenditure | null>(null);
+  const [reversing, setReversing] = useState<Expenditure | null>(null);
+  const canVoid = useCan("action:expenditures.void");
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -60,10 +63,22 @@ export function useExpendituresList(actionConfig: ActionConfig) {
     setDeleting(null);
   }, [deleting, actionConfig, queryClient]);
 
+  const confirmVoid = useCallback(async (reason: string | null) => {
+    if (!reversing) return;
+    try {
+      await apiRequest(actionConfig, "POST", `/expenditures/${reversing.id}/void`, { reason });
+    } catch (e) {
+      throw new Error(errorMessage(e, "Could not reverse the expenditure."));
+    }
+    void queryClient.invalidateQueries({ queryKey: ["expenditures"] });
+    void queryClient.invalidateQueries({ queryKey: ["expenditure-summary"] });
+    setReversing(null);
+  }, [reversing, actionConfig, queryClient]);
+
   const handleEdit = useCallback((entry: Expenditure) => { setEditing(entry); setFormOpen(true); }, []);
   const columns = useMemo(
-    () => buildExpenditureColumns({ onEdit: handleEdit, onDelete: setDeleting, onViewBill: setBillFor }),
-    [handleEdit],
+    () => buildExpenditureColumns({ onEdit: handleEdit, onDelete: setDeleting, onViewBill: setBillFor, onVoid: canVoid ? setReversing : undefined }),
+    [handleEdit, canVoid],
   );
 
   const paged = usePagedTable<Expenditure>({
@@ -88,7 +103,7 @@ export function useExpendituresList(actionConfig: ActionConfig) {
     search, setSearch,
     formOpen, setFormOpen, editing, setEditing, categoryOpen, setCategoryOpen,
     billFor, setBillFor, deleting, setDeleting, categories, people, columns,
-    confirmDelete, handleEdit,
+    reversing, setReversing, confirmVoid, confirmDelete, handleEdit,
     openNew: () => { setEditing(null); setFormOpen(true); },
     hasFilters: !!appliedSearch || typeFilter !== "all" || categoryFilter !== "all",
     clearFilters: () => { setSearch(""); url.setFilters({ type: "", categoryId: "" }); },

@@ -11,6 +11,7 @@ import {
   listExpenditures,
   updateExpenditure,
   uploadExpenditureBill,
+  voidExpenditure,
 } from "./expenditures";
 import { makeSql, calledTag } from "../test/sql-mock";
 
@@ -144,6 +145,28 @@ describe("deleteExpenditure", () => {
     await deleteExpenditure(makeSql({ delete_expenditure: [{ billFileKey: null }] }), b2 as never, "e1");
     expect(b2.delete).not.toHaveBeenCalled();
     await expect(deleteExpenditure(makeSql({ delete_expenditure: [] }), undefined, "x")).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe("voidExpenditure", () => {
+  const row = (over: Record<string, unknown> = {}) => ({ get_expenditure_for_void: [{ id: "e1", status: "approved", reversedAt: null, isSalaryRun: false, ...over }] });
+  it("404 when missing", async () => {
+    await expect(voidExpenditure(makeSql({ get_expenditure_for_void: [] }), "off", "x", null)).rejects.toMatchObject({ status: 404 });
+  });
+  it("409 when already reversed", async () => {
+    await expect(voidExpenditure(makeSql(row({ reversedAt: new Date() })), "off", "e1", null)).rejects.toMatchObject({ status: 409 });
+  });
+  it("409 when not an approved (booked) entry", async () => {
+    await expect(voidExpenditure(makeSql(row({ status: "submitted" })), "off", "e1", null)).rejects.toMatchObject({ status: 409 });
+  });
+  it("409 when it is a salary run (reverse the salary payment instead)", async () => {
+    await expect(voidExpenditure(makeSql(row({ isSalaryRun: true })), "off", "e1", null)).rejects.toMatchObject({ status: 409 });
+  });
+  it("reverses the expenditure and its payable", async () => {
+    const sql = makeSql(row());
+    expect(await voidExpenditure(sql, "off", "e1", "duplicate")).toEqual({ id: "e1", reversed: true, reason: "duplicate" });
+    expect(calledTag(sql, "reverse_expenditure")).toBe(true);
+    expect(calledTag(sql, "reverse_payable")).toBe(true);
   });
 });
 

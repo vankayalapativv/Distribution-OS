@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { calledTag, makeSql } from "../test/sql-mock";
-import { currentSalary, listSalaries, listStaff, mySalary, paySalary, setSalary } from "./salary";
+import { currentSalary, listSalaries, listStaff, mySalary, paySalary, setSalary, voidSalaryPayment } from "./salary";
 
 afterEach(() => vi.clearAllMocks());
 
@@ -14,10 +14,12 @@ const payBase = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 const recovery = (sql: ReturnType<typeof makeSql>) => {
+  // insert params: [paymentId, userId, periodMonth, gross, recovered, net, …]
   const p = sql.calls.find((c) => c.tag === "record_salary_payment")!.params;
-  return { gross: p[2], recovered: p[3], net: p[4] };
+  return { gross: p[3], recovered: p[4], net: p[5] };
 };
 const advUpdates = (sql: ReturnType<typeof makeSql>) => sql.calls.filter((c) => c.tag === "recover_advance").map((c) => c.params);
+const recoveryRows = (sql: ReturnType<typeof makeSql>) => sql.calls.filter((c) => c.tag === "record_recovery").map((c) => ({ advanceId: c.params[1], amount: c.params[2] }));
 
 describe("currentSalary + setSalary", () => {
   it("returns null when no salary is set, else the latest", async () => {
@@ -43,12 +45,12 @@ describe("listStaff + listSalaries", () => {
   });
   it("maps the salary table (null salary + paid flag)", async () => {
     const sql = makeSql({ list_salaries: [
-      { userId: USER, userName: "Priya", salary: "20000", advanceOutstanding: "8000", paidThisMonth: true },
-      { userId: "u2", userName: null, salary: null, advanceOutstanding: "0", paidThisMonth: false },
+      { userId: USER, userName: "Priya", salary: "20000", advanceOutstanding: "8000", paidThisMonth: true, paymentId: "pay-1" },
+      { userId: "u2", userName: null, salary: null, advanceOutstanding: "0", paidThisMonth: false, paymentId: null },
     ] });
     const out = await listSalaries(sql);
-    expect(out[0]).toMatchObject({ salary: 20000, advanceOutstanding: 8000, paidThisMonth: true });
-    expect(out[1]).toMatchObject({ userName: null, salary: null, paidThisMonth: false });
+    expect(out[0]).toMatchObject({ salary: 20000, advanceOutstanding: 8000, paidThisMonth: true, paymentId: "pay-1" });
+    expect(out[1]).toMatchObject({ userName: null, salary: null, paidThisMonth: false, paymentId: null });
   });
 });
 
@@ -124,6 +126,46 @@ describe("paySalary", () => {
     const sql = makeSql(payBase({ next_salary_exp_code: [{ seq: 0 }] }));
     await paySalary(sql, "off", USER, "2026-11-01", null);
     expect(sql.calls.find((c) => c.tag === "book_salary_expenditure")!.params).toContain("EXP-0001");
+  });
+
+  it("records one recovery row per recovered advance (the reversal breadcrumb)", async () => {
+    const sql = makeSql(payBase({ active_advances_for_recovery: [
+      { id: "a1", outstanding: "15000", recovery_plan: "full_next", installment_amount: null },
+      { id: "a2", outstanding: "10000", recovery_plan: "full_next", installment_amount: null },
+    ] }));
+    await paySalary(sql, "off", USER, "2026-11-01", null);
+    expect(recoveryRows(sql)).toEqual([{ advanceId: "a1", amount: 15000 }, { advanceId: "a2", amount: 5000 }]);
+  });
+});
+
+describe("voidSalaryPayment", () => {
+  const voidBase = (over: Record<string, unknown> = {}) => ({
+    get_salary_payment: [{ id: "p1", userId: USER, userName: "Priya", gross: "20000", recovered: "10000", net: "10000", expenditureId: "exp-1", reversedAt: null }],
+    salary_recoveries: [{ advanceId: "a1", amount: "10000" }],
+    ...over,
+  });
+
+  it("404 when the payment is missing", async () => {
+    await expect(voidSalaryPayment(makeSql({ get_salary_payment: [] }), "off", "p1", null)).rejects.toMatchObject({ status: 404 });
+  });
+  it("409 when already reversed", async () => {
+    const sql = makeSql(voidBase({ get_salary_payment: [{ id: "p1", userId: USER, gross: "20000", recovered: "0", expenditureId: "exp-1", reversedAt: new Date() }] }));
+    await expect(voidSalaryPayment(sql, "off", "p1", null)).rejects.toMatchObject({ status: 409 });
+  });
+  it("reverses the payment + expenditure and restores each recovered advance", async () => {
+    const sql = makeSql(voidBase({ salary_recoveries: [{ advanceId: "a1", amount: "6000" }, { advanceId: "a2", amount: "4000" }] }));
+    const r = await voidSalaryPayment(sql, "off", "p1", "wrong month");
+    expect(r).toMatchObject({ id: "p1", userId: USER, userName: "Priya", gross: 20000, advanceRestored: 10000, reason: "wrong month" });
+    expect(calledTag(sql, "reverse_salary_payment")).toBe(true);
+    expect(calledTag(sql, "reverse_salary_expenditure")).toBe(true);
+    const restores = sql.calls.filter((c) => c.tag === "restore_advance").map((c) => c.params);
+    expect(restores).toEqual([[6000, "a1"], [4000, "a2"]]);
+  });
+  it("skips the expenditure reversal when the run booked none", async () => {
+    const sql = makeSql(voidBase({ get_salary_payment: [{ id: "p1", userId: USER, gross: "20000", recovered: "0", expenditureId: null, reversedAt: null }], salary_recoveries: [] }));
+    await voidSalaryPayment(sql, "off", "p1", null);
+    expect(calledTag(sql, "reverse_salary_payment")).toBe(true);
+    expect(calledTag(sql, "reverse_salary_expenditure")).toBe(false);
   });
 });
 

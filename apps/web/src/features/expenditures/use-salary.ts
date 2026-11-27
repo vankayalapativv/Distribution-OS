@@ -35,5 +35,7 @@ export function useSalary(actionConfig: ActionConfig) {
       run(() => apiRequest(actionConfig, "POST", "/salary/set", { userId, amount, effectiveFrom }), "Could not save the salary."),
     paySalary: (userId: string, periodMonth: string, paymentMode: string) =>
       run(() => apiRequest(actionConfig, "POST", "/salary/pay", { userId, periodMonth, paymentMode }), "Could not pay the salary."),
+    voidSalary: (paymentId: string, reason: string | null) =>
+      run(() => apiRequest(actionConfig, "POST", `/salary/${paymentId}/void`, { reason }), "Could not reverse the salary run."),
   };
 }

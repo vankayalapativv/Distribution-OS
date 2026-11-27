@@ -75,10 +75,12 @@ export function buildExpenditureColumns({
   onEdit,
   onDelete,
   onViewBill,
+  onVoid,
 }: {
   onEdit: (entry: Expenditure) => void;
   onDelete: (entry: Expenditure) => void;
   onViewBill: (entry: Expenditure) => void;
+  onVoid?: (entry: Expenditure) => void;
 }): ColumnDef<Expenditure>[] {
   return [
     ...baseColumns,
@@ -88,7 +90,7 @@ export function buildExpenditureColumns({
       enableSorting: false,
       meta: { className: "text-right" },
       cell: ({ row }) => (
-        <ExpenditureRowActions entry={row.original} onEdit={onEdit} onDelete={onDelete} onViewBill={onViewBill} />
+        <ExpenditureRowActions entry={row.original} onEdit={onEdit} onDelete={onDelete} onViewBill={onViewBill} onVoid={onVoid} />
       ),
     },
   ];

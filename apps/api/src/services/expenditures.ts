@@ -173,7 +173,7 @@ export interface ListExpendituresParams {
 export async function listExpenditures(sql: SqlClient, opts: ListExpendituresParams) {
   // The ledger shows booked spend only — field claims awaiting review (or
   // rejected) live in the claims queue, not here, until they're approved.
-  const conds: string[] = ["e.status = 'approved'"];
+  const conds: string[] = ["e.status = 'approved'", "e.reversed_at is null"];
   const params: unknown[] = [];
   const add = (cond: (p: string) => string, value: unknown) => {
     params.push(value);
@@ -387,6 +387,29 @@ export async function deleteExpenditure(
   return { deleted: true };
 }
 
+/** Void a booked expenditure (Phase 5): keep the row for audit but set
+ *  reversed_at so it drops out of every total. A claim's reimbursement payable is
+ *  reversed alongside. A salary run must be reversed via the salary payment (so
+ *  its advance recovery is restored) — refuse it here with a hint. */
+export async function voidExpenditure(sql: SqlClient, officeId: string, id: string, reason: string | null) {
+  const [row] = (await sql`
+    /* get_expenditure_for_void */
+    select e.id, e.status, e.reversed_at as "reversedAt",
+      exists(select 1 from salary_payments sp where sp.expenditure_id = e.id and sp.reversed_at is null) as "isSalaryRun"
+    from expenditures e where e.id = ${id}::uuid limit 1
+  `) as Row[];
+  if (!row) throw new ApiError("NOT_FOUND", "Expenditure not found.", 404);
+  if (row.reversedAt != null) throw new ApiError("CONFLICT", "This entry is already reversed.", 409);
+  if (str(row.status) !== "approved") throw new ApiError("CONFLICT", "Only a booked (approved) entry can be reversed.", 409);
+  if (row.isSalaryRun === true) throw new ApiError("CONFLICT", "Reverse the salary payment instead — it restores the advance recovery.", 409);
+
+  await sql.transaction([
+    sql`/* reverse_expenditure */ update expenditures set reversed_at = now(), reversed_by = ${officeId}::uuid where id = ${id}::uuid and reversed_at is null`,
+    sql`/* reverse_payable */ update reimbursement_payables set status = 'reversed', reversed_at = now(), reversed_by = ${officeId}::uuid where expenditure_id = ${id}::uuid and status <> 'reversed'`,
+  ]);
+  return { id, reversed: true, reason };
+}
+
 // ── Summary (period totals + type split + per-category breakdown) ────────────
 
 export async function getExpenditureSummary(
@@ -407,6 +430,7 @@ export async function getExpenditureSummary(
     from expenditures e
     join expenditure_categories c on c.id = e.category_id
     where e.status = 'approved'
+      and e.reversed_at is null
       and (${from}::date is null or e.expenditure_date >= ${from}::date)
       and (${to}::date is null or e.expenditure_date <= ${to}::date)
     group by c.id, c.name, c.type

@@ -50,6 +50,13 @@ describe("useSalary", () => {
     await expect(result.current.setSalary("u1", 1, null)).rejects.toThrow("boom");
   });
 
+  it("reverses a salary run and refreshes", async () => {
+    const { result } = renderHook(() => useSalary(config));
+    await result.current.voidSalary("pay-1", "wrong month");
+    expect(apiRequest).toHaveBeenCalledWith(config, "POST", "/salary/pay-1/void", { reason: "wrong month" });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["salaries"] });
+  });
+
   it("defaults to empty lists before data resolves", () => {
     state.rows = undefined; state.staff = undefined;
     const { result } = renderHook(() => useSalary(config));

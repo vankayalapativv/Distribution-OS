@@ -6,14 +6,15 @@ import type { Expenditure } from "./expenditures-api";
 const entry = (over: Partial<Expenditure> = {}): Expenditure =>
   ({ id: "e1", expenditureCode: "EXP-9", hasBill: true, ...over } as Expenditure);
 
-const render1 = (over: Partial<Expenditure> = {}, h: Partial<Record<"onEdit" | "onDelete" | "onViewBill", () => void>> = {}) => {
+const render1 = (over: Partial<Expenditure> = {}, h: Partial<Record<"onEdit" | "onDelete" | "onViewBill" | "onVoid", (() => void) | undefined>> = {}) => {
   const onEdit = h.onEdit ?? vi.fn(), onDelete = h.onDelete ?? vi.fn(), onViewBill = h.onViewBill ?? vi.fn(), rowClick = vi.fn();
+  const onVoid = "onVoid" in h ? h.onVoid : vi.fn();
   render(
     <div onClick={rowClick} onKeyDown={rowClick}>
-      <ExpenditureRowActions entry={entry(over)} onEdit={onEdit} onDelete={onDelete} onViewBill={onViewBill} />
+      <ExpenditureRowActions entry={entry(over)} onEdit={onEdit} onDelete={onDelete} onViewBill={onViewBill} onVoid={onVoid} />
     </div>,
   );
-  return { onEdit, onDelete, onViewBill, rowClick };
+  return { onEdit, onDelete, onViewBill, onVoid, rowClick };
 };
 
 describe("ExpenditureRowActions", () => {
@@ -43,5 +44,20 @@ describe("ExpenditureRowActions", () => {
     fireEvent.click(screen.getByTitle("Actions"));
     expect(screen.queryByRole("button", { name: "View bill for EXP-9" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit EXP-9" })).toBeInTheDocument();
+  });
+
+  it("shows Reverse only when onVoid is provided", () => {
+    const e = entry();
+    const onVoid = vi.fn();
+    const { onVoid: ov } = render1({}, { onVoid });
+    fireEvent.click(screen.getByTitle("Actions"));
+    fireEvent.click(screen.getByRole("button", { name: "Reverse EXP-9" }));
+    expect(ov).toHaveBeenCalledWith(e);
+  });
+
+  it("omits Reverse when onVoid is absent", () => {
+    render1({}, { onVoid: undefined });
+    fireEvent.click(screen.getByTitle("Actions"));
+    expect(screen.queryByRole("button", { name: "Reverse EXP-9" })).not.toBeInTheDocument();
   });
 });

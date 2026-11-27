@@ -14,6 +14,8 @@ const invalidateQueries = vi.fn();
 const useQuery = vi.fn();
 vi.mock("@tanstack/react-query", () => ({ useQuery: (o: unknown) => useQuery(o), useQueryClient: () => ({ invalidateQueries }) }));
 vi.mock("./expenditures-columns", () => ({ buildExpenditureColumns: () => [1, 2] }));
+const can = { void: true };
+vi.mock("@/features/shell/use-can", () => ({ useCan: () => can.void }));
 let sp = new URLSearchParams();
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -31,6 +33,7 @@ const entry = { id: "e1" } as Expenditure;
 beforeEach(() => {
   vi.clearAllMocks();
   sp = new URLSearchParams();
+  can.void = true;
   vi.useFakeTimers();
   useQuery.mockReturnValue({ data: { categories: [{ id: "c1" }], people: [{ id: "u1" }] } });
 });
@@ -76,5 +79,26 @@ describe("useExpendituresList — defaults, search & dialogs", () => {
     expect(result.current.formOpen).toBe(true);
     act(() => result.current.openNew());
     expect(result.current.editing).toBeNull();
+  });
+
+  it("confirmVoid no-ops with no target, then reverses a targeted entry", async () => {
+    const { result } = renderHook(() => useExpendituresList(config));
+    await act(async () => { await result.current.confirmVoid("x"); }); // reversing null → early return
+    expect(apiRequest).not.toHaveBeenCalled();
+    act(() => result.current.setReversing(entry));
+    await act(async () => { await result.current.confirmVoid("duplicate"); });
+    expect(apiRequest).toHaveBeenCalledWith(config, "POST", "/expenditures/e1/void", { reason: "duplicate" });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["expenditures"] });
+    expect(result.current.reversing).toBeNull();
+  });
+
+  it("surfaces a void failure and omits the void action without the grant", async () => {
+    apiRequest.mockRejectedValueOnce("boom"); // non-Error → the fallback message is used
+    const { result } = renderHook(() => useExpendituresList(config));
+    act(() => result.current.setReversing(entry));
+    await expect(act(async () => { await result.current.confirmVoid(null); })).rejects.toThrow("Could not reverse the expenditure.");
+    can.void = false; // the column builder gets onVoid: undefined
+    renderHook(() => useExpendituresList(config));
+    expect(result.current.reversing).toBe(entry);
   });
 });

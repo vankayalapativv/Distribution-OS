@@ -10,7 +10,7 @@ vi.mock("@/components/confirm-dialog", () => ({
 
 import { PaySalaryDialog } from "./pay-salary-dialog";
 
-const row = (over: Partial<SalaryRow> = {}): SalaryRow => ({ userId: "u1", userName: "Priya", salary: 20000, advanceOutstanding: 8000, paidThisMonth: false, ...over });
+const row = (over: Partial<SalaryRow> = {}): SalaryRow => ({ userId: "u1", userName: "Priya", salary: 20000, advanceOutstanding: 8000, paidThisMonth: false, paymentId: null, ...over });
 const onPay = vi.fn<(userId: string, period: string, mode: string) => Promise<void>>(() => Promise.resolve());
 const onOpenChange = vi.fn();
 const render2 = (r: SalaryRow | null) => render(<PaySalaryDialog row={r} onOpenChange={onOpenChange} onPay={onPay} />);

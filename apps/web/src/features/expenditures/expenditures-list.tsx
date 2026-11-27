@@ -15,6 +15,7 @@ import { ExpenditureFormDialog } from "./expenditure-form-dialog";
 import { ExpenditureCategoryDialog } from "./expenditure-category-dialog";
 import { ExpenditureBillDialog } from "./expenditure-bill-dialog";
 import { ExpenditureDeleteDialog } from "./expenditure-delete-dialog";
+import { VoidReasonDialog } from "./void-reason-dialog";
 import { ClaimsQueuePanel } from "./claims-queue-panel";
 import { ReimbursementsPanel } from "./reimbursements-panel";
 import { AdvancesPanel } from "./advances-panel";
@@ -94,6 +95,13 @@ function ExpendituresInner({ role, actionConfig }: { readonly role: Expenditures
         onDelete={(entry) => { s.setBillFor(null); s.setDeleting(entry); }}
       />
       <ExpenditureDeleteDialog deleting={s.deleting} onOpenChange={() => s.setDeleting(null)} onConfirm={s.confirmDelete} />
+      <VoidReasonDialog
+        open={s.reversing != null}
+        title="Reverse this entry?"
+        description={`This reverses ${s.reversing?.expenditureCode ?? "the entry"} (${s.reversing?.categoryName ?? ""}). It drops out of every total and any linked reimbursement is reversed. Kept for audit.`}
+        onOpenChange={() => s.setReversing(null)}
+        onConfirm={s.confirmVoid}
+      />
     </>
   );
 }

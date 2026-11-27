@@ -25,6 +25,8 @@ vi.mock("@neondatabase/serverless", () => {
     if (q.includes("salary_payment_dupe")) return [];
     if (q.includes("salary_category")) return [{ id: "cat-sal" }];
     if (q.includes("next_salary_exp_code")) return [{ seq: 5 }];
+    if (q.includes("get_salary_payment")) return [{ id: "p1", userId: SE_ID, userName: "Priya", gross: "20000", recovered: "0", net: "20000", expenditureId: "exp-1", reversedAt: null }];
+    if (q.includes("salary_recoveries")) return [];
     return [];
   };
   handler.query = async (text: string) => (text.includes("active_advances_for_recovery") ? [] : []);
@@ -74,5 +76,14 @@ describe("salary routes", () => {
     expect((await ok.json()).data).toMatchObject({ gross: 20000, advanceRecovered: 0, net: 20000 });
     const no = await app.request("/api/v1/salary/pay", { method: "POST", headers: jh("neon-accountant"), body: JSON.stringify({ userId: SE_ID, periodMonth: "2026-11-01" }) }, env);
     expect(no.status).toBe(403);
+  });
+
+  test("void a salary run needs salary.manage — Super Admin yes, Accountant no", async () => {
+    const { default: app } = await import("../index");
+    const ok = await app.request("/api/v1/salary/p1/void", { method: "POST", headers: jh("neon-super-admin"), body: JSON.stringify({ reason: "wrong month" }) }, env);
+    expect(ok.status).toBe(200);
+    expect((await ok.json()).data).toMatchObject({ id: "p1", advanceRestored: 0 });
+    const no = await app.request("/api/v1/salary/p1/void", { method: "POST", headers: jh("neon-accountant"), body: JSON.stringify({}) }, env);
+    expect(no.status).toBe(403); // salary.manage OFF for office by default
   });
 });

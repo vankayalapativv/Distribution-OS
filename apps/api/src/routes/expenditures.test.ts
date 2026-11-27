@@ -115,6 +115,10 @@ vi.mock("@neondatabase/serverless", () => {
       return values.includes(EXPENDITURE_ID) ? [{ billFileKey: null }] : [];
     }
 
+    if (query.includes("get_expenditure_for_void")) {
+      return values.includes(EXPENDITURE_ID) ? [{ id: EXPENDITURE_ID, status: "approved", reversedAt: null, isSalaryRun: false }] : [];
+    }
+
     return [];
   };
 
@@ -397,6 +401,29 @@ describe("expenditures routes", () => {
       );
 
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe("POST /expenditures/:id/void", () => {
+    test("reverses an entry for an office role", async () => {
+      const { default: app } = await import("../index");
+      const res = await app.request(
+        `/api/v1/expenditures/${EXPENDITURE_ID}/void`,
+        { method: "POST", headers: { "Content-Type": "application/json", ...headers("neon-super-admin") }, body: JSON.stringify({ reason: "duplicate" }) },
+        env,
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).data).toMatchObject({ id: EXPENDITURE_ID, reversed: true });
+    });
+
+    test("a sales executive is forbidden", async () => {
+      const { default: app } = await import("../index");
+      const res = await app.request(
+        `/api/v1/expenditures/${EXPENDITURE_ID}/void`,
+        { method: "POST", headers: { "Content-Type": "application/json", ...headers("neon-se") }, body: JSON.stringify({}) },
+        env,
+      );
+      expect(res.status).toBe(403);
     });
   });
 });

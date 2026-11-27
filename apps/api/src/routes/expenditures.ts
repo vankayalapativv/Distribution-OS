@@ -23,6 +23,7 @@ import {
   listExpenditures,
   updateExpenditure,
   uploadExpenditureBill,
+  voidExpenditure,
   EXPENDITURE_TYPES,
   type ExpenditureInput,
   type ExpenditureType,
@@ -171,6 +172,21 @@ export const expendituresRoutes = new Hono<ApiEnv>()
       entityType: "expenditure",
       entityId: c.req.param("id"),
       summary: "Deleted an expenditure entry",
+    });
+    return c.json(success(c, result));
+  })
+
+  .post("/:id/void", async (c) => {
+    const auth = await requireCapability(c, "action:expenditures.void", ["SUPER_ADMIN", "MANAGER", "ACCOUNTANT"]);
+    const body = await readJsonObject(c);
+    const sql = getSqlClient(c);
+    const result = await voidExpenditure(sql, auth.userId!, c.req.param("id"), optionalString(body, "reason"));
+    await logAudit(sql, actorOf(auth), {
+      action: "expenditure.void",
+      entityType: "expenditure",
+      entityId: result.id,
+      summary: "Reversed an expenditure entry",
+      metadata: { reason: result.reason },
     });
     return c.json(success(c, result));
   })

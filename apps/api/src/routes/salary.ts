@@ -4,13 +4,14 @@ import { requireCapability, requireRole } from "../lib/authz";
 import { actorOf, logAudit } from "../services/audit";
 import { getSqlClient } from "../lib/db";
 import { optionalNumber, optionalString, readJsonObject, requiredString } from "../lib/request-body";
-import { listSalaries, listStaff, mySalary, paySalary, setSalary } from "../services/salary";
+import { listSalaries, listStaff, mySalary, paySalary, setSalary, voidSalaryPayment } from "../services/salary";
 import type { ApiEnv, Role } from "../types";
 
 const FIELD_ROLES: Role[] = ["SALES_EXECUTIVE", "LOGISTICS"];
 const OFFICE_ROLES: Role[] = ["SUPER_ADMIN", "MANAGER", "ACCOUNTANT"];
 const VIEW = "action:salary.view";
 const MANAGE = "action:salary.manage";
+const VOID = "action:expenditures.void";
 
 export const salaryRoutes = new Hono<ApiEnv>()
   // Field: my salary, advance outstanding, and this month's pay.
@@ -55,4 +56,22 @@ export const salaryRoutes = new Hono<ApiEnv>()
       metadata: { gross: result.gross, net: result.net },
     });
     return c.json(success(c, result), 201);
+  })
+
+  // Office: reverse a salary run — restores advance recovery, frees the month.
+  // Needs salary.manage (to touch salary at all) AND the void capability.
+  .post("/:id/void", async (c) => {
+    await requireCapability(c, MANAGE, OFFICE_ROLES);
+    const auth = await requireCapability(c, VOID, OFFICE_ROLES);
+    const body = await readJsonObject(c);
+    const sql = getSqlClient(c);
+    const result = await voidSalaryPayment(sql, auth.userId!, c.req.param("id"), optionalString(body, "reason"));
+    await logAudit(sql, actorOf(auth), {
+      action: "salary.void",
+      entityType: "salary",
+      entityId: result.id,
+      summary: `Reversed a salary run — restored ₹${result.advanceRestored.toLocaleString("en-IN")} of advance recovery`,
+      metadata: { gross: result.gross, reason: result.reason },
+    });
+    return c.json(success(c, result));
   });

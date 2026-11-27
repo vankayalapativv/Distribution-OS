@@ -9,6 +9,8 @@ export interface SalaryRow {
   salary: number | null;
   advanceOutstanding: number;
   paidThisMonth: boolean;
+  /** The live payment's id when paid this month — the handle for a reversal. */
+  paymentId: string | null;
 }
 
 export interface Staff {

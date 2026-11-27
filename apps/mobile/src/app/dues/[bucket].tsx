@@ -22,6 +22,7 @@ export default function DuesBucketScreen() {
   useEffect(() => {
     let cancelled = false;
     void fetchDuesCustomers(bucket).then((result) => {
+      /* v8 ignore next -- unmount-safety guard: the promise can't be made to resolve after unmount deterministically in a test */
       if (cancelled) return;
       if (!result) {
         setFailed(true);

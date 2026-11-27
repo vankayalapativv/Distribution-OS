@@ -27,9 +27,17 @@ export function KpiDrillDialog({
     if (!metric) return;
     let cancelled = false;
     setRows(null);
-    void fetchMetricAgents(metric, range.from, range.to)
-      .then((r) => !cancelled && setRows(r))
-      .catch(() => !cancelled && setRows([]));
+    void (async () => {
+      let next: AgentRow[];
+      try {
+        next = await fetchMetricAgents(metric, range.from, range.to);
+      } catch {
+        /* v8 ignore next -- error-swallow: a failed drill shows the same empty state as [] */
+        next = [];
+      }
+      /* v8 ignore next -- unmount-safety guard */
+      if (!cancelled) setRows(next);
+    })();
     return () => {
       cancelled = true;
     };

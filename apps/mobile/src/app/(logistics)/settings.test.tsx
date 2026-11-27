@@ -19,8 +19,7 @@ describe("LogisticsSettingsScreen", () => {
     useLogisticsSettings.mockReturnValue({ user: { name: "Driver", email: "d@x.io", role: "LOGISTICS" }, hasActiveRun: false, onLogout });
     render(<LogisticsSettingsScreen />);
     expect(screen.getByText("Logistics")).toBeInTheDocument(); // role title-cased
-    fireEvent.click(screen.getByText("Edit profile"));
-    expect(router.push).toHaveBeenCalledWith("/settings/profile");
+    expect(screen.queryByText("Edit profile")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("Change password"));
     expect(router.push).toHaveBeenCalledWith("/settings/password");
     fireEvent.click(screen.getByText("Log out"));

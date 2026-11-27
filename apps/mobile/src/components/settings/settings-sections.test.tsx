@@ -6,10 +6,9 @@ import { SettingsSections } from "./settings-sections";
 beforeEach(() => (router.push as ReturnType<typeof vi.fn>).mockClear?.());
 
 describe("SettingsSections", () => {
-  it("navigates to profile, password, and help", () => {
+  it("navigates to change password and help (no self-edit profile)", () => {
     render(<SettingsSections />);
-    fireEvent.click(screen.getByText("Edit profile"));
-    expect(router.push).toHaveBeenCalledWith("/settings/profile");
+    expect(screen.queryByText("Edit profile")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("Change password"));
     expect(router.push).toHaveBeenCalledWith("/settings/password");
     fireEvent.click(screen.getByText("Help"));

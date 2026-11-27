@@ -21,8 +21,7 @@ describe("AdminSettingsScreen", () => {
     useAdminSettings.mockReturnValue({ user: { name: "Asha", email: "a@x.io" }, roleLabel: "Super Admin", onLogout });
     render(<AdminSettingsScreen />);
     expect(screen.getByText("Asha")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Edit profile"));
-    expect(router.push).toHaveBeenCalledWith("/settings/profile");
+    expect(screen.queryByText("Edit profile")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("Change password"));
     expect(router.push).toHaveBeenCalledWith("/settings/password");
     fireEvent.click(screen.getByText("Help"));

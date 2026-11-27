@@ -2,13 +2,16 @@ import { router } from "expo-router";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ClaimRow } from "../../../components/expenses/claim-row";
+import { OwedCard } from "../../../components/expenses/owed-card";
 import { ErrorState } from "../../../components/error-state";
 import { useMyClaims } from "../../../lib/use-my-claims";
+import { useMyReimbursements } from "../../../lib/use-my-reimbursements";
 import type { ExpenseClaim } from "../../../lib/expense-claims";
 
 /** My expense claims — submit new ones and track approval status (online-only). */
 export default function MyExpensesScreen() {
   const { claims, loading, error, retry, refreshing, onRefresh } = useMyClaims();
+  const { owedTotal } = useMyReimbursements();
 
   function openClaim(claim: ExpenseClaim) {
     // Only a rejected claim is editable → reopen the form to fix + resubmit.
@@ -41,6 +44,7 @@ export default function MyExpensesScreen() {
           contentContainerClassName="p-4"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
+          <OwedCard owedTotal={owedTotal} />
           {claims.length === 0 ? (
             <View className="items-center gap-2 py-16">
               <Text className="text-base font-semibold text-foreground">No claims yet</Text>

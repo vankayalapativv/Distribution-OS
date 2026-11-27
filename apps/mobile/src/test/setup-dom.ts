@@ -15,6 +15,9 @@ import React from "react";
 
 afterEach(() => cleanup());
 
+// Many RN / expo-modules-core files read the `__DEV__` global at load time.
+(globalThis as { __DEV__?: boolean }).__DEV__ = true;
+
 // --- expo-router: a stubbed router + navigation primitives -------------------
 const routerStub = {
   push: vi.fn(),
@@ -40,7 +43,14 @@ vi.mock("expo-router", () => {
     useGlobalSearchParams: () => ({}),
     useSegments: () => [],
     usePathname: () => "/",
-    useFocusEffect: () => {},
+    // Run the focus callback on mount (callers wrap it in useCallback, so the dep
+    // is stable), mirroring a screen gaining focus — and honour its cleanup.
+    useFocusEffect: (cb: () => void | (() => void)) => {
+      React.useEffect(() => {
+        const cleanup = cb();
+        return typeof cleanup === "function" ? cleanup : undefined;
+      }, [cb]);
+    },
     useNavigation: () => ({ setOptions: vi.fn(), addListener: vi.fn(() => vi.fn()) }),
     Link,
     Stack,
@@ -82,6 +92,14 @@ vi.mock("expo-image", () => {
   const RNWeb = require("react-native-web");
   return { Image: RNWeb.Image };
 });
+
+// --- connectivity: online by default (expo-network can't load under jsdom). A
+//     test that needs the offline path overrides this with its own vi.mock.
+vi.mock("../lib/connectivity", () => ({
+  useIsOnline: () => true,
+  getIsOnline: () => true,
+  subscribeOnline: () => () => {},
+}));
 
 // --- @expo/vector-icons: a plain glyph stub (the real font set can't transform
 //     under rolldown/jsdom, and we only ever assert text/structure, not glyphs).

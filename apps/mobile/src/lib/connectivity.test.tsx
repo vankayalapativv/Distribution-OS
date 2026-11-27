@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 
+// setup-dom globally stubs this module for component tests; here we exercise the
+// real implementation, so opt out of that global mock.
+vi.unmock("./connectivity");
+
 let networkListener: (s: { isConnected?: boolean | null; isInternetReachable?: boolean | null }) => void = () => {};
 vi.mock("expo-network", () => ({
   getNetworkStateAsync: () => Promise.resolve({ isConnected: true, isInternetReachable: true }),

@@ -5,9 +5,11 @@ import { router } from "expo-router";
 const useMyClaims = vi.fn();
 const reimb = { owedTotal: 0 };
 const adv = { outstandingTotal: 0 };
+const sal = { pay: null as { monthlySalary: number | null; advanceOutstanding: number; thisMonth: null } | null };
 vi.mock("../../../lib/use-my-claims", () => ({ useMyClaims: () => useMyClaims() }));
 vi.mock("../../../lib/use-my-reimbursements", () => ({ useMyReimbursements: () => reimb }));
 vi.mock("../../../lib/use-my-advances", () => ({ useMyAdvances: () => adv }));
+vi.mock("../../../lib/use-my-salary", () => ({ useMySalary: () => sal }));
 vi.mock("expo-router", () => ({ router: { push: vi.fn(), back: vi.fn() } }));
 vi.mock("../../../components/error-state", () => ({ ErrorState: () => <span>error-state</span> }));
 vi.mock("../../../components/expenses/claim-row", () => ({
@@ -19,7 +21,7 @@ vi.mock("../../../components/expenses/claim-row", () => ({
 import MyExpensesScreen from "./index";
 
 const base = { claims: [], loading: false, error: null, retry: vi.fn(), refreshing: false, onRefresh: vi.fn() };
-beforeEach(() => { vi.clearAllMocks(); reimb.owedTotal = 0; adv.outstandingTotal = 0; useMyClaims.mockReturnValue({ ...base }); });
+beforeEach(() => { vi.clearAllMocks(); reimb.owedTotal = 0; adv.outstandingTotal = 0; sal.pay = null; useMyClaims.mockReturnValue({ ...base }); });
 
 describe("MyExpensesScreen", () => {
   it("shows the empty state, routes to New, and goes back", () => {
@@ -36,6 +38,13 @@ describe("MyExpensesScreen", () => {
     render(<MyExpensesScreen />);
     expect(screen.getByText("Company owes you")).toBeInTheDocument();
     expect(screen.getByText("₹450")).toBeInTheDocument();
+  });
+
+  it("shows the salary card when a salary is set", () => {
+    sal.pay = { monthlySalary: 20000, advanceOutstanding: 0, thisMonth: null };
+    render(<MyExpensesScreen />);
+    expect(screen.getByText("Monthly salary")).toBeInTheDocument();
+    expect(screen.getByText("₹20,000")).toBeInTheDocument();
   });
 
   it("shows advance outstanding and routes to the request screen", () => {

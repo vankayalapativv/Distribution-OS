@@ -103,13 +103,18 @@ vi.mock("react-native-reanimated", () => {
     Image: RNWeb.Image,
     createAnimatedComponent: (C: unknown) => C,
   };
+  const identity = (v: unknown) => v;
+  const ease = () => (x: number) => x;
   return {
     default: Animated,
     useSharedValue: (init: unknown) => ({ value: init }),
-    withTiming: (v: unknown) => v,
-    withSpring: (v: unknown) => v,
+    withTiming: identity,
+    withSpring: identity,
+    withSequence: (...vs: unknown[]) => vs[vs.length - 1],
+    withDelay: (_d: unknown, v: unknown) => v,
     useAnimatedStyle: (fn: () => unknown) => fn(),
     runOnJS: (fn: unknown) => fn,
+    Easing: { out: ease, inOut: ease, ease: (x: number) => x, cubic: (x: number) => x, linear: (x: number) => x },
   };
 });
 
@@ -154,6 +159,39 @@ vi.mock("../lib/connectivity", () => ({
   getIsOnline: () => true,
   subscribeOnline: () => () => {},
 }));
+
+// --- vardhan-maps/react-native: a plain View stub for the native map (the real
+//     one needs a WebView/GL runtime). Exposes markers/onMarkerClick as data.
+vi.mock("vardhan-maps/react-native", () => {
+  const RNWeb = require("react-native-web");
+  const React = require("react");
+  // Render one tappable element per marker so tests can drive onMarkerClick,
+  // plus an element to fire onRenderComplete.
+  const IndiaMapNative = (props: {
+    markers?: { lat: number; lng: number; label?: string }[];
+    onMarkerClick?: (m: unknown) => void;
+    onRenderComplete?: () => void;
+  }) => {
+    const markers = props.markers ?? [];
+    return React.createElement(
+      RNWeb.View,
+      { "aria-label": "india-map" },
+      markers.map((m, i) =>
+        React.createElement(RNWeb.Pressable, {
+          key: i,
+          accessibilityLabel: `marker-${m.lat},${m.lng}`,
+          onPress: () => props.onMarkerClick?.(m),
+        }),
+      ),
+      React.createElement(
+        RNWeb.Pressable,
+        { accessibilityLabel: "map-render-complete", onPress: () => props.onRenderComplete?.() },
+        null,
+      ),
+    );
+  };
+  return { IndiaMapNative };
+});
 
 // --- @expo/vector-icons: a plain glyph stub (the real font set can't transform
 //     under rolldown/jsdom, and we only ever assert text/structure, not glyphs).

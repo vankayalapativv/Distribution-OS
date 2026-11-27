@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Text, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { type CustomerNote, timeLabel } from "../../lib/notes/chat-notes";
 
 /**
@@ -16,11 +16,11 @@ import { type CustomerNote, timeLabel } from "../../lib/notes/chat-notes";
 export function ChatBubble({ note, mine }: { readonly note: CustomerNote; readonly mine: boolean }) {
   const enter = useSharedValue(0);
   useEffect(() => {
-    enter.value = withTiming(1, { duration: 220 });
+    enter.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) });
   }, [enter]);
   const animStyle = useAnimatedStyle(() => ({
     opacity: enter.value,
-    transform: [{ translateY: (1 - enter.value) * 9 }, { scale: 0.96 + enter.value * 0.04 }],
+    transform: [{ translateY: (1 - enter.value) * 12 }, { scale: 0.94 + enter.value * 0.06 }],
   }));
 
   return (

@@ -25,7 +25,7 @@ export function AdminKpiGrid({
 
   const rows = tileRows(buildTiles(metrics, open));
 
-  const renderCard = (t: Tile, lone = false) => (
+  const renderCard = (t: Tile) => (
     <KpiCard
       key={t.key}
       label={t.label}
@@ -34,12 +34,6 @@ export function AdminKpiGrid({
       subDynamic={t.subDynamic}
       accent={{ icon: t.icon, fg: t.fg, badge: t.badge }}
       onPress={t.onPress}
-      // A lone trailing card gets `flexBasis: 0` so it stays exactly half width
-      // (matching the empty spacer beside it) without out-growing from its
-      // content-sized basis. It stays a direct row child, so its own `flex-1`
-      // still sizes WIDTH (wrapping it in a View would make flex-1 size height
-      // instead and collapse the card).
-      style={lone ? { flexBasis: 0 } : undefined}
     />
   );
 
@@ -47,13 +41,17 @@ export function AdminKpiGrid({
     <>
       {rows.map((row) =>
         row.length === 1 ? (
-          <View key={row[0].key} className="flex-row gap-3">
-            {renderCard(row[0], true)}
-            <View className="flex-1" style={{ flexBasis: 0 }} />
+          // Lone last card → half width, matching a paired row's left card.
+          // A plain `width: 48%` wrapper (no flex) is used instead of a flex
+          // spacer: the card's own `flex-1` grows from a content basis, so a
+          // flex approach makes it out-grow an empty spacer. The card's flex-1
+          // just fills this fixed-width wrapper (width 48%, height stays content).
+          <View key={row[0].key} style={{ width: "48%" }}>
+            {renderCard(row[0])}
           </View>
         ) : (
           <View key={row[0].key} className="flex-row gap-3">
-            {row.map((t) => renderCard(t))}
+            {row.map(renderCard)}
           </View>
         ),
       )}

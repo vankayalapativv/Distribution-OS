@@ -18,7 +18,6 @@ export function KpiCard({
   subDynamic = false,
   accent,
   onPress,
-  style,
 }: {
   readonly label: string;
   readonly value?: string; // undefined while metrics load → the value shimmers
@@ -26,15 +25,12 @@ export function KpiCard({
   readonly subDynamic?: boolean; // a count-bearing subline → shimmer while loading
   readonly accent: Accent;
   readonly onPress?: () => void; // tap → open this KPI's drill-down (omit while loading)
-  /** Extra layout style — e.g. `flexBasis: 0` so a lone trailing card is half width. */
-  readonly style?: object;
 }) {
   return (
     <Pressable
       onPress={onPress}
       disabled={!onPress}
       className="flex-1 rounded-3xl border border-border bg-card p-4 active:opacity-70"
-      style={style}
     >
       <View className="mb-2.5 flex-row items-center justify-between">
         <Text className="flex-1 pr-1 text-xs font-medium text-muted-foreground">{label}</Text>

@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const fetchTodayBeat = vi.fn<(...a: unknown[]) => Promise<unknown>>();
 vi.mock("../../lib/beat/today-beat-online", () => ({ fetchTodayBeat: (...a: unknown[]) => fetchTodayBeat(...a) }));
 vi.mock("../../lib/auth", () => ({ useAuth: (sel?: (s: unknown) => unknown) => (sel ? sel({ token: "t" }) : { token: "t" }) }));
+// Pin the clock to mid-morning IST so a `pending` stop stays pending (after
+// 8 PM IST effectiveStopStatus would flip it to "missed" — making this test
+// time-dependent otherwise).
+vi.mock("../../lib/day-flag", async (imp) => ({ ...(await imp()), istHour: () => 10 }));
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { router } from "expo-router";

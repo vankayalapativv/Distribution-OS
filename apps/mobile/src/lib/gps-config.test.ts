@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_SE_STOP_HOUR,
   GPS_TASK,
   LEGACY_UNSCOPED_KEYS,
+  LOGISTICS_CUTOFF_HOUR,
   MAX_FIX_AGE_MS,
+  SE_CUTOFF_HOUR,
   guardedRecordMs,
   scopedKeysFor,
   withTimeout,
@@ -39,14 +40,15 @@ describe("scopedKeysFor", () => {
     const keys = scopedKeysFor("u1");
     expect(keys.every((k) => k.endsWith(".u1"))).toBe(true);
     expect(keys).toContain("distribution_os_day_tracking_on.u1");
-    expect(keys).toContain("distribution_os_se_tracking_stop_hour.u1");
+    expect(keys).not.toContain("distribution_os_se_tracking_stop_hour.u1");
   });
 });
 
 describe("constants", () => {
-  it("exposes the task name, default stop hour and legacy keys", () => {
+  it("exposes the task name, fixed cutoff hours and legacy keys", () => {
     expect(GPS_TASK).toBe("distribution-os-day-gps");
-    expect(DEFAULT_SE_STOP_HOUR).toBe(19);
+    expect(SE_CUTOFF_HOUR).toBe(20);
+    expect(LOGISTICS_CUTOFF_HOUR).toBe(24);
     expect(LEGACY_UNSCOPED_KEYS).toContain("distribution_os_day_tracking_on");
   });
 });

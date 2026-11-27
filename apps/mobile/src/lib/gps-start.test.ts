@@ -13,6 +13,7 @@ const ensureClientSessionId = vi.fn<() => Promise<string>>(() => Promise.resolve
 const setClientSessionId = vi.fn();
 const sendTrackingHeartbeatNow = vi.fn();
 const isDayTracking = vi.fn<() => Promise<boolean>>(() => Promise.resolve(false));
+const isPastSeCutoff = vi.fn<() => boolean>(() => false);
 let foregroundWatch: { remove: () => void } | null = null;
 
 vi.mock("expo-location", () => ({ requestForegroundPermissionsAsync: () => requestForegroundPermissionsAsync() }));
@@ -26,13 +27,14 @@ vi.mock("./gps-session", () => ({
   dayEndedToday: () => dayEndedToday(), ensureClientSessionId: () => ensureClientSessionId(),
 }));
 vi.mock("./gps-state", () => ({ getForegroundWatch: () => foregroundWatch, setClientSessionId: (...a: unknown[]) => setClientSessionId(...a) }));
-vi.mock("./gps-status", () => ({ isDayTracking: () => isDayTracking() }));
+vi.mock("./gps-status", () => ({ isDayTracking: () => isDayTracking(), isPastSeCutoff: () => isPastSeCutoff() }));
 vi.mock("./sync", () => ({ sendTrackingHeartbeatNow: () => sendTrackingHeartbeatNow() }));
 
 beforeEach(() => {
   foregroundWatch = null;
   dayEndedToday.mockResolvedValue(false);
   isDayTracking.mockResolvedValue(false);
+  isPastSeCutoff.mockReturnValue(false);
   requestForegroundPermissionsAsync.mockResolvedValue({ granted: true });
   getItemAsync.mockResolvedValue(null);
 });
@@ -51,6 +53,18 @@ describe("startDayTracking — guards", () => {
   it("refuses when foreground permission is denied", async () => {
     requestForegroundPermissionsAsync.mockResolvedValue({ granted: false });
     expect(await startDayTracking()).toEqual({ ok: false, reason: "permission_denied" });
+  });
+  it("refuses a fresh start past the 8 PM SE cutoff (no server session)", async () => {
+    isPastSeCutoff.mockReturnValue(true);
+    expect(await startDayTracking({ startOdometer: 100 })).toEqual({ ok: false, reason: "past_cutoff" });
+    expect(createServerSession).not.toHaveBeenCalled();
+    expect(requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+  });
+  it("still RESUMES an already-running day past the cutoff (re-tap, not a fresh start)", async () => {
+    isPastSeCutoff.mockReturnValue(true);
+    isDayTracking.mockResolvedValue(true);
+    getItemAsync.mockResolvedValue("cs-existing");
+    expect(await startDayTracking()).toEqual({ ok: true, mode: "background" });
   });
 });
 

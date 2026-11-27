@@ -11,7 +11,7 @@ import { clientSessionKey, dayOnKey, dayStartOdoKey } from "./gps-keys";
 import { startNativeForegroundTracking } from "./gps-native";
 import { clearDayEnded, createServerSession, dayEndedToday, ensureClientSessionId } from "./gps-session";
 import { getForegroundWatch, setClientSessionId } from "./gps-state";
-import { isDayTracking } from "./gps-status";
+import { isDayTracking, isPastSeCutoff } from "./gps-status";
 import { sendTrackingHeartbeatNow } from "./sync";
 
 /**
@@ -38,6 +38,13 @@ export async function startDayTracking(
   // Already ended today → cannot re-start until tomorrow (the server enforces
   // this too, rejecting a start when a manual-ended session exists for today).
   if (await dayEndedToday()) return { ok: false, reason: "day_ended" };
+
+  // Past the fixed 8 PM SE cutoff → block a fresh start until tomorrow. Returning
+  // before creating a server session means no orphan session and no "Day started"
+  // push fire for a day that would be torn down seconds later. (A re-tap of an
+  // already-running day is handled by the isDayTracking resume path below, so this
+  // only blocks a genuinely new start.) Logistics is never blocked by the hour.
+  if (!(await isDayTracking()) && isPastSeCutoff()) return { ok: false, reason: "past_cutoff" };
 
   // Keep the start reading for the day on this device BEFORE branching, so
   // End-day can enforce end > start whether this is a fresh start or a re-tap of

@@ -15,7 +15,6 @@ vi.mock("./auth", () => ({ useAuth: { getState: () => ({ token }) } }));
 vi.mock("./gps-keys", () => ({
   serverSessionKey: () => "SRV",
   clientSessionKey: () => "CLI",
-  stopHourKey: () => "STOP",
 }));
 
 const pt = (over: Partial<GpsPingInput> = {}): GpsPingInput => ({ latitude: 1, longitude: 2, accuracy: 5, batteryPercentage: 90, recordedAt: "t", ...over }) as GpsPingInput;
@@ -33,20 +32,18 @@ describe("ensureServerTrackingSession", () => {
     expect(await ensureServerTrackingSession([])).toBe("srv-1");
     expect(apiFetch).not.toHaveBeenCalled();
   });
-  it("starts a session from a point's client session id and caches the stop hour", async () => {
-    apiFetch.mockResolvedValue({ trackingSessionId: "srv-9", seTrackingStopHour: 20 });
+  it("starts a session from a point's client session id and caches the server id", async () => {
+    apiFetch.mockResolvedValue({ trackingSessionId: "srv-9" });
     const out = await ensureServerTrackingSession([pt({ clientSessionId: "cs-1" })]);
     expect(out).toBe("srv-9");
     expect(apiFetch).toHaveBeenCalledWith("/tracking-sessions/start", expect.objectContaining({ method: "POST", body: { clientSessionId: "cs-1", deviceId: null } }));
     expect(setItemAsync).toHaveBeenCalledWith("SRV", "srv-9");
-    expect(setItemAsync).toHaveBeenCalledWith("STOP", "20");
   });
-  it("falls back to the stored client session id and skips a non-numeric stop hour", async () => {
+  it("falls back to the stored client session id", async () => {
     getItemAsync.mockImplementation((k) => Promise.resolve(k === "CLI" ? "cs-stored" : null));
-    apiFetch.mockResolvedValue({ trackingSessionId: "srv-9", seTrackingStopHour: null });
+    apiFetch.mockResolvedValue({ trackingSessionId: "srv-9" });
     await ensureServerTrackingSession([]);
     expect(apiFetch).toHaveBeenCalledWith("/tracking-sessions/start", expect.objectContaining({ body: { clientSessionId: "cs-stored", deviceId: null } }));
-    expect(setItemAsync).not.toHaveBeenCalledWith("STOP", expect.anything());
   });
   it("returns null when no client session id is known", async () => {
     expect(await ensureServerTrackingSession([])).toBeNull();
@@ -61,7 +58,7 @@ describe("ensureServerTrackingSession", () => {
   it("tolerates SecureStore read/write failures", async () => {
     getItemAsync.mockRejectedValue(new Error("secure read"));
     setItemAsync.mockRejectedValue(new Error("secure write"));
-    apiFetch.mockResolvedValue({ trackingSessionId: "srv-9", seTrackingStopHour: 20 });
+    apiFetch.mockResolvedValue({ trackingSessionId: "srv-9" });
     const out = await ensureServerTrackingSession([pt({ clientSessionId: "cs-1" })]);
     expect(out).toBe("srv-9"); // completed despite the SecureStore failures
   });

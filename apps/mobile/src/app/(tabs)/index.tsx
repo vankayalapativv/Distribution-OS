@@ -3,6 +3,7 @@ import { AppState, RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDialog } from "../../components/dialog";
 import { BeatCard } from "../../components/home/beat-card";
+import { DayClosedCard } from "../../components/home/day-closed-card";
 import { DayEndedCard } from "../../components/home/day-ended-card";
 import { EndDayButton } from "../../components/home/end-day-button";
 import { GreetingHeader } from "../../components/home/greeting-header";
@@ -18,7 +19,7 @@ import { usePullRefresh } from "../../lib/use-pull-refresh";
 export default function HomeScreen() {
   const user = useAuth((s) => s.user);
   const dialog = useDialog();
-  const { dayOn, dayEnded, dayBusy, onStartDay, onEndDay } = useDayTracking({
+  const { dayOn, dayEnded, pastCutoff, dayBusy, onStartDay, onEndDay } = useDayTracking({
     confirm: dialog.confirm,
     prompt: dialog.prompt,
   });
@@ -81,7 +82,10 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {!dayOn && dayEnded ? <DayEndedCard /> : null}
-        {!dayOn && !dayEnded ? <StartDayButton busy={dayBusy} onPress={onStartDay} /> : null}
+        {!dayOn && !dayEnded && pastCutoff ? <DayClosedCard /> : null}
+        {!dayOn && !dayEnded && !pastCutoff ? (
+          <StartDayButton busy={dayBusy} onPress={onStartDay} />
+        ) : null}
 
         {/* Today's beat plan + progress — shown regardless of Start Day so the SE
             can preview the route; check-in itself still requires the day to be on. */}

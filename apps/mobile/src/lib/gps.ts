@@ -15,5 +15,5 @@ export { getCheckInFix, reverseGeocodeFix } from "./gps-geocode";
 export { startDayTracking } from "./gps-start";
 export { stopDayTracking } from "./gps-stop";
 export { dayEndedToday, markDayEndedToday } from "./gps-session";
-export { isDayTracking } from "./gps-status";
+export { isDayTracking, isPastSeCutoff } from "./gps-status";
 export { installGpsWatchdog } from "./gps-watchdog";

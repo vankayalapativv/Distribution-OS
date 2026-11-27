@@ -3,12 +3,13 @@ import { runStartDayFlow } from "./start-day-flow";
 
 const openSettings = vi.fn();
 const dayEndedToday = vi.fn<() => Promise<boolean>>(() => Promise.resolve(false));
+const isPastSeCutoff = vi.fn<() => boolean>(() => false);
 const startDayTracking = vi.fn<(...a: unknown[]) => Promise<{ ok: boolean; reason?: string }>>(() => Promise.resolve({ ok: true }));
 const promptOdometer = vi.fn<(...a: unknown[]) => Promise<string | null>>(() => Promise.resolve("48210"));
 const runStartDayPermissionSetup = vi.fn<(...a: unknown[]) => Promise<{ ok: boolean }>>(() => Promise.resolve({ ok: true }));
 
 vi.mock("react-native", () => ({ Linking: { openSettings: () => openSettings() } }));
-vi.mock("./gps", () => ({ dayEndedToday: () => dayEndedToday(), startDayTracking: (...a: unknown[]) => startDayTracking(...a) }));
+vi.mock("./gps", () => ({ dayEndedToday: () => dayEndedToday(), isPastSeCutoff: () => isPastSeCutoff(), startDayTracking: (...a: unknown[]) => startDayTracking(...a) }));
 vi.mock("./odometer-prompt", () => ({ promptOdometer: (...a: unknown[]) => promptOdometer(...a) }));
 vi.mock("./permissions", () => ({ runStartDayPermissionSetup: (...a: unknown[]) => runStartDayPermissionSetup(...a) }));
 
@@ -16,6 +17,7 @@ const confirm = vi.fn<(...a: unknown[]) => Promise<boolean>>(() => Promise.resol
 const prompt = vi.fn();
 beforeEach(() => {
   dayEndedToday.mockResolvedValue(false);
+  isPastSeCutoff.mockReturnValue(false);
   startDayTracking.mockResolvedValue({ ok: true });
   promptOdometer.mockResolvedValue("48210");
   runStartDayPermissionSetup.mockResolvedValue({ ok: true });
@@ -34,6 +36,20 @@ describe("runStartDayFlow", () => {
     expect(await runStartDayFlow(confirm, prompt)).toBe(false);
     expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ title: "Day already ended" }));
     expect(runStartDayPermissionSetup).not.toHaveBeenCalled();
+  });
+
+  it("blocks past the 8 PM cutoff before any permission/odometer prompt", async () => {
+    isPastSeCutoff.mockReturnValue(true);
+    expect(await runStartDayFlow(confirm, prompt)).toBe(false);
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ title: "Tracking closed for today" }));
+    expect(runStartDayPermissionSetup).not.toHaveBeenCalled();
+    expect(promptOdometer).not.toHaveBeenCalled();
+  });
+
+  it("shows the closed dialog if tracking itself reports past_cutoff", async () => {
+    startDayTracking.mockResolvedValue({ ok: false, reason: "past_cutoff" });
+    expect(await runStartDayFlow(confirm, prompt)).toBe(false);
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ title: "Tracking closed for today" }));
   });
 
   it("stops when the permission setup isn't satisfied", async () => {

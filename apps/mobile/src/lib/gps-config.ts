@@ -1,9 +1,10 @@
 /**
  * Shared constants, types and small pure helpers for GPS day tracking.
  * (Start Day → the SE ends their own day with the "End day" button; otherwise the
- * day auto-stops at a configurable IST hour — `se_tracking_stop_hour`, default
- * 7 PM — enforced on device + by the server cron, and re-start is then blocked
- * until tomorrow. Logistics runs have no auto-stop; they end only on "End run".)
+ * day auto-stops at a FIXED IST hour — 8 PM for Sales Executives, end of the IST
+ * day (hour 24 / midnight) for Logistics — enforced on device + by the server
+ * cron. An SE re-start after 8 PM is blocked until tomorrow; Logistics end a run
+ * early with "End run".)
  *
  * Kept import-free (pure constants/types/helpers) so it parses in the node test
  * runner and any restricted JS context — the crypto-backed id generator lives in
@@ -26,12 +27,12 @@ export const DAY_ENDED_KEY = "distribution_os_day_ended";
 export const DAY_START_ODO_KEY = "distribution_os_day_start_odometer";
 export const CLIENT_SESSION_KEY = "distribution_os_tracking_client_session_id";
 export const SERVER_SESSION_KEY = "distribution_os_tracking_server_session_id";
-// The IST hour (0–23) at which an SE's GPS day auto-stops, as last told by the
-// server (the editable `se_tracking_stop_hour` setting). Cached per user so the
-// native service + JS watchdog can self-stop at the hour even offline.
-export const SE_STOP_HOUR_KEY = "distribution_os_se_tracking_stop_hour";
-/** Fallback SE auto-stop hour when the server value isn't cached yet. 19 = 7 PM. */
-export const DEFAULT_SE_STOP_HOUR = 19;
+// Fixed IST auto-stop hours, identical for every enterprise (no server/per-user
+// config). A Sales Executive's GPS day auto-stops at 8 PM; a Logistics run runs to
+// the end of the IST day (hour 24 → closes at the date rollover). Enforced on
+// device (native service + JS watchdog) and by the server cron.
+export const SE_CUTOFF_HOUR = 20;
+export const LOGISTICS_CUTOFF_HOUR = 24;
 export const CLOSURE_RECOVERY_INTERVAL_MS = 3 * 60 * 1000;
 // Native GPS calls / one-shot fixes can hang (wedged foreground service, GPS lock
 // that won't settle). Bound them so End / photo capture never block forever.
@@ -40,7 +41,7 @@ export const CHECK_IN_FIX_TIMEOUT_MS = 5000;
 
 export type StartDayResult =
   | { ok: true; mode: "background" | "foreground" }
-  | { ok: false; reason: "permission_denied" | "day_ended" };
+  | { ok: false; reason: "permission_denied" | "day_ended" | "past_cutoff" };
 
 /** Resolve `p`, but give up after `ms` and yield `fallback` — for native promises
  *  that can hang with no timeout of their own. Also swallows rejections. */
@@ -77,7 +78,6 @@ const SCOPED_BASES = [
   DAY_START_ODO_KEY,
   CLIENT_SESSION_KEY,
   SERVER_SESSION_KEY,
-  SE_STOP_HOUR_KEY,
 ] as const;
 
 /** Every scoped tracking key belonging to a given userId. */

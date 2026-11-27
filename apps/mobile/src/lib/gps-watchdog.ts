@@ -9,22 +9,22 @@ import { AppState } from "react-native";
 import { apiFetch } from "./api";
 import { useAuth } from "./auth";
 import { istDate, istHour } from "./day-flag";
-import { CLOSURE_RECOVERY_INTERVAL_MS } from "./gps-config";
+import { CLOSURE_RECOVERY_INTERVAL_MS, SE_CUTOFF_HOUR } from "./gps-config";
 import { clientSessionKey, dayOnKey, serverSessionKey } from "./gps-keys";
-import { readSeStopHour, startNativeForegroundTracking } from "./gps-native";
+import { startNativeForegroundTracking } from "./gps-native";
 import { startBackgroundUpdates } from "./gps-recording";
 import { setClientSessionId } from "./gps-state";
 import { isDayTracking } from "./gps-status";
 import { stopDayTracking } from "./gps-stop";
 import { reconcileServerTrackingSession } from "./tracking-session-recovery";
 
-/** True once an SE is past their configured auto-stop hour (default 7 PM) on the
- *  current IST day — the cue to tear this device's tracking down locally (the
- *  server cron does the authoritative session close + blocks re-start). Logistics
- *  has no hour cap. */
+/** True once an SE is past the fixed 8 PM auto-stop hour on the current IST day —
+ *  the cue to tear this device's tracking down locally (the server cron does the
+ *  authoritative session close + blocks re-start). Logistics has no hour cap; a
+ *  run closes at the IST-date rollover via the date-based teardown below. */
 async function isPastSeStopHour(): Promise<boolean> {
   if (useAuth.getState().user?.role !== "SALES_EXECUTIVE") return false;
-  return istHour() >= (await readSeStopHour());
+  return istHour() >= SE_CUTOFF_HOUR;
 }
 
 export async function reconcileServerClosedTrackingSession(): Promise<void> {

@@ -23,6 +23,7 @@ vi.mock("../../lib/use-pull-refresh", () => ({ usePullRefresh: (fn: () => Promis
 vi.mock("../../components/dialog", () => ({ useDialog: () => ({ confirm: vi.fn(), prompt: vi.fn() }) }));
 vi.mock("../../components/home/greeting-header", () => ({ GreetingHeader: ({ name }: { name: string }) => <span>hi-{name}</span> }));
 vi.mock("../../components/home/day-ended-card", () => ({ DayEndedCard: () => <span>day-ended</span> }));
+vi.mock("../../components/home/day-closed-card", () => ({ DayClosedCard: () => <span>day-closed</span> }));
 vi.mock("../../components/home/end-day-button", () => ({ EndDayButton: ({ onPress }: { onPress: () => void }) => <button type="button" onClick={onPress}>end-day</button> }));
 vi.mock("../../components/home/start-day-button", () => ({ StartDayButton: ({ onPress }: { onPress: () => void }) => <button type="button" onClick={onPress}>start-day</button> }));
 vi.mock("../../components/home/beat-card", () => ({ BeatCard: ({ onSettled }: { onSettled: () => void }) => <button type="button" onClick={onSettled}>beat-settle</button> }));
@@ -33,7 +34,7 @@ vi.mock("../../components/dues-card", () => ({ DuesCard: () => null }));
 import HomeScreen from "./index";
 
 const day = (over: Record<string, unknown> = {}) =>
-  ({ dayOn: false, dayEnded: false, dayBusy: false, onStartDay: vi.fn(), onEndDay: vi.fn(), ...over });
+  ({ dayOn: false, dayEnded: false, pastCutoff: false, dayBusy: false, onStartDay: vi.fn(), onEndDay: vi.fn(), ...over });
 
 describe("HomeScreen", () => {
   it("shows Start day, foregrounds to refresh, and settles the pull-refresh", () => {
@@ -69,5 +70,14 @@ describe("HomeScreen", () => {
     useDayTracking.mockReturnValue(day({ dayOn: false, dayEnded: true }));
     render(<HomeScreen />);
     expect(screen.getByText("day-ended")).toBeInTheDocument();
+    expect(screen.queryByText("start-day")).not.toBeInTheDocument();
+  });
+
+  it("shows the day-closed card (not Start day) past the 8 PM cutoff", () => {
+    useAuth.mockImplementation((sel) => sel({ user: { name: "A" } }));
+    useDayTracking.mockReturnValue(day({ dayOn: false, dayEnded: false, pastCutoff: true }));
+    render(<HomeScreen />);
+    expect(screen.getByText("day-closed")).toBeInTheDocument();
+    expect(screen.queryByText("start-day")).not.toBeInTheDocument();
   });
 });

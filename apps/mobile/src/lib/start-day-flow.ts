@@ -1,6 +1,6 @@
 import { Linking } from "react-native";
 import type { ConfirmOptions, PromptOptions } from "../components/dialog";
-import { dayEndedToday, startDayTracking } from "./gps";
+import { dayEndedToday, isPastSeCutoff, startDayTracking } from "./gps";
 import { promptOdometer } from "./odometer-prompt";
 import { runStartDayPermissionSetup } from "./permissions";
 
@@ -13,6 +13,12 @@ const DAY_ENDED_DIALOG = {
   confirmLabel: "OK",
 } as const;
 
+const PAST_CUTOFF_DIALOG = {
+  title: "Tracking closed for today",
+  message: "Tracking stops for the day at 8 PM. Start again tomorrow morning.",
+  confirmLabel: "OK",
+} as const;
+
 /**
  * The full "Start day" sequence — already-ended guard → guided permission setup →
  * start GPS tracking, with the matching error dialogs. Returns true once the day
@@ -22,6 +28,13 @@ const DAY_ENDED_DIALOG = {
 export async function runStartDayFlow(confirm: Confirm, prompt: Prompt): Promise<boolean> {
   if (await dayEndedToday()) {
     void confirm(DAY_ENDED_DIALOG);
+    return false;
+  }
+
+  // Past the fixed 8 PM SE cutoff → block before the permission + odometer prompts
+  // so the SE isn't walked through a start that would be torn down at once.
+  if (isPastSeCutoff()) {
+    void confirm(PAST_CUTOFF_DIALOG);
     return false;
   }
 
@@ -43,6 +56,10 @@ export async function runStartDayFlow(confirm: Confirm, prompt: Prompt): Promise
   if (!result.ok) {
     if (result.reason === "day_ended") {
       void confirm(DAY_ENDED_DIALOG);
+      return false;
+    }
+    if (result.reason === "past_cutoff") {
+      void confirm(PAST_CUTOFF_DIALOG);
       return false;
     }
     const openSettings = await confirm({

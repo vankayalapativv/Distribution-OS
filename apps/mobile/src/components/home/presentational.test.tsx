@@ -9,6 +9,7 @@ import { GreetingHeader } from "./greeting-header";
 import { KpiCard, type Accent } from "./kpi-card";
 import { KpiDrillRow } from "./kpi-drill-row";
 import { BeatCardSkeleton } from "./beat-card-skeleton";
+import { DayClosedCard } from "./day-closed-card";
 import { DayEndedCard } from "./day-ended-card";
 import type { AgentRow } from "../../lib/admin-drill";
 
@@ -124,9 +125,11 @@ describe("KpiDrillRow", () => {
 });
 
 describe("static placeholders", () => {
-  it("BeatCardSkeleton and DayEndedCard render", () => {
+  it("BeatCardSkeleton, DayEndedCard and DayClosedCard render", () => {
     expect(render(<BeatCardSkeleton />).container.querySelector("div")).not.toBeNull();
     render(<DayEndedCard />);
     expect(screen.getByText("Day ended")).toBeInTheDocument();
+    render(<DayClosedCard />);
+    expect(screen.getByText("Tracking closed for today")).toBeInTheDocument();
   });
 });

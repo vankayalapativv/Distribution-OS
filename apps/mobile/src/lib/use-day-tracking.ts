@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import type { ConfirmOptions, PromptOptions } from "../components/dialog";
-import { dayEndedToday, isDayTracking, markDayEndedToday, stopDayTracking } from "./gps";
+import { dayEndedToday, isDayTracking, isPastSeCutoff, markDayEndedToday, stopDayTracking } from "./gps";
 import { getDayStartOdometer, getServerStartOdometer } from "./gps-session";
 import { MAX_DAY_DISTANCE_KM, MIN_DAY_DISTANCE_KM, promptOdometer } from "./odometer-prompt";
 import { runStartDayFlow } from "./start-day-flow";
@@ -20,6 +20,10 @@ export function useDayTracking(dialog: { confirm: Confirm; prompt: Prompt }) {
   const { confirm, prompt } = dialog;
   const [dayOn, setDayOn] = useState(false);
   const [dayEnded, setDayEnded] = useState(false);
+  // True when a Sales Executive is past the fixed 8 PM cutoff and no day is on →
+  // Home shows a "closed for today" card instead of a Start-day button that would
+  // only be blocked. Recomputed on every recheck so it flips at 8 PM live.
+  const [pastCutoff, setPastCutoff] = useState(false);
   const [dayBusy, setDayBusy] = useState(false);
 
   // Guard the async setState — recheck fires from the AppState listener, focus,
@@ -32,6 +36,7 @@ export function useDayTracking(dialog: { confirm: Confirm; prompt: Prompt }) {
       if (!mounted.current) return;
       setDayOn(on);
       setDayEnded(ended);
+      setPastCutoff(!on && isPastSeCutoff());
     });
   }, []);
 
@@ -112,5 +117,5 @@ export function useDayTracking(dialog: { confirm: Confirm; prompt: Prompt }) {
     }
   }, [confirm, prompt]);
 
-  return { dayOn, dayEnded, dayBusy, onStartDay, onEndDay };
+  return { dayOn, dayEnded, pastCutoff, dayBusy, onStartDay, onEndDay };
 }

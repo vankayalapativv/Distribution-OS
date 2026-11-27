@@ -8,7 +8,6 @@ const h = vi.hoisted(() => ({
 const apiFetch = vi.fn<(...a: unknown[]) => Promise<unknown>>(() => Promise.resolve({ activeSession: null }));
 const getItemAsync = vi.fn<(k: string) => Promise<string | null>>(() => Promise.resolve(null));
 const getBackgroundPermissionsAsync = vi.fn<() => Promise<{ granted: boolean } | null>>(() => Promise.resolve({ granted: false }));
-const readSeStopHour = vi.fn<() => Promise<number>>(() => Promise.resolve(19));
 const startNativeForegroundTracking = vi.fn<() => Promise<boolean>>(() => Promise.resolve(false));
 const startBackgroundUpdates = vi.fn<() => Promise<boolean>>(() => Promise.resolve(true));
 const setClientSessionId = vi.fn();
@@ -24,9 +23,9 @@ vi.mock("react-native", () => ({ AppState: { addEventListener: (_e: string, cb: 
 vi.mock("./api", () => ({ apiFetch: (...a: unknown[]) => apiFetch(...a) }));
 vi.mock("./auth", () => ({ useAuth: { getState: () => auth } }));
 vi.mock("./day-flag", () => ({ istDate: () => "2026-08-05", istHour: () => istHourVal }));
-vi.mock("./gps-config", () => ({ CLOSURE_RECOVERY_INTERVAL_MS: 180_000 }));
+vi.mock("./gps-config", () => ({ CLOSURE_RECOVERY_INTERVAL_MS: 180_000, SE_CUTOFF_HOUR: 20 }));
 vi.mock("./gps-keys", () => ({ clientSessionKey: () => "CLI", dayOnKey: () => "ON", serverSessionKey: () => "SRV" }));
-vi.mock("./gps-native", () => ({ readSeStopHour: () => readSeStopHour(), startNativeForegroundTracking: () => startNativeForegroundTracking() }));
+vi.mock("./gps-native", () => ({ startNativeForegroundTracking: () => startNativeForegroundTracking() }));
 vi.mock("./gps-recording", () => ({ startBackgroundUpdates: () => startBackgroundUpdates() }));
 vi.mock("./gps-state", () => ({ setClientSessionId: (...a: unknown[]) => setClientSessionId(...a) }));
 vi.mock("./gps-status", () => ({ isDayTracking: () => isDayTracking() }));
@@ -46,7 +45,6 @@ beforeEach(() => {
   auth = { token: "tok", user: { role: "SALES_EXECUTIVE" } };
   getItemAsync.mockResolvedValue(null);
   getBackgroundPermissionsAsync.mockResolvedValue({ granted: false });
-  readSeStopHour.mockResolvedValue(19);
   startNativeForegroundTracking.mockResolvedValue(false);
   startBackgroundUpdates.mockResolvedValue(true);
   isDayTracking.mockResolvedValue(false);
@@ -107,7 +105,7 @@ describe("installGpsWatchdog", () => {
 
   it("app-active past the SE stop hour tears tracking down", async () => {
     getItemAsync.mockResolvedValue("2026-08-05");
-    istHourVal = 20; // past 19
+    istHourVal = 20; // at the 8 PM SE cutoff
     installGpsWatchdog();
     await flush();
     stopDayTracking.mockClear();

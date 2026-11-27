@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getNativeTracking,
-  readSeStopHour,
   setNativeSignedIn,
   startNativeForegroundTracking,
   stopNativeForegroundTracking,
@@ -20,8 +19,8 @@ vi.mock("expo-secure-store", () => ({ getItemAsync: (k: string) => getItemAsync(
 vi.mock("./api", () => ({ API_BASE_URL: "https://api" }));
 vi.mock("./auth", () => ({ useAuth: { getState: () => auth } }));
 vi.mock("./day-flag", () => ({ istDate: () => "2026-08-05" }));
-vi.mock("./gps-config", () => ({ DEFAULT_SE_STOP_HOUR: 19 }));
-vi.mock("./gps-keys", () => ({ serverSessionKey: () => "SRV", stopHourKey: () => "STOP" }));
+vi.mock("./gps-config", () => ({ SE_CUTOFF_HOUR: 20 }));
+vi.mock("./gps-keys", () => ({ serverSessionKey: () => "SRV" }));
 
 function fullNative() {
   return {
@@ -55,37 +54,24 @@ describe("getNativeTracking", () => {
   });
 });
 
-describe("readSeStopHour", () => {
-  it("parses a valid cached hour, else the default", async () => {
-    getItemAsync.mockResolvedValue("20");
-    expect(await readSeStopHour()).toBe(20);
-    getItemAsync.mockResolvedValue(null);
-    expect(await readSeStopHour()).toBe(19);
-    getItemAsync.mockResolvedValue("abc");
-    expect(await readSeStopHour()).toBe(19);
-    getItemAsync.mockResolvedValue("25"); // out of range
-    expect(await readSeStopHour()).toBe(19);
-  });
-});
-
 describe("startNativeForegroundTracking", () => {
   it("returns false without a native module", async () => {
     nativeModule = undefined;
     expect(await startNativeForegroundTracking("cs-1")).toBe(false);
   });
-  it("starts with SE caps (date + hour) and refreshes upload context", async () => {
+  it("starts an SE with the fixed 8 PM hour cap + date cap and refreshes upload context", async () => {
     const native = nativeModule as ReturnType<typeof fullNative>;
-    getItemAsync.mockImplementation((k) => Promise.resolve(k === "SRV" ? "srv-1" : k === "STOP" ? "20" : null));
+    getItemAsync.mockImplementation((k) => Promise.resolve(k === "SRV" ? "srv-1" : null));
     expect(await startNativeForegroundTracking("cs-1")).toBe(true);
     expect(native.setUploadContext).toHaveBeenCalledWith("tok", "https://api");
     expect(native.startForegroundTracking).toHaveBeenCalledWith("cs-1", "srv-1", "2026-08-05", "20");
   });
-  it("passes null caps for a non-SE (Logistics) role and coerces the result", async () => {
+  it("gives Logistics the date cap (midnight close) but NO hour cap, and coerces the result", async () => {
     auth = { token: "tok", user: { role: "LOGISTICS" } };
     const native = nativeModule as ReturnType<typeof fullNative>;
     native.startForegroundTracking.mockResolvedValue(false);
     expect(await startNativeForegroundTracking("cs-1")).toBe(false);
-    expect(native.startForegroundTracking).toHaveBeenCalledWith("cs-1", null, null, null);
+    expect(native.startForegroundTracking).toHaveBeenCalledWith("cs-1", null, "2026-08-05", null);
   });
   it("returns false if the native start rejects", async () => {
     (nativeModule as ReturnType<typeof fullNative>).startForegroundTracking.mockRejectedValue(new Error("x"));
@@ -128,7 +114,6 @@ describe("setNativeSignedIn", () => {
     native.setUploadContext.mockRejectedValue(new Error("x"));
     native.setSignedIn.mockRejectedValue(new Error("x"));
     native.stopForegroundTracking.mockRejectedValue(new Error("x"));
-    expect(await readSeStopHour()).toBe(19); // getItem catch → default
     await startNativeForegroundTracking("cs"); // serverSession read + setUploadContext catches
     await stopNativeForegroundTracking(); // stop catch
     await setNativeSignedIn(true); // setSignedIn + setUploadContext catches

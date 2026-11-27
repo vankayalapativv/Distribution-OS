@@ -6,6 +6,7 @@ import { useDayTracking } from "./use-day-tracking";
 const push = vi.fn();
 const isDayTracking = vi.fn<() => Promise<boolean>>(() => Promise.resolve(false));
 const dayEndedToday = vi.fn<() => Promise<boolean>>(() => Promise.resolve(false));
+const isPastSeCutoff = vi.fn<() => boolean>(() => false);
 const markDayEndedToday = vi.fn<() => Promise<void>>(() => Promise.resolve());
 const stopDayTracking = vi.fn<(...a: unknown[]) => Promise<void>>(() => Promise.resolve());
 const getServerStartOdometer = vi.fn<() => Promise<number | null>>(() => Promise.resolve(48000));
@@ -17,7 +18,7 @@ let appStateHandler: (s: string) => void = () => undefined;
 vi.mock("react-native", () => ({ AppState: { addEventListener: (_e: string, cb: (s: string) => void) => { appStateHandler = cb; return { remove: vi.fn() }; } } }));
 vi.mock("expo-router", () => ({ router: { push: (...a: unknown[]) => push(...a) }, useFocusEffect: (cb: () => void) => React.useEffect(cb, [cb]) }));
 vi.mock("./gps", () => ({
-  dayEndedToday: () => dayEndedToday(), isDayTracking: () => isDayTracking(),
+  dayEndedToday: () => dayEndedToday(), isDayTracking: () => isDayTracking(), isPastSeCutoff: () => isPastSeCutoff(),
   markDayEndedToday: () => markDayEndedToday(), stopDayTracking: (...a: unknown[]) => stopDayTracking(...a),
 }));
 vi.mock("./gps-session", () => ({ getDayStartOdometer: () => getDayStartOdometer(), getServerStartOdometer: () => getServerStartOdometer() }));
@@ -29,7 +30,7 @@ const prompt = vi.fn();
 const dialog = { confirm, prompt };
 const setup = () => renderHook(() => useDayTracking(dialog));
 beforeEach(() => {
-  isDayTracking.mockResolvedValue(false); dayEndedToday.mockResolvedValue(false);
+  isDayTracking.mockResolvedValue(false); dayEndedToday.mockResolvedValue(false); isPastSeCutoff.mockReturnValue(false);
   getServerStartOdometer.mockResolvedValue(48000); promptOdometer.mockResolvedValue("48210");
   runStartDayFlow.mockResolvedValue(true); confirm.mockResolvedValue(true);
 });
@@ -42,6 +43,16 @@ describe("useDayTracking state", () => {
     await act(async () => { await Promise.resolve(); });
     expect(result.current.dayOn).toBe(true);
     expect(result.current.dayEnded).toBe(false);
+    expect(result.current.pastCutoff).toBe(false); // on → never past-cutoff
+  });
+
+  it("flags pastCutoff for an SE after 8 PM with no day running", async () => {
+    isDayTracking.mockResolvedValue(false);
+    isPastSeCutoff.mockReturnValue(true);
+    const { result } = setup();
+    await act(async () => { await Promise.resolve(); });
+    expect(result.current.dayOn).toBe(false);
+    expect(result.current.pastCutoff).toBe(true);
   });
 });
 

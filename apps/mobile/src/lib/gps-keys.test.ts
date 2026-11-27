@@ -10,7 +10,6 @@ import {
   DAY_ON_KEY,
   DAY_START_ODO_KEY,
   LEGACY_UNSCOPED_KEYS,
-  SE_STOP_HOUR_KEY,
   SERVER_SESSION_KEY,
   scopedKeysFor,
 } from "./gps-config";
@@ -20,7 +19,6 @@ import {
   dayOnKey,
   dayStartOdoKey,
   serverSessionKey,
-  stopHourKey,
 } from "./gps-keys";
 
 // SecureStore only accepts keys matching this; anything else throws "Invalid key"
@@ -33,7 +31,6 @@ describe("gps per-user SecureStore keys", () => {
     expect(dayOnKey()).toBe(DAY_ON_KEY);
     expect(clientSessionKey()).toBe(CLIENT_SESSION_KEY);
     expect(serverSessionKey()).toBe(SERVER_SESSION_KEY);
-    expect(stopHourKey()).toBe(SE_STOP_HOUR_KEY);
   });
 
   it("namespaces every key by the signed-in userId", () => {
@@ -72,7 +69,6 @@ describe("gps per-user SecureStore keys", () => {
       `${DAY_START_ODO_KEY}.${id}`,
       `${CLIENT_SESSION_KEY}.${id}`,
       `${SERVER_SESSION_KEY}.${id}`,
-      `${SE_STOP_HOUR_KEY}.${id}`,
     ]);
     for (const key of keys) {
       expect(key).toMatch(SECURE_STORE_KEY);

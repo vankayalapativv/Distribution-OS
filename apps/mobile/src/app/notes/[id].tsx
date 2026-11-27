@@ -1,31 +1,37 @@
 /**
- * Customer notes (SE): a running, append-only thread for one customer. The SE can
- * add notes any number of times but cannot edit or delete them once saved (only a
- * Super Admin can, from the web). Shows every note on the customer, newest first,
- * with author + date/time and an "edited" marker when a Super Admin has changed it.
+ * Customer notes — a WhatsApp-style chat thread (append-only). The SE can add
+ * notes any number of times but cannot edit or delete them once saved (only a
+ * Super Admin can, from the web). Own notes align right; everyone else's align
+ * left with the author's name. Oldest → newest, grouped by day, auto-scrolled
+ * to the latest.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { type ReactElement, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ErrorState } from "../../components/error-state";
-import { AddNoteBox } from "../../components/notes/add-note-box";
-import { NoteCard, type CustomerNote } from "../../components/notes/note-card";
-import { NoteRowSkeleton, SkeletonList } from "../../components/skeleton";
+import { ChatBubble } from "../../components/notes/chat-bubble";
+import { ChatDaySeparator } from "../../components/notes/chat-day-separator";
+import { NotesComposeBar } from "../../components/notes/notes-compose-bar";
+import { NotesChatSkeleton } from "../../components/notes/notes-chat-skeleton";
 import { apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { cacheKeys } from "../../lib/cache-keys";
 import { useIsOnline } from "../../lib/connectivity";
+import { buildChatItems, type ChatItem, type CustomerNote } from "../../lib/notes/chat-notes";
 import { useCachedQuery } from "../../lib/use-cached-query";
 
 export default function NotesScreen() {
   const { id, customerName } = useLocalSearchParams<{ id: string; customerName?: string }>();
   const token = useAuth((s) => s.token);
+  const user = useAuth((s) => s.user);
   const qc = useQueryClient();
   const online = useIsOnline();
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const listRef = useRef<FlatList<ChatItem>>(null);
 
   const query = useCachedQuery({
     queryKey: ["customer-notes", id],
@@ -33,7 +39,7 @@ export default function NotesScreen() {
     fetcher: () => apiFetch<{ notes: CustomerNote[] }>(`/customers/${id}/notes`, { token }),
     enabled: Boolean(token && id),
   });
-  const notes = query.data?.notes ?? [];
+  const items = buildChatItems(query.data?.notes ?? [], user?.name ?? null);
 
   const addMut = useMutation({
     mutationFn: (body: string) =>
@@ -48,31 +54,11 @@ export default function NotesScreen() {
     onError: () => setError("Couldn't save the note. Please try again."),
   });
 
-  // Notes post straight to the API with no offline queue (unlike orders /
-  // collections / visits), so a note genuinely can't be saved offline — gate
-  // Save on connectivity and tell the user, rather than let the app-wide
-  // "saved & will sync" bar imply a note was queued.
   const canSave = draft.trim().length > 0 && !addMut.isPending && online;
-
-  // Empty slot — skeleton while loading, error on failure, else the hint. Built
-  // here (not an inline component in the JSX) so each branch is a plain element.
-  let emptyContent: ReactElement;
-  if (query.isPending) {
-    emptyContent = <SkeletonList count={4} row={NoteRowSkeleton} />;
-  } else if (query.isError) {
-    emptyContent = (
-      <ErrorState error={query.error} onRetry={() => void query.refetch()} compact />
-    );
-  } else {
-    emptyContent = (
-      <Text className="py-10 text-center text-sm text-muted-foreground">
-        No notes yet for this customer.
-      </Text>
-    );
-  }
+  const toEnd = useCallback(() => listRef.current?.scrollToEnd({ animated: false }), []);
 
   return (
-    <SafeAreaView className="flex-1 bg-secondary" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <View className="flex-row items-center gap-3 border-b border-border px-5 py-4">
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Text className="text-2xl text-foreground">‹</Text>
@@ -87,26 +73,60 @@ export default function NotesScreen() {
         </View>
       </View>
 
-      <FlatList
-        className="flex-1"
-        contentContainerClassName="gap-3 px-5 py-4"
-        keyboardShouldPersistTaps="handled"
-        data={notes}
-        keyExtractor={(n) => n.id}
-        ListHeaderComponent={
-          <AddNoteBox
-            draft={draft}
-            setDraft={setDraft}
-            error={error}
-            canSave={canSave}
-            saving={addMut.isPending}
-            onSave={() => addMut.mutate(draft.trim())}
-            offline={!online}
-          />
-        }
-        renderItem={({ item: n }) => <NoteCard note={n} />}
-        ListEmptyComponent={emptyContent}
-      />
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+        <View className="flex-1">
+          {(() => {
+            if (query.isPending) return <NotesChatSkeleton />;
+            if (query.isError) {
+              return (
+                <View className="px-5 pt-6">
+                  <ErrorState error={query.error} onRetry={() => void query.refetch()} compact />
+                </View>
+              );
+            }
+            if (items.length === 0) {
+              return (
+                <View className="flex-1 items-center justify-center px-10">
+                  <Text className="text-center text-sm text-muted-foreground">
+                    No notes yet. Add the first note about this customer below.
+                  </Text>
+                </View>
+              );
+            }
+            return (
+              <FlatList
+                ref={listRef}
+                data={items}
+                keyExtractor={(it) => it.key}
+                renderItem={({ item }) =>
+                  item.kind === "day" ? (
+                    <ChatDaySeparator label={item.label} />
+                  ) : (
+                    <ChatBubble note={item.note} mine={item.mine} />
+                  )
+                }
+                contentContainerClassName="gap-2 px-3 py-4"
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="interactive"
+                onContentSizeChange={toEnd}
+              />
+            );
+          })()}
+        </View>
+
+        <NotesComposeBar
+          draft={draft}
+          onChange={(t) => {
+            setDraft(t);
+            if (error) setError(null);
+          }}
+          canSave={canSave}
+          saving={addMut.isPending}
+          onSave={() => addMut.mutate(draft.trim())}
+          offline={!online}
+          error={error}
+        />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

@@ -27,7 +27,6 @@ export {
   DuesRowSkeleton,
   FormFieldSkeleton,
   LedgerRowSkeleton,
-  NoteRowSkeleton,
   NotificationRowSkeleton,
   RecordRowSkeleton,
 } from "./skeleton-detail-rows";

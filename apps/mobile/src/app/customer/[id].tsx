@@ -69,7 +69,7 @@ export default function CustomerDetailScreen() {
       <CustomerTopBar id={id!} name={customerName} code={header?.customerCode ?? null} />
 
       {headerQuery.isPending ? (
-        <CustomerSkeleton />
+        <CustomerSkeleton isAdmin={isAdmin} />
       ) : (
         <ScrollView
           className="flex-1"

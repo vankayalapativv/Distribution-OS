@@ -1,9 +1,12 @@
 import { View } from "react-native";
 import { RecordRowSkeleton, Skeleton, SkeletonTheme } from "../skeleton";
 
-/** Context-aware first-load shimmer mirroring the real customer screen:
- *  hero card, action row, and the two "Last 5" record sections. One sweep. */
-export function CustomerSkeleton() {
+/** Context-aware first-load shimmer mirroring the real customer screen: hero
+ *  card, Check-in button, action row, and the two "Last 5" record sections.
+ *  `isAdmin` matches the real action-row count (Super Admin has no Market
+ *  button → 4 actions; a Sales Executive has 5). One sweep. */
+export function CustomerSkeleton({ isAdmin = false }: { readonly isAdmin?: boolean }) {
+  const actions = isAdmin ? [0, 1, 2, 3] : [0, 1, 2, 3, 4];
   return (
     <SkeletonTheme>
       <View className="gap-5 px-5 py-4">
@@ -19,10 +22,13 @@ export function CustomerSkeleton() {
           </View>
         </View>
 
-        {/* Action buttons row */}
+        {/* Check-in button (full-width) */}
+        <Skeleton width="100%" height={46} radius={16} />
+
+        {/* Action buttons row (Order / Collect / [Market] / Ledger / Notes) */}
         <View className="flex-row gap-2">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} width="100%" height={58} radius={16} style={{ flex: 1 }} />
+          {actions.map((i) => (
+            <Skeleton key={i} width="100%" height={58} radius={16} style={{ flex: 1, flexBasis: 0 }} />
           ))}
         </View>
 

@@ -92,8 +92,8 @@ describe("Field", () => {
 });
 
 describe("CustomerSkeleton", () => {
-  it("renders", () => {
-    const { container } = render(<CustomerSkeleton />);
-    expect(container.querySelector("div")).not.toBeNull();
+  it("renders the SE (5-action) and admin (4-action) variants", () => {
+    expect(render(<CustomerSkeleton />).container.querySelector("div")).not.toBeNull();
+    expect(render(<CustomerSkeleton isAdmin />).container.querySelector("div")).not.toBeNull();
   });
 });

@@ -8,7 +8,7 @@ import { StockSkeleton } from "./stock-skeleton";
 
 type Stock = ReturnType<typeof useAvailableStock>;
 
-/** The list area: skeleton / error / empty / the accordion list (early returns). */
+/** The list area: skeleton / error / empty / the pack-chip list (early returns). */
 function StockBody(s: Readonly<Stock>) {
   if (s.query.isPending) return <StockSkeleton />;
   if (s.query.isError && (s.query.data?.products.length ?? 0) === 0) {
@@ -35,10 +35,11 @@ function StockBody(s: Readonly<Stock>) {
 }
 
 /**
- * Stock tab (Design A — accordion). Available on-hand stock, product → pack →
- * godown. View-only; online-only (fresh fetch each time the tab opens) with
- * instant client-side search over product name and brand. Used by both the SE
- * `(tabs)` group and the in-app admin `(admin)` group.
+ * Stock tab (Design B — pack chips). Available on-hand stock for checking order
+ * availability: each product shows a chip per pack size with its on-hand count,
+ * tap a pack for its per-godown split. View-only; online-only (fresh fetch each
+ * time the tab opens) with instant client-side search over product name and
+ * brand. Used by both the SE `(tabs)` group and the in-app admin `(admin)` group.
  */
 export function StockScreen() {
   const s = useAvailableStock();

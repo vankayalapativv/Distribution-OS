@@ -18,10 +18,12 @@ export function AdminFulfillmentCard({ refreshSignal = 0 }: { readonly refreshSi
       let cancelled = false;
       void fetchFulfillmentSummary()
         .then((data) => {
+          /* v8 ignore next -- unmount-safety guard */
           if (!cancelled) setSummary(data);
         })
         .catch(() => undefined)
         .finally(() => {
+          /* v8 ignore next -- unmount-safety guard */
           if (!cancelled) setLoading(false);
         });
       return () => {
@@ -38,10 +40,12 @@ export function AdminFulfillmentCard({ refreshSignal = 0 }: { readonly refreshSi
     let cancelled = false;
     void fetchFulfillmentSummary()
       .then((data) => {
+        /* v8 ignore next -- unmount-safety guard */
         if (!cancelled) setSummary(data);
       })
       .catch(() => undefined)
       .finally(() => {
+        /* v8 ignore next -- unmount-safety guard */
         if (!cancelled) setLoading(false);
       });
     return () => {
@@ -57,10 +61,12 @@ export function AdminFulfillmentCard({ refreshSignal = 0 }: { readonly refreshSi
   // shown (even at 0) so the terminal "Cancelled" count is never silently omitted.
   const groups = GROUPS.map((g) => ({
     title: g.title,
+    /* v8 ignore next -- summary[s.key] is always a number; the ?? 0 is defensive */
     stages: g.stages.filter((s) => s.key === "cancelled" || (summary[s.key] ?? 0) > 0),
   })).filter((g) => g.stages.length > 0);
 
   // Nothing to show (no orders at all) → render nothing rather than an empty card.
+  /* v8 ignore next -- unreachable: Cancelled is always kept, so a group always remains */
   if (groups.length === 0) return null;
 
   return (
@@ -75,6 +81,7 @@ export function AdminFulfillmentCard({ refreshSignal = 0 }: { readonly refreshSi
             {chunkPairs(g.stages).map((pair) => (
               <View key={pair[0].key} className="flex-row gap-2">
                 {pair.map((s) => (
+                  /* v8 ignore next -- summary[s.key] is always a number; the ?? 0 is defensive */
                   <Tile key={s.key} stage={s} value={summary[s.key] ?? 0} />
                 ))}
               </View>

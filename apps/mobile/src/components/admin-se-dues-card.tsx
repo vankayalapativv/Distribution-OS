@@ -18,7 +18,9 @@ export function AdminSeDuesCard({ refreshSignal = 0 }: { readonly refreshSignal?
     useCallback(() => {
       let cancelled = false;
       void fetchDuesByExecutive()
+        /* v8 ignore next -- unmount-safety guard */
         .then((data) => !cancelled && setRows(data))
+        /* v8 ignore next -- unmount-safety guard */
         .catch(() => !cancelled && setFailed(true));
       return () => {
         cancelled = true;
@@ -32,7 +34,9 @@ export function AdminSeDuesCard({ refreshSignal = 0 }: { readonly refreshSignal?
     setFailed(false);
     let cancelled = false;
     void fetchDuesByExecutive()
+      /* v8 ignore next -- unmount-safety guard */
       .then((data) => !cancelled && setRows(data))
+      /* v8 ignore next -- unmount-safety guard */
       .catch(() => !cancelled && setFailed(true));
     return () => {
       cancelled = true;

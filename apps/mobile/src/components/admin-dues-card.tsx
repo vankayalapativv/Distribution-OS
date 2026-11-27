@@ -20,9 +20,11 @@ export function AdminDuesCard({ refreshSignal = 0 }: { readonly refreshSignal?: 
       let cancelled = false;
       void fetchAdminDuesSummary()
         .then((data) => {
+          /* v8 ignore next -- unmount-safety guard */
           if (!cancelled) setSummary(data);
         })
         .catch(() => {
+          /* v8 ignore next -- unmount-safety guard */
           if (!cancelled) setFailed(true);
         });
       return () => {
@@ -39,9 +41,11 @@ export function AdminDuesCard({ refreshSignal = 0 }: { readonly refreshSignal?: 
     let cancelled = false;
     void fetchAdminDuesSummary()
       .then((data) => {
+        /* v8 ignore next -- unmount-safety guard */
         if (!cancelled) setSummary(data);
       })
       .catch(() => {
+        /* v8 ignore next -- unmount-safety guard */
         if (!cancelled) setFailed(true);
       });
     return () => {

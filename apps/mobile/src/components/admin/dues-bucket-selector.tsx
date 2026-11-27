@@ -15,6 +15,7 @@ const TONES = [
 function toneForPosition(index: number, total: number): (typeof TONES)[number] {
   if (total <= 1) return TONES[TONES.length - 1];
   const stop = Math.round((index / (total - 1)) * (TONES.length - 1));
+  /* v8 ignore next -- stop is always within TONES; the ?? is defensive */
   return TONES[stop] ?? TONES[0];
 }
 

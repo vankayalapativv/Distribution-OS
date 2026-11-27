@@ -1,42 +1,7 @@
 import { Tabs } from "expo-router";
-import { useRef } from "react";
-import {
-  Animated,
-  Pressable,
-  type ColorValue,
-  type GestureResponderEvent,
-  type PressableProps,
-} from "react-native";
+import { type ColorValue, type PressableProps } from "react-native";
 import { Icon } from "../../components/icon";
-
-/** Tab button with a scale-down spring on press — same feel as the SE/Logistics apps. */
-function SpringTabButton({ children, onPressIn, onPressOut, style, ...rest }: Readonly<PressableProps>) {
-  const scale = useRef(new Animated.Value(1)).current;
-  function springTo(toValue: number) {
-    Animated.spring(scale, { toValue, useNativeDriver: true, speed: 40, bounciness: 10 }).start();
-  }
-  return (
-    <Pressable
-      {...rest}
-      style={[{ flex: 1 }, typeof style === "object" ? style : null]}
-      android_ripple={undefined}
-      onPressIn={(e: GestureResponderEvent) => {
-        springTo(0.88);
-        onPressIn?.(e);
-      }}
-      onPressOut={(e: GestureResponderEvent) => {
-        springTo(1);
-        onPressOut?.(e);
-      }}
-    >
-      <Animated.View
-        style={{ flex: 1, alignItems: "center", justifyContent: "center", transform: [{ scale }] }}
-      >
-        {children as React.ReactNode}
-      </Animated.View>
-    </Pressable>
-  );
-}
+import { SpringTabButton } from "../../components/tabs/spring-tab-button";
 
 // Module-scope so the navigator gets stable component references (SonarQube S6478).
 type TabIconProps = { readonly color: ColorValue; readonly focused: boolean };

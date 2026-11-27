@@ -7,7 +7,8 @@ import {
   type SegmentLitres,
 } from "../../lib/performance";
 import { collectionsForTab } from "../../lib/performance-format";
-import { LeadStat, litresLabel, pctOf, rupeesLabel, SegmentRow } from "./performance-card-parts";
+import { litresLabel, pctOf, rupeesLabel } from "./performance-card-format";
+import { LeadStat, SegmentRow } from "./performance-card-parts";
 
 type Tab = "today" | "week" | "month";
 

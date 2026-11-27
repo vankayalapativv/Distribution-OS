@@ -3,7 +3,7 @@ import { Linking, Pressable, Text, View } from "react-native";
 import type { BeatStop } from "../../lib/beat/today-beat-online";
 import { effectiveStopStatus } from "../../lib/beat/stop-status";
 import { dueBucketMeta } from "../../lib/dues-bucket";
-import { rupeesLabel } from "../home/performance-card-parts";
+import { rupeesLabel } from "../home/performance-card-format";
 import { StatusPill } from "./status-pill";
 
 /** One ordered beat stop: sequence badge, name, city, tappable phone, status

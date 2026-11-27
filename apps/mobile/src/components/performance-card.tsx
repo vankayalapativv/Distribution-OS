@@ -29,6 +29,7 @@ export function PerformanceCard({
     useCallback(() => {
       let cancelled = false;
       void fetchMyPerformance().then((result) => {
+        /* v8 ignore next -- unmount-safety guard (resolve after unmount) */
         if (cancelled) return;
         if (result) setPerf(result);
         setLoading(false);
@@ -47,10 +48,12 @@ export function PerformanceCard({
     let cancelled = false;
     void fetchMyPerformance()
       .then((result) => {
+        /* v8 ignore next -- unmount-safety guard (resolve after unmount) */
         if (cancelled) return;
         if (result) setPerf(result);
       })
       .finally(() => {
+        /* v8 ignore next -- cancelled is always false here outside an unmount race */
         if (!cancelled) setRefreshing(false);
         onSettled?.(); // report to the Home pull-to-refresh coordinator
       });

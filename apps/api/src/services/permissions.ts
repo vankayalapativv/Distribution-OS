@@ -82,6 +82,10 @@ const ACTIONS: PermissionDef[] = [
   // In-system GST invoice generation / edit / cancel (the Accountant's job today).
   { key: "action:invoices.generate", kind: "action", label: "Generate / cancel invoices", group: "Actions", defaults: d(F, T) },
   { key: "action:expenditures.manage", kind: "action", label: "Manage expenditures", group: "Actions", defaults: d(T, T) },
+  // Approve / reject / partially-approve field expense claims (ships on for both
+  // office roles — SA can remove it; the set of approvers = SA + roles that hold
+  // this). See docs/FIELD-EXPENSE-ADVANCES-PLAN.md.
+  { key: "action:expenditures.claims.approve", kind: "action", label: "Approve expense claims", group: "Actions", defaults: d(T, T) },
   { key: "action:alerts.close", kind: "action", label: "Close alerts", group: "Actions", defaults: d(T, F) },
   { key: "action:targets.edit", kind: "action", label: "Edit targets", group: "Actions", defaults: d(T, F) },
 ];

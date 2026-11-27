@@ -171,7 +171,9 @@ export interface ListExpendituresParams {
 }
 
 export async function listExpenditures(sql: SqlClient, opts: ListExpendituresParams) {
-  const conds: string[] = [];
+  // The ledger shows booked spend only — field claims awaiting review (or
+  // rejected) live in the claims queue, not here, until they're approved.
+  const conds: string[] = ["e.status = 'approved'"];
   const params: unknown[] = [];
   const add = (cond: (p: string) => string, value: unknown) => {
     params.push(value);
@@ -404,7 +406,8 @@ export async function getExpenditureSummary(
       coalesce(sum(e.amount), 0) as "amount"
     from expenditures e
     join expenditure_categories c on c.id = e.category_id
-    where (${from}::date is null or e.expenditure_date >= ${from}::date)
+    where e.status = 'approved'
+      and (${from}::date is null or e.expenditure_date >= ${from}::date)
       and (${to}::date is null or e.expenditure_date <= ${to}::date)
     group by c.id, c.name, c.type
     order by sum(e.amount) desc

@@ -46,6 +46,33 @@ describe("useAvailableStock", () => {
     expect(result.current.searching).toBe(true);
   });
 
+  it("matches viscosity grades with or without the hyphen", () => {
+    h.state.data = { godowns: [], products: [prod("Fuchs Titan GT1 5W-30", "Fuchs"), prod("Shell HX7 15W-40", "Shell")] } as AvailableStock;
+    const { result, rerender } = renderHook(() => useAvailableStock());
+    for (const q of ["5W-30", "5w30", "5w 30"]) {
+      result.current.setSearch(q);
+      rerender();
+      expect(result.current.products.map((p) => p.productName)).toEqual(["Fuchs Titan GT1 5W-30"]);
+    }
+  });
+
+  it("requires every whitespace-separated word to match (AND)", () => {
+    h.state.data = { godowns: [], products: [prod("Fuchs Titan GT1 5W-30", "Fuchs"), prod("Shell Titan 5W-30", "Shell")] } as AvailableStock;
+    const { result, rerender } = renderHook(() => useAvailableStock());
+    result.current.setSearch("fuchs 5w30");
+    rerender();
+    expect(result.current.products.map((p) => p.productName)).toEqual(["Fuchs Titan GT1 5W-30"]);
+  });
+
+  it("treats a punctuation-only query as no filter", () => {
+    h.state.data = { godowns: [], products: [prod("Mobil 5W", "Mobil"), prod("Shell HX", "Shell")] } as AvailableStock;
+    const { result, rerender } = renderHook(() => useAvailableStock());
+    result.current.setSearch(" - ");
+    rerender();
+    expect(result.current.products).toHaveLength(2);
+    expect(result.current.searching).toBe(false);
+  });
+
   it("yields empty lists before data loads", () => {
     const { result } = renderHook(() => useAvailableStock());
     expect(result.current.products).toEqual([]);

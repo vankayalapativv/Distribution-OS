@@ -23,6 +23,7 @@ vi.mock("@/components/page-header", () => ({
   PageHeader: ({ subtitle, action }: any) => <div>{subtitle}{action}</div>,
 }));
 vi.mock("./expenditure-summary", () => ({ ExpenditureSummaryPanel: () => <div>SUMMARY</div> }));
+vi.mock("./claims-queue-panel", () => ({ ClaimsQueuePanel: () => <div>CLAIMS</div> }));
 vi.mock("./expenditure-filters", () => ({ ExpenditureFilters: () => <div>FILTERS</div> }));
 vi.mock("./expenditure-form-dialog", () => ({ ExpenditureFormDialog: () => <div>FORM</div> }));
 vi.mock("./expenditure-category-dialog", () => ({ ExpenditureCategoryDialog: () => <div>CATEGORY</div> }));

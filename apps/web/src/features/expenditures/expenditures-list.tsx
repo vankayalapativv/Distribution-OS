@@ -15,6 +15,7 @@ import { ExpenditureFormDialog } from "./expenditure-form-dialog";
 import { ExpenditureCategoryDialog } from "./expenditure-category-dialog";
 import { ExpenditureBillDialog } from "./expenditure-bill-dialog";
 import { ExpenditureDeleteDialog } from "./expenditure-delete-dialog";
+import { ClaimsQueuePanel } from "./claims-queue-panel";
 import { useExpendituresList } from "./use-expenditures-list";
 
 function entryWord(n: number): string {
@@ -49,6 +50,8 @@ function ExpendituresInner({ role, actionConfig }: { readonly role: Expenditures
         </div>
 
         <ExpenditureSummaryPanel actionConfig={actionConfig} from={s.from} to={s.to} />
+
+        <ClaimsQueuePanel actionConfig={actionConfig} />
 
         {s.error && (
           <div className="rounded-md border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">{s.error.message}</div>

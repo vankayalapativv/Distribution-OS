@@ -82,3 +82,13 @@ vi.mock("expo-image", () => {
   const RNWeb = require("react-native-web");
   return { Image: RNWeb.Image };
 });
+
+// --- @expo/vector-icons: a plain glyph stub (the real font set can't transform
+//     under rolldown/jsdom, and we only ever assert text/structure, not glyphs).
+vi.mock("@expo/vector-icons/Ionicons", () => {
+  const RN = require("react-native-web");
+  const React = require("react");
+  const Ionicons = ({ name }: { name?: string }) =>
+    React.createElement(RN.Text, { accessibilityRole: "image", "aria-label": name }, null);
+  return { default: Ionicons, Ionicons };
+});

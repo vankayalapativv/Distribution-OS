@@ -27,10 +27,12 @@ export function BeatCard({
       let cancelled = false;
       fetchTodayBeat(token)
         .then((result) => {
+          /* v8 ignore next -- unmount-safety guard */
           if (!cancelled) setBeat(result);
         })
         .catch(() => {})
         .finally(() => {
+          /* v8 ignore next -- unmount-safety guard */
           if (!cancelled) setLoading(false);
         });
       return () => {
@@ -47,10 +49,12 @@ export function BeatCard({
     let cancelled = false;
     fetchTodayBeat(token)
       .then((result) => {
+        /* v8 ignore next -- unmount-safety guard */
         if (!cancelled) setBeat(result);
       })
       .catch(() => {})
       .finally(() => {
+        /* v8 ignore next -- unmount-safety guard */
         if (!cancelled) setRefreshing(false);
         onSettled?.(); // report to the Home pull-to-refresh coordinator
       });

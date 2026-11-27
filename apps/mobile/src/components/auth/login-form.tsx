@@ -3,6 +3,7 @@ import { usePlaceholderColor } from "../../lib/theme";
 import type { FriendlyError } from "../../lib/humanize-error";
 import { FeedbackBanner } from "../feedback-banner";
 import { Icon } from "../icon";
+import { FieldError } from "./field-error";
 
 /** Email + password fields and the sign-in button for the login screen. */
 export function LoginForm({
@@ -44,9 +45,7 @@ export function LoginForm({
           onChangeText={onEmail}
           editable={!busy}
         />
-        {fieldErrors.email ? (
-          <Text className="text-xs text-destructive">{fieldErrors.email}</Text>
-        ) : null}
+        <FieldError message={fieldErrors.email} />
       </View>
 
       <View className="gap-1.5">
@@ -76,9 +75,7 @@ export function LoginForm({
             <Icon name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={placeholder} />
           </Pressable>
         </View>
-        {fieldErrors.password ? (
-          <Text className="text-xs text-destructive">{fieldErrors.password}</Text>
-        ) : null}
+        <FieldError message={fieldErrors.password} />
       </View>
 
       {feedback ? (

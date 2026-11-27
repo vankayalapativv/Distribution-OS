@@ -14,9 +14,13 @@ import { usePullRefresh } from "./use-pull-refresh";
 export function useRemindersScreen() {
   const dialog = useDialog();
   const token = useAuth((s) => s.token);
-  const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [assigned, setAssigned] = useState<AssignedTask[]>([]);
-  const [followups, setFollowups] = useState<FollowupReminder[]>([]);
+  // Reminders are local-first: read from SQLite synchronously. Seed from the DB at
+  // mount so a device with data shows it instantly (no shimmer flash); only when
+  // the DB isn't open yet do we start in a loading state and shimmer until it is.
+  const [reminders, setReminders] = useState<Reminder[]>(() => (getLocalDb() ? listReminders(getLocalDb()!) : []));
+  const [assigned, setAssigned] = useState<AssignedTask[]>(() => (getLocalDb() ? listAssignedTasks(getLocalDb()!) : []));
+  const [followups, setFollowups] = useState<FollowupReminder[]>(() => (getLocalDb() ? listFollowupReminders(getLocalDb()!) : []));
+  const [loaded, setLoaded] = useState(() => getLocalDb() != null);
   // "Now" for overdue/upcoming classification — a render-stable value refreshed
   // on each load (focus / pull-to-refresh / row action), not read during render.
   const [now, setNow] = useState(() => Date.now());
@@ -33,6 +37,7 @@ export function useRemindersScreen() {
     setAssigned(listAssignedTasks(db));
     setFollowups(listFollowupReminders(db));
     setNow(Date.now());
+    setLoaded(true);
   }, []);
 
   useFocusEffect(
@@ -51,5 +56,5 @@ export function useRemindersScreen() {
 
   const actions = buildReminderActions(refresh, token, dialog);
 
-  return { reminders, assigned, followups, now, refreshing, onRefresh, ...actions };
+  return { reminders, assigned, followups, now, loading: !loaded, refreshing, onRefresh, ...actions };
 }

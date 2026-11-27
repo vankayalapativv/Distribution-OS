@@ -34,6 +34,7 @@ describe("useRemindersScreen", () => {
     expect(result.current.assigned).toEqual([{ id: "t1", title: "task" }]);
     expect(result.current.followups).toEqual([{ customerId: "c1" }]);
     expect(typeof result.current.now).toBe("number");
+    expect(result.current.loading).toBe(false); // DB ready at mount → no shimmer
     expect(refreshAssignedTasksNow).toHaveBeenCalled(); // background refetch on focus
   });
 
@@ -52,11 +53,12 @@ describe("useRemindersScreen", () => {
     expect(listReminders).toHaveBeenCalled();
   });
 
-  it("refresh is a no-op without a local db", async () => {
+  it("stays in the loading state (shimmer) until the local db is ready", async () => {
     getLocalDb.mockReturnValue(null);
-    renderHook(() => useRemindersScreen());
+    const { result } = renderHook(() => useRemindersScreen());
     await act(async () => { await Promise.resolve(); });
     expect(listReminders).not.toHaveBeenCalled();
+    expect(result.current.loading).toBe(true);
   });
 
   it("stops refreshing once the screen has unmounted", async () => {

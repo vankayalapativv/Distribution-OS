@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AssignedRow } from "../../components/reminders/assigned-row";
 import { DoneRow, PendingRow } from "../../components/reminders/reminder-rows";
 import { FollowupReminderRow } from "../../components/reminders/followup-reminder-row";
+import { RemindersSkeleton } from "../../components/reminders/reminders-skeleton";
 import { Icon } from "../../components/icon";
 import { useRemindersScreen } from "../../lib/use-reminders-screen";
 
@@ -13,6 +14,7 @@ export default function RemindersScreen() {
     assigned,
     followups,
     now,
+    loading,
     refreshing,
     onRefresh,
     onDone,
@@ -42,7 +44,9 @@ export default function RemindersScreen() {
         contentContainerClassName="gap-2 px-4 pb-6"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {reminders.length === 0 && assigned.length === 0 && followups.length === 0 ? (
+        {loading ? <RemindersSkeleton /> : null}
+
+        {!loading && reminders.length === 0 && assigned.length === 0 && followups.length === 0 ? (
           <View className="items-center gap-2 py-16">
             <Icon name="alarm-outline" size={44} color="#9ca3af" />
             <Text className="text-base font-semibold text-foreground">No reminders yet</Text>

@@ -10,17 +10,26 @@ vi.mock("../../components/reminders/reminder-rows", () => ({
   DoneRow: ({ r }: { r: { id: string } }) => <span>done-{r.id}</span>,
 }));
 vi.mock("../../components/reminders/followup-reminder-row", () => ({ FollowupReminderRow: ({ f }: { f: { customerId: string } }) => <span>fu-{f.customerId}</span> }));
+vi.mock("../../components/reminders/reminders-skeleton", () => ({ RemindersSkeleton: () => <span>reminders-skeleton</span> }));
 
 import RemindersScreen from "./reminders";
 
-const empty = { reminders: [], assigned: [], followups: [], now: 1000, refreshing: false, onRefresh: vi.fn(), onDone: vi.fn(), confirmDoneAssigned: vi.fn(), confirmDelete: vi.fn(), confirmDoneFollowup: vi.fn() };
+const empty = { reminders: [], assigned: [], followups: [], now: 1000, loading: false, refreshing: false, onRefresh: vi.fn(), onDone: vi.fn(), confirmDoneAssigned: vi.fn(), confirmDelete: vi.fn(), confirmDoneFollowup: vi.fn() };
 
 describe("RemindersScreen", () => {
+  it("shows the shimmer while loading, not the empty state", () => {
+    useRemindersScreen.mockReturnValue({ ...empty, loading: true });
+    render(<RemindersScreen />);
+    expect(screen.getByText("reminders-skeleton")).toBeInTheDocument();
+    expect(screen.queryByText("No reminders yet")).not.toBeInTheDocument();
+  });
+
   it("shows the empty state and routes to New", () => {
     (router.push as ReturnType<typeof vi.fn>).mockClear();
     useRemindersScreen.mockReturnValue({ ...empty });
     render(<RemindersScreen />);
     expect(screen.getByText("No reminders yet")).toBeInTheDocument();
+    expect(screen.queryByText("reminders-skeleton")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("＋ New"));
     expect(router.push).toHaveBeenCalledWith("/reminder/new");
   });

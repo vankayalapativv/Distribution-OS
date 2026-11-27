@@ -32,6 +32,16 @@ export default defineConfig({
         // cannot load under Node. All db.ts logic around it IS covered.
         "src/lib/native-sqlite.ts",
       ],
+      // 100% gate: the whole `src` tree (lib + components + screens) is fully
+      // covered, so `pnpm test:coverage` fails the build on any regression.
+      // Keep this at 100 — don't lower it; add a test (or a scoped
+      // `/* v8 ignore */` with a reason) instead.
+      thresholds: {
+        statements: 100,
+        branches: 100,
+        functions: 100,
+        lines: 100,
+      },
     },
     projects: [
       {

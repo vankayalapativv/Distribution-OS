@@ -10,6 +10,7 @@ const TONE_STOPS = ["text-green-600", "text-amber-600", "text-orange-600", "text
 export function toneForPosition(index: number, total: number): string {
   if (total <= 1) return TONE_STOPS[TONE_STOPS.length - 1];
   const stop = Math.round((index / (total - 1)) * (TONE_STOPS.length - 1));
+  /* v8 ignore next -- stop is always within TONE_STOPS; the ?? is defensive */
   return TONE_STOPS[stop] ?? "text-foreground";
 }
 

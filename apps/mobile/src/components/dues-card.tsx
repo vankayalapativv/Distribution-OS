@@ -23,6 +23,7 @@ export function DuesCard({
     useCallback(() => {
       let cancelled = false;
       void fetchDuesSummary().then((result) => {
+        /* v8 ignore next -- unmount-safety guard (resolve after unmount) */
         if (cancelled) return;
         if (result) setSummary(result);
         setLoading(false);
@@ -41,10 +42,12 @@ export function DuesCard({
     let cancelled = false;
     void fetchDuesSummary()
       .then((result) => {
+        /* v8 ignore next -- unmount-safety guard (resolve after unmount) */
         if (cancelled) return;
         if (result) setSummary(result);
       })
       .finally(() => {
+        /* v8 ignore next -- cancelled is always false here outside an unmount race */
         if (!cancelled) setRefreshing(false);
         onSettled?.(); // report to the Home pull-to-refresh coordinator
       });

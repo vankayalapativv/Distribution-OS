@@ -1,50 +1,12 @@
 import { useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
-import { Icon } from "./icon";
 import { MonthCalendar } from "./calendar-range";
+import { Stepper } from "./datetime-stepper";
+import { assemble, FAR_FUTURE, to12h, toYmd } from "./datetime-picker-utils";
 
 /** In-app follow-up reminder picker — a themed date + time chooser (no native OS
  *  picker) matching the app's card/typography. Reuses MonthCalendar for the day,
  *  a flat hour/minute/AM-PM stepper for the time. */
-
-function toYmd(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-function parseYmd(s: string): Date {
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, (m ?? 1) - 1, d ?? 1);
-}
-function to12h(h24: number): { h: number; ampm: "AM" | "PM" } {
-  const ampm = h24 >= 12 ? "PM" : "AM";
-  const h = h24 % 12 === 0 ? 12 : h24 % 12;
-  return { h, ampm };
-}
-function to24h(h12: number, ampm: "AM" | "PM"): number {
-  if (ampm === "AM") return h12 === 12 ? 0 : h12;
-  return h12 === 12 ? 12 : h12 + 12;
-}
-/** The chosen moment, assembled from the day + 12h time parts. */
-function assemble(ymd: string, h12: number, minute: number, ampm: "AM" | "PM"): Date {
-  const base = parseYmd(ymd);
-  base.setHours(to24h(h12, ampm), minute, 0, 0);
-  return base;
-}
-
-const FAR_FUTURE = toYmd(new Date(Date.now() + 730 * 86400000)); // ~2y, so no day is disabled
-
-function Stepper({ value, onUp, onDown }: { readonly value: string; readonly onUp: () => void; readonly onDown: () => void }) {
-  return (
-    <View className="items-center">
-      <Pressable onPress={onUp} hitSlop={8} className="h-8 w-12 items-center justify-center">
-        <Icon name="chevron-up" size={20} color="#334155" />
-      </Pressable>
-      <Text className="w-14 text-center text-2xl font-bold text-foreground">{value}</Text>
-      <Pressable onPress={onDown} hitSlop={8} className="h-8 w-12 items-center justify-center">
-        <Icon name="chevron-down" size={20} color="#334155" />
-      </Pressable>
-    </View>
-  );
-}
 
 export function DateTimePickerCard({
   visible,

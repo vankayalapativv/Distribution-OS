@@ -76,9 +76,11 @@ vi.mock("react-native-safe-area-context", () => {
 
 // --- keyboard-controller: inert views/hooks ----------------------------------
 vi.mock("react-native-keyboard-controller", () => {
-  const ScrollView = require("react-native-web").ScrollView;
+  const RNWeb = require("react-native-web");
+  const ScrollView = RNWeb.ScrollView;
   return {
     KeyboardAwareScrollView: ScrollView,
+    KeyboardAvoidingView: (props: Record<string, unknown>) => React.createElement(RNWeb.View, props),
     KeyboardProvider: ({ children }: { children?: React.ReactNode }) =>
       React.createElement(React.Fragment, null, children),
     KeyboardController: { dismiss: vi.fn() },

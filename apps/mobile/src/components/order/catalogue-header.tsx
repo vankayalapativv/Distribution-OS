@@ -1,5 +1,6 @@
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { usePlaceholderColor } from "../../lib/theme";
+import { BrandTabs } from "./brand-tabs";
 import { SegChip } from "./seg-chip";
 
 /** Search box + brand (company) tabs + segment chips. The top tabs are the
@@ -53,31 +54,7 @@ export function CatalogueHeader({
         </View>
       </View>
 
-      {brands.length > 0 ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerClassName="gap-6 px-5"
-          className="border-b border-border"
-        >
-          {brands.map((b) => (
-            <Pressable
-              key={b}
-              className={`pb-2 pt-1 ${brand === b ? "border-b-2 border-primary" : ""}`}
-              onPress={() => onBrand(b)}
-            >
-              <Text
-                className={`text-sm font-semibold ${
-                  brand === b ? "text-primary" : "text-muted-foreground"
-                }`}
-              >
-                {b}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      ) : null}
+      <BrandTabs brands={brands} brand={brand} onBrand={onBrand} />
 
       {segments.length > 0 ? (
         <ScrollView

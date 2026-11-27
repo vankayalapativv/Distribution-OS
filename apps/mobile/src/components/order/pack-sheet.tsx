@@ -41,6 +41,7 @@ export function PackSheet({
   // Litres products need a pack; quantity products just need a valid count.
   const valid = qtyN !== null && (isQuantity || (pack != null && pack > 0));
   function add() {
+    /* v8 ignore next -- `qtyN !== null` is redundant (valid implies it); it only narrows the type */
     if (valid && qtyN !== null) {
       onAdd(isQuantity ? null : pack, segment, qtyN);
       onClose();

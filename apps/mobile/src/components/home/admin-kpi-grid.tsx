@@ -42,11 +42,14 @@ export function AdminKpiGrid({
       {rows.map((row) =>
         row.length === 1 ? (
           // Lone last card → half width, matching a paired row's left card.
-          // A plain `width: 48%` wrapper (no flex) is used instead of a flex
-          // spacer: the card's own `flex-1` grows from a content basis, so a
-          // flex approach makes it out-grow an empty spacer. The card's flex-1
-          // just fills this fixed-width wrapper (width 48%, height stays content).
-          <View key={row[0].key} style={{ width: "48%" }}>
+          // The wrapper MUST be `flex-row`: the card's `flex-1` is
+          // flex-basis:0, so in a column context it would grow along the
+          // vertical axis and collapse the card's height to 0 (basis 0, no
+          // free space) — visible after a re-layout like pull-to-refresh. A
+          // flex-row wrapper puts the card in the SAME horizontal-main-axis
+          // context as a paired row, so flex-1 fills the 48% width and the
+          // height stays content-sized, exactly like the left card of a pair.
+          <View key={row[0].key} className="flex-row" style={{ width: "48%" }}>
             {renderCard(row[0])}
           </View>
         ) : (

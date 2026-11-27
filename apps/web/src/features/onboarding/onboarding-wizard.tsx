@@ -24,7 +24,6 @@ interface Data {
   bank: { bankName: string; accountName: string; accountNumber: string; ifsc: string; upiId: string };
   invoice: { prefix: string; finYear: string; startSeq: string; terms: string };
   godowns: Godown[];
-  tracking: { se: string; logistics: string };
   duesBands: DuesBand[];
 }
 
@@ -35,7 +34,6 @@ const EMPTY: Data = {
   bank: { bankName: "", accountName: "", accountNumber: "", ifsc: "", upiId: "" },
   invoice: { prefix: "", finYear: "2026-27", startSeq: "1", terms: DEFAULT_TERMS },
   godowns: [{ name: "", city: "", state: "", stateCode: "" }],
-  tracking: { se: "20:00", logistics: "22:00" },
   duesBands: [
     { fromDays: "0", toDays: "30", label: "0–30 days" },
     { fromDays: "31", toDays: "45", label: "31–45 days" },
@@ -46,7 +44,7 @@ const EMPTY: Data = {
 
 const STEPS = [
   "Administrator", "Company identity", "Registered address", "Banking & payment",
-  "Invoice setup", "Godowns", "Field tracking", "Collection dues", "Review & submit",
+  "Invoice setup", "Godowns", "Collection dues", "Review & submit",
 ];
 const LAST = STEPS.length - 1;
 
@@ -57,7 +55,6 @@ const PIN_RE = /^[1-9][0-9]{5}$/;
 const UPI_RE = /^[\w.-]{2,}@[a-zA-Z]{2,}$/;
 const ACCT_RE = /^[0-9]{6,18}$/;
 const CODE_RE = /^[0-9]{2}$/;
-const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 type Errors = Record<string, string>;
 
@@ -111,10 +108,6 @@ function validateStep(i: number, d: Data): Errors {
       });
       break;
     case 6:
-      if (!TIME_RE.test(d.tracking.se)) e["tracking.se"] = "Set a valid time.";
-      if (!TIME_RE.test(d.tracking.logistics)) e["tracking.logistics"] = "Set a valid time.";
-      break;
-    case 7:
       Object.assign(e, validateDues(d.duesBands));
       break;
     default:
@@ -153,12 +146,6 @@ function stepIsValid(i: number, d: Data): boolean {
 function firstInvalidStep(d: Data): number | null {
   for (let i = 0; i < LAST; i++) if (!stepIsValid(i, d)) return i;
   return null;
-}
-
-/** Hour from an "HH:MM" string, with a safe fallback for empty / malformed input. */
-function hourOf(v: string, fallback: number): number {
-  const h = Number((v || "").split(":")[0]);
-  return v.trim() && Number.isInteger(h) && h >= 0 && h <= 23 ? h : fallback;
 }
 
 /** Uppercase the first letter after each space; the rest of each word is left
@@ -281,10 +268,6 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
       bank: data.bank,
       invoice: { ...data.invoice, startSeq: Number(data.invoice.startSeq) },
       godowns: data.godowns,
-      tracking: {
-        seAutoStopHour: hourOf(data.tracking.se, 20),
-        logisticsAutoStopHour: hourOf(data.tracking.logistics, 22),
-      },
       duesBands: data.duesBands.map((b) => ({
         fromDays: Number(b.fromDays), toDays: b.toDays.trim() === "" ? null : Number(b.toDays), label: b.label,
       })),
@@ -500,15 +483,6 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
               )}
 
               {step === 6 && (
-                <Step headingRef={headingRef} title="Field tracking" lead="When the day's GPS tracking auto-stops for each team." required>
-                  <div className="grid gap-3.5 sm:grid-cols-2">
-                    <Field label="Sales Executive auto-stop" error={err("tracking.se")} hint="Field day typically ends by evening."><Input type="time" value={data.tracking.se} onChange={(e) => upd("tracking", { se: e.target.value })} /></Field>
-                    <Field label="Logistics auto-stop" error={err("tracking.logistics")} hint="Delivery runs often finish later."><Input type="time" value={data.tracking.logistics} onChange={(e) => upd("tracking", { logistics: e.target.value })} /></Field>
-                  </div>
-                </Step>
-              )}
-
-              {step === 7 && (
                 <Step headingRef={headingRef} title="Collection dues bands" lead="How overdue money is aged. A customer sits in one band by how long their oldest overdue invoice has been past due.">
                   <Mand className="mb-5"><b className="font-semibold text-foreground">Exactly 4 bands</b> — contiguous, starting at day 0; the last is open-ended (leave its To blank). Edit the ranges + labels to suit your business.</Mand>
                   {data.duesBands.map((b, i) => (
@@ -521,7 +495,7 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
                 </Step>
               )}
 
-              {step === 8 && (
+              {step === 7 && (
                 <Step headingRef={headingRef} title="Review & submit" lead="Check everything, then submit for approval. You can't use the app until it's approved.">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Rev title="Administrator" to={0} go={goTo} rows={[["Designation", data.admin.designation]]} />
@@ -530,8 +504,7 @@ export function OnboardingWizard({ initial, rejectedReason }: { initial: Partial
                     <Rev title="Banking" to={3} go={goTo} rows={[["Bank", data.bank.bankName], ["A/C", data.bank.accountNumber], ["IFSC", data.bank.ifsc], ["UPI", data.bank.upiId]]} />
                     <Rev title="Invoicing" to={4} go={goTo} rows={[["Series", `${data.invoice.prefix}${data.invoice.startSeq}`], ["Terms", `${data.invoice.terms.split("\n").filter(Boolean).length} clauses`]]} />
                     <Rev title="Godowns" to={5} go={goTo} rows={[["Count", String(data.godowns.length)], ["Primary", data.godowns[0]?.name ?? ""]]} />
-                    <Rev title="Field tracking" to={6} go={goTo} rows={[["SE stops", data.tracking.se], ["Logistics", data.tracking.logistics]]} />
-                    <Rev title="Collection dues" to={7} go={goTo} rows={[["Bands", String(data.duesBands.length)], ["Oldest", data.duesBands[data.duesBands.length - 1]?.label ?? ""]]} />
+                    <Rev title="Collection dues" to={6} go={goTo} rows={[["Bands", String(data.duesBands.length)], ["Oldest", data.duesBands[data.duesBands.length - 1]?.label ?? ""]]} />
                   </div>
                 </Step>
               )}

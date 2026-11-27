@@ -16,11 +16,6 @@ const BANK_FIELDS: SettingField[] = [
   { key: "company_upi_id", label: "UPI ID", mono: true },
 ];
 
-const TRACKING_FIELDS: SettingField[] = [
-  { key: "tracking_se_autostop_hour", label: "SE auto-stop hour (0–24)", mono: true },
-  { key: "tracking_logistics_autostop_hour", label: "Logistics auto-stop hour (0–24)", mono: true },
-];
-
 /**
  * Full editable view of an enterprise's onboarding details, shown in place of the
  * read-only sections. Each section saves on its own (to its own endpoint) and the
@@ -57,7 +52,6 @@ export function CockpitEditPanel({
         busy={busy}
         onSave={onSave}
       />
-      <CockpitSettingsForm title="Field tracking" fields={TRACKING_FIELDS} settings={settings} busy={busy} onSave={onSave} />
       <CockpitDuesForm bands={duesBands} busy={busy} onSave={onSave} />
       <CockpitGodownsForm godowns={godowns} busy={busy} onSave={onSave} />
     </div>

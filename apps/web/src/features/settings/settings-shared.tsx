@@ -13,8 +13,6 @@ import type { CompanyProfile } from "@/lib/company";
 export type { CompanyProfile };
 
 export interface SystemSettings {
-  /** Hour of the IST day (0–23) at which SE GPS tracking auto-stops for the day. */
-  seTrackingStopHour: number;
   company: CompanyProfile;
 }
 

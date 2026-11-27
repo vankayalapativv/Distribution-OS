@@ -20,6 +20,22 @@ export function NotificationRowSkeleton() {
   );
 }
 
+/** Customer note card: author + timestamp on a top row, then a two-line body
+ *  paragraph — mirrors the rounded-2xl NoteCard on the customer Notes screen
+ *  (which has no trailing status chip). */
+export function NoteRowSkeleton() {
+  return (
+    <View className="gap-2 rounded-2xl border border-border bg-card p-4">
+      <View className="flex-row items-center gap-2">
+        <Skeleton width={90} height={13} />
+        <Skeleton width={54} height={11} />
+      </View>
+      <Skeleton width="100%" height={12} />
+      <Skeleton width="80%" height={12} />
+    </View>
+  );
+}
+
 /** Dues drill-down row: customer name + oldest-invoice line left, outstanding
  *  amount right — mirrors dues/[bucket] rows. */
 export function DuesRowSkeleton() {

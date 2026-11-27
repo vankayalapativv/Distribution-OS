@@ -5,17 +5,17 @@
 import { View } from "react-native";
 import { Skeleton } from "./skeleton-block";
 
-/** Card-shaped row: title line + status chip — beat stops, activity rows. */
-export function CardRowSkeleton() {
+/** Beat stop row: leading sequence badge, name + city stack, trailing status
+ *  pill — mirrors the real StopRow on Today's Beat. */
+export function BeatStopRowSkeleton() {
   return (
-    <View className="rounded-xl border border-border bg-card p-4">
-      <View className="flex-row items-center justify-between">
-        <Skeleton width="55%" height={16} />
-        <Skeleton width={72} height={22} radius={11} />
+    <View className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-4">
+      <Skeleton width={32} height={32} radius={16} />
+      <View className="flex-1 gap-2">
+        <Skeleton width="55%" height={15} />
+        <Skeleton width="38%" height={11} />
       </View>
-      <View className="mt-2">
-        <Skeleton width="40%" height={11} />
-      </View>
+      <Skeleton width={56} height={20} radius={10} />
     </View>
   );
 }
@@ -60,17 +60,17 @@ export function PickerRowSkeleton() {
   );
 }
 
-/** Invoice row: number + amount, due line below. */
-export function InvoiceRowSkeleton() {
+/** Delivery invoice-picker row: invoice no + customer + address stacked on the
+ *  left, a round map button on the right — mirrors the Add-delivery picker. */
+export function DeliveryPickerRowSkeleton() {
   return (
-    <View className="rounded-xl border border-border bg-card p-3">
-      <View className="flex-row items-center justify-between">
+    <View className="flex-row items-center gap-3 rounded-3xl border border-border bg-card p-3.5">
+      <View className="flex-1 gap-1.5">
         <Skeleton width="40%" height={15} />
-        <Skeleton width={70} height={15} />
+        <Skeleton width="60%" height={13} />
+        <Skeleton width="50%" height={11} />
       </View>
-      <View className="mt-2">
-        <Skeleton width="55%" height={11} />
-      </View>
+      <Skeleton width={40} height={40} radius={20} />
     </View>
   );
 }

@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ErrorState } from "../../components/error-state";
 import { AddNoteBox } from "../../components/notes/add-note-box";
 import { NoteCard, type CustomerNote } from "../../components/notes/note-card";
-import { CardRowSkeleton, SkeletonList } from "../../components/skeleton";
+import { NoteRowSkeleton, SkeletonList } from "../../components/skeleton";
 import { apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { cacheKeys } from "../../lib/cache-keys";
@@ -58,7 +58,7 @@ export default function NotesScreen() {
   // here (not an inline component in the JSX) so each branch is a plain element.
   let emptyContent: ReactElement;
   if (query.isPending) {
-    emptyContent = <SkeletonList count={4} row={CardRowSkeleton} />;
+    emptyContent = <SkeletonList count={4} row={NoteRowSkeleton} />;
   } else if (query.isError) {
     emptyContent = (
       <ErrorState error={query.error} onRetry={() => void query.refetch()} compact />

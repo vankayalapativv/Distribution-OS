@@ -1,16 +1,15 @@
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useBottomInset } from "../../lib/use-bottom-inset";
 import { DeliveryHeader } from "./delivery-header";
+import { DeliverySkeleton } from "./delivery-skeleton";
 
-/** Initial load spinner. */
+/** Initial load: real header + a context-aware shimmer of the run body. */
 export function DeliveryLoading() {
   return (
     <SafeAreaView className="flex-1 bg-secondary" edges={["top"]}>
       <DeliveryHeader title="Deliveries" />
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator color="#3b82f6" />
-      </View>
+      <DeliverySkeleton />
     </SafeAreaView>
   );
 }

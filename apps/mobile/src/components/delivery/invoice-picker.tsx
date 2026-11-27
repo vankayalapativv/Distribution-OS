@@ -3,7 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { addressLine, openInMaps, type DeliverableInvoice } from "../../lib/deliverable-invoice";
 import { ErrorState } from "../error-state";
 import { Icon } from "../icon";
-import { CardRowSkeleton, SkeletonList } from "../skeleton";
+import { DeliveryPickerRowSkeleton, SkeletonList } from "../skeleton";
 
 export interface InvoicePickerProps {
   isPending: boolean;
@@ -45,7 +45,7 @@ export function InvoicePicker(p: Readonly<InvoicePickerProps>) {
       {(() => {
         if (p.isPending) {
           return (
-            <View className="px-5 py-3"><SkeletonList count={7} row={CardRowSkeleton} /></View>
+            <View className="px-5 py-3"><SkeletonList count={7} row={DeliveryPickerRowSkeleton} /></View>
           );
         }
         if (p.isError) {

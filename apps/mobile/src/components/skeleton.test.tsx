@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
 import {
-  CardRowSkeleton,
+  BeatStopRowSkeleton,
   ContactRowSkeleton,
+  DeliveryPickerRowSkeleton,
   DuesRowSkeleton,
   FormFieldSkeleton,
-  InvoiceRowSkeleton,
   LedgerRowSkeleton,
   ListRowSkeleton,
+  NoteRowSkeleton,
   NotificationRowSkeleton,
   PdfPageSkeleton,
   PickerRowSkeleton,
@@ -41,13 +42,14 @@ describe("Skeleton block", () => {
 
 describe("row-shape skeletons", () => {
   const rows = [
-    CardRowSkeleton,
+    BeatStopRowSkeleton,
     ContactRowSkeleton,
+    DeliveryPickerRowSkeleton,
     DuesRowSkeleton,
     FormFieldSkeleton,
-    InvoiceRowSkeleton,
     LedgerRowSkeleton,
     ListRowSkeleton,
+    NoteRowSkeleton,
     NotificationRowSkeleton,
     PickerRowSkeleton,
     RecordRowSkeleton,

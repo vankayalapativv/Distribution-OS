@@ -17,9 +17,9 @@
 export { SkeletonTheme } from "./skeleton-sweep";
 export { Skeleton } from "./skeleton-block";
 export {
-  CardRowSkeleton,
+  BeatStopRowSkeleton,
   ContactRowSkeleton,
-  InvoiceRowSkeleton,
+  DeliveryPickerRowSkeleton,
   ListRowSkeleton,
   PickerRowSkeleton,
 } from "./skeleton-list-rows";
@@ -27,6 +27,7 @@ export {
   DuesRowSkeleton,
   FormFieldSkeleton,
   LedgerRowSkeleton,
+  NoteRowSkeleton,
   NotificationRowSkeleton,
   RecordRowSkeleton,
 } from "./skeleton-detail-rows";

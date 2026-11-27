@@ -3,7 +3,7 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StopRow } from "../components/beat/stop-row";
 import { Icon } from "../components/icon";
-import { CardRowSkeleton, SkeletonList } from "../components/skeleton";
+import { BeatStopRowSkeleton, SkeletonList } from "../components/skeleton";
 import { useTodayBeat } from "../lib/beat/use-today-beat";
 import { effectiveStopStatus, isStopDone } from "../lib/beat/stop-status";
 import { usePullRefresh } from "../lib/use-pull-refresh";
@@ -47,7 +47,7 @@ export default function BeatScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {(() => { if ((loading && !beat) || refreshing) return (
-          <SkeletonList count={11} row={CardRowSkeleton} />
+          <SkeletonList count={11} row={BeatStopRowSkeleton} />
         ); if (stops.length === 0) return (
           <View className="mt-24 items-center gap-2 px-6">
             <Icon name="map-outline" size={40} color="#94a3b8" />

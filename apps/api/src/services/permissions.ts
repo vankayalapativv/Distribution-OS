@@ -92,6 +92,10 @@ const ACTIONS: PermissionDef[] = [
   { key: "action:expenditures.advances.manage", kind: "action", label: "Give / record advances", group: "Actions", defaults: d(T, T) },
   // Approve or reject an SE's requested advance.
   { key: "action:expenditures.advances.approve", kind: "action", label: "Approve advance requests", group: "Actions", defaults: d(T, T) },
+  // Salary is sensitive — OFF for both office roles by default (SA-only); SA grants
+  // it deliberately. View = see others' salaries; manage = set + pay salaries.
+  { key: "action:salary.view", kind: "action", label: "View salaries", group: "Actions", defaults: d(F, F) },
+  { key: "action:salary.manage", kind: "action", label: "Set / pay salaries", group: "Actions", defaults: d(F, F) },
   { key: "action:alerts.close", kind: "action", label: "Close alerts", group: "Actions", defaults: d(T, F) },
   { key: "action:targets.edit", kind: "action", label: "Edit targets", group: "Actions", defaults: d(T, F) },
 ];

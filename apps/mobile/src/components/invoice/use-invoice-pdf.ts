@@ -16,6 +16,7 @@ export function useInvoicePdf(invoiceId: string, label: string) {
     setState("loading");
     setUri(null);
     void downloadInvoicePdf(invoiceId, label).then((result) => {
+      /* v8 ignore next -- unmount-safety guard */
       if (cancelled) return;
       if (!result) {
         setState("error");

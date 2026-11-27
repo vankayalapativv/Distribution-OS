@@ -14,6 +14,14 @@ export function SettingsSections() {
         </View>
       </View>
 
+      {/* Expenses */}
+      <View className="gap-2">
+        <SectionLabel>Expenses</SectionLabel>
+        <View className="overflow-hidden rounded-3xl border border-border bg-card">
+          <Row label="My expense claims" onPress={() => router.push("/settings/expenses")} />
+        </View>
+      </View>
+
       {/* App */}
       <View className="gap-2">
         <SectionLabel>App</SectionLabel>

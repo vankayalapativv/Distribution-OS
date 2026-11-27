@@ -3,6 +3,7 @@ import { makeSql, calledTag } from "../test/sql-mock";
 import {
   approveClaim,
   getClaim,
+  listClaimCategories,
   listClaims,
   rejectClaim,
   resubmitClaim,
@@ -29,6 +30,13 @@ function claimRow(over: Record<string, unknown> = {}) {
   };
 }
 const variableCat = { claim_category_check: [{ type: "variable" }] };
+
+describe("listClaimCategories", () => {
+  it("returns active variable categories", async () => {
+    const sql = makeSql({ claim_categories: [{ id: "c1", name: "Fuel" }, { id: "c2", name: "Food" }] });
+    expect(await listClaimCategories(sql)).toEqual([{ id: "c1", name: "Fuel" }, { id: "c2", name: "Food" }]);
+  });
+});
 
 describe("submitClaim", () => {
   it("rejects a non-positive amount", async () => {

@@ -37,6 +37,14 @@ export default function LogisticsSettingsScreen() {
           </View>
         </View>
 
+        {/* Expenses */}
+        <View className="gap-2">
+          <SectionLabel>Expenses</SectionLabel>
+          <View className="overflow-hidden rounded-3xl border border-border bg-card">
+            <Row label="My expense claims" onPress={() => router.push("/settings/expenses")} />
+          </View>
+        </View>
+
         {/* Logout — blocked while a delivery run is active */}
         <Pressable
           className={`items-center rounded-full border py-3.5 ${

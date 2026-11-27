@@ -22,6 +22,8 @@ describe("LogisticsSettingsScreen", () => {
     expect(screen.queryByText("Edit profile")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("Change password"));
     expect(router.push).toHaveBeenCalledWith("/settings/password");
+    fireEvent.click(screen.getByText("My expense claims"));
+    expect(router.push).toHaveBeenCalledWith("/settings/expenses");
     fireEvent.click(screen.getByText("Log out"));
     expect(onLogout).toHaveBeenCalled();
     expect(screen.queryByText(/End your deliveries/)).not.toBeInTheDocument();

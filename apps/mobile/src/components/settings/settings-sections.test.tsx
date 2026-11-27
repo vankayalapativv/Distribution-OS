@@ -11,6 +11,8 @@ describe("SettingsSections", () => {
     expect(screen.queryByText("Edit profile")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("Change password"));
     expect(router.push).toHaveBeenCalledWith("/settings/password");
+    fireEvent.click(screen.getByText("My expense claims"));
+    expect(router.push).toHaveBeenCalledWith("/settings/expenses");
     fireEvent.click(screen.getByText("Help"));
     expect(router.push).toHaveBeenCalledWith("/settings/about");
   });

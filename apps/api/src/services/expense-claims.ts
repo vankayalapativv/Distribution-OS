@@ -39,6 +39,16 @@ function mapClaim(r: Row) {
   };
 }
 
+/** The field-claimable categories (active + variable) for the mobile picker. */
+export async function listClaimCategories(sql: SqlClient) {
+  const rows = (await sql`
+    /* claim_categories */
+    select id, name from expenditure_categories
+    where is_active and type = 'variable' order by name
+  `) as Row[];
+  return rows.map((r) => ({ id: str(r.id), name: str(r.name) }));
+}
+
 export interface ClaimInput {
   categoryId: string;
   amount: number;

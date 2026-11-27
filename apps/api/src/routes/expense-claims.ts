@@ -9,6 +9,7 @@ import { optionalNumber, optionalString, readJsonObject, requiredString } from "
 import {
   approveClaim,
   getClaim,
+  listClaimCategories,
   listClaims,
   rejectClaim,
   resubmitClaim,
@@ -60,6 +61,12 @@ export const expenseClaimsRoutes = new Hono<ApiEnv>()
       summary: `Submitted a ${claim.categoryName} claim — ₹${claim.amount.toLocaleString("en-IN")}`,
     });
     return c.json(success(c, withReceipt), 201);
+  })
+
+  // Field: the categories a claim can be filed under (active + variable).
+  .get("/categories", async (c) => {
+    requireRole(c, FIELD_ROLES);
+    return c.json(success(c, await listClaimCategories(getSqlClient(c))));
   })
 
   // Field: my own claims (any status).

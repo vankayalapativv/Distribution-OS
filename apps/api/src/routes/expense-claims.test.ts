@@ -39,6 +39,7 @@ vi.mock("@neondatabase/serverless", () => {
       return [{ role: role[s], userId: uid[s] ?? SUPER_ADMIN_ID, enterpriseId: ENT }];
     }
     if (query.includes("role_permission_overrides")) return []; // catalog defaults
+    if (query.includes("claim_categories")) return [{ id: CATEGORY_ID, name: "Fuel — Sales Executives" }];
     if (query.includes("claim_category_check")) return [{ type: "variable" }];
     if (query.includes("claim_idempotency")) return [];
     if (query.includes("next_claim_code")) return [{ seq: 7 }];
@@ -119,6 +120,15 @@ describe("expense-claims routes", () => {
     const { default: app } = await import("../index");
     const res = await app.request("/api/v1/expense-claims", { method: "POST", headers: authHeaders("neon-se"), body: submitForm() }, { ...env, PHOTOS: undefined });
     expect(res.status).toBe(500);
+  });
+
+  test("SE lists claim categories; office is forbidden here", async () => {
+    const { default: app } = await import("../index");
+    const ok = await app.request("/api/v1/expense-claims/categories", { headers: authHeaders("neon-se") }, env);
+    expect(ok.status).toBe(200);
+    expect((await ok.json()).data).toEqual([{ id: CATEGORY_ID, name: "Fuel — Sales Executives" }]);
+    const no = await app.request("/api/v1/expense-claims/categories", { headers: authHeaders("neon-manager") }, env);
+    expect(no.status).toBe(403);
   });
 
   test("SE lists their own claims", async () => {

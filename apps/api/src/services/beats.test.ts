@@ -18,10 +18,25 @@ describe("getTodayBeatPlan", () => {
   it("materializes and maps stops (string outstanding → num) on a weekday", async () => {
     const sql = makeSql({
       beat_today_ist: [{ weekday: 1, istDate: "2026-06-01" }],
-      get_beat_plan_stops: [{ stopId: "st1", sequenceNo: 1, stopStatus: "pending", customerId: "c1", customerCode: "C1", legalName: "Ravi", outstanding: "100", ageDays: "10" }],
+      get_beat_plan_stops: [{ stopId: "st1", sequenceNo: 1, stopStatus: "pending", customerId: "c1", customerCode: "C1", legalName: "Ravi", outstanding: "100", ageDays: "10", lastOrderDate: new Date("2026-05-20"), lastCollectionDate: "2026-05-28" }],
     });
     const out = await getTodayBeatPlan(sql, { userId: "se-1" });
     expect(out.beatPlanId).toBe("bp-1");
-    expect(out.stops[0]).toMatchObject({ stopId: "st1", outstanding: 100, dueBucket: "0_30" });
+    expect(out.stops[0]).toMatchObject({
+      stopId: "st1",
+      outstanding: 100,
+      dueBucket: "0_30",
+      lastOrderDate: "2026-05-20T00:00:00.000Z",
+      lastCollectionDate: "2026-05-28",
+    });
+  });
+
+  it("maps a customer with no order/collection history to null recency", async () => {
+    const sql = makeSql({
+      beat_today_ist: [{ weekday: 2, istDate: "2026-06-02" }],
+      get_beat_plan_stops: [{ stopId: "st2", sequenceNo: 1, stopStatus: "pending", customerId: "c2", customerCode: "C2", legalName: "New Shop", outstanding: "0", ageDays: null, lastOrderDate: null, lastCollectionDate: null }],
+    });
+    const out = await getTodayBeatPlan(sql, { userId: "se-1" });
+    expect(out.stops[0]).toMatchObject({ lastOrderDate: null, lastCollectionDate: null, dueBucket: null });
   });
 });

@@ -5,8 +5,9 @@
 import { View } from "react-native";
 import { Skeleton } from "./skeleton-block";
 
-/** Beat stop row: leading sequence badge, name + city stack, trailing status
- *  pill — mirrors the real StopRow on Today's Beat. */
+/** Beat stop row: leading sequence badge; name + city + phone stack with a due
+ *  chip and the two recency chips (last order / last collection); trailing
+ *  status pill — mirrors the real StopRow on Today's Beat. */
 export function BeatStopRowSkeleton() {
   return (
     <View className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-4">
@@ -14,6 +15,12 @@ export function BeatStopRowSkeleton() {
       <View className="flex-1 gap-2">
         <Skeleton width="55%" height={15} />
         <Skeleton width="38%" height={11} />
+        <Skeleton width="45%" height={11} />
+        <View className="flex-row flex-wrap gap-1.5">
+          <Skeleton width={84} height={18} radius={9} />
+          <Skeleton width={96} height={18} radius={9} />
+          <Skeleton width={104} height={18} radius={9} />
+        </View>
       </View>
       <Skeleton width={56} height={20} radius={10} />
     </View>

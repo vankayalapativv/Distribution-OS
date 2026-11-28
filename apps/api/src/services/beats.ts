@@ -45,6 +45,10 @@ function mapStopRow(row: Row) {
     city: strOrNull(row.city),
     outstanding,
     dueBucket: outstanding > 0 ? bucketFromAge(num(row.ageDays)) : null,
+    // Recency of this customer's last order / last collection (null = never),
+    // for the beat activity chips.
+    lastOrderDate: strOrNull(row.lastOrderDate),
+    lastCollectionDate: strOrNull(row.lastCollectionDate),
   };
 }
 
@@ -79,7 +83,14 @@ export async function getTodayBeatPlan(sql: SqlClient, context: BeatsContext) {
       c.address_street as "address",
       c.address_city as "city",
       coalesce(due.outstanding, 0) as "outstanding",
-      due.age_days as "ageDays"
+      due.age_days as "ageDays",
+      -- Last order placed (any non-cancelled order) and last collection recorded
+      -- (any non-rejected collection) for this customer — drives the activity chips.
+      (select max(o.order_date) from orders o
+         where o.customer_id = c.id and o.order_status <> 'cancelled') as "lastOrderDate",
+      (select max(col.collection_date) from collections col
+         where col.customer_id = c.id
+           and col.accountant_approval_status is distinct from 'rejected') as "lastCollectionDate"
     from beat_plan_stops bps
     join customers c on c.id = bps.customer_id
     -- This customer's collection due: total outstanding + oldest-unpaid age (IST),

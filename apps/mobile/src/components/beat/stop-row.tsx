@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { Linking, Pressable, Text, View } from "react-native";
 import type { BeatStop } from "../../lib/beat/today-beat-online";
+import { activityChip } from "../../lib/beat/activity-chip";
 import { effectiveStopStatus } from "../../lib/beat/stop-status";
 import { dueBucketMeta } from "../../lib/dues-bucket";
 import { rupeesLabel } from "../home/performance-card-format";
@@ -13,6 +14,9 @@ export function StopRow({ stop }: { readonly stop: BeatStop }) {
   const city = stop.city || "";
   const phone = stop.contactPhone || "";
   const due = stop.outstanding > 0 ? dueBucketMeta(stop.dueBucket) : null;
+  // Recency chips — last order + last collection, graded green→orange→red.
+  const orderChip = activityChip("order", stop.lastOrderDate);
+  const collectionChip = activityChip("collection", stop.lastCollectionDate);
   return (
     <Pressable
       className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-4"
@@ -53,6 +57,15 @@ export function StopRow({ stop }: { readonly stop: BeatStop }) {
             </Text>
           </View>
         ) : null}
+        {/* Last order / last collection recency, side by side. */}
+        <View className="mt-1.5 flex-row flex-wrap gap-1.5">
+          <View className={`self-start rounded-full px-2 py-0.5 ${orderChip.bgClass}`}>
+            <Text className={`text-[11px] font-semibold ${orderChip.textClass}`}>{orderChip.text}</Text>
+          </View>
+          <View className={`self-start rounded-full px-2 py-0.5 ${collectionChip.bgClass}`}>
+            <Text className={`text-[11px] font-semibold ${collectionChip.textClass}`}>{collectionChip.text}</Text>
+          </View>
+        </View>
       </View>
       <StatusPill status={effectiveStopStatus(stop.stopStatus)} />
     </Pressable>

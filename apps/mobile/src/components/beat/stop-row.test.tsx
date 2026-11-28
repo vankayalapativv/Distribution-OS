@@ -19,8 +19,12 @@ const stop = (over: Partial<BeatStop> = {}): BeatStop => ({
   city: "Hyderabad",
   outstanding: 0,
   dueBucket: null,
+  lastOrderDate: null,
+  lastCollectionDate: null,
   ...over,
 });
+
+const todayISO = new Date().toISOString().slice(0, 10);
 
 afterEach(() => {
   delete L.openURL;
@@ -54,6 +58,18 @@ describe("StopRow", () => {
     render(<StopRow stop={stop({ outstanding: 5000, dueBucket: "60_plus" })} />);
     expect(screen.getByText(/Due ₹5,000/)).toBeInTheDocument();
     expect(screen.getByText(/61\+d/)).toBeInTheDocument();
+  });
+
+  it("shows red 'No orders/collections yet' chips when the customer has neither", () => {
+    render(<StopRow stop={stop()} />);
+    expect(screen.getByText("No orders yet")).toBeInTheDocument();
+    expect(screen.getByText("No collections yet")).toBeInTheDocument();
+  });
+
+  it("shows last-order and last-collection recency chips when present", () => {
+    render(<StopRow stop={stop({ lastOrderDate: todayISO, lastCollectionDate: todayISO })} />);
+    expect(screen.getByText("Last order today")).toBeInTheDocument();
+    expect(screen.getByText("Last collection today")).toBeInTheDocument();
   });
 
   it("falls back for a missing city / name / due-bucket meta", () => {

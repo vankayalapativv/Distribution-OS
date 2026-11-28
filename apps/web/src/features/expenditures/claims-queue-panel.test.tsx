@@ -2,8 +2,6 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExpenseClaim } from "./expense-claims-api";
 
-const canApprove = { value: true };
-vi.mock("@/features/shell/use-can", () => ({ useCan: () => canApprove.value }));
 const queue = {
   claims: [] as ExpenseClaim[],
   isLoading: false,
@@ -43,31 +41,24 @@ const renderPanel = () => render(<ClaimsQueuePanel actionConfig={config} />);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  canApprove.value = true; queue.isLoading = false;
+  queue.isLoading = false;
   queue.claims = [claim({ remarks: "toll" }), claim({ id: "c2", categoryName: "Food", hasReceipt: false, submitterName: null })];
   queue.approve.mockResolvedValue(undefined);
 });
 afterEach(() => vi.clearAllMocks());
 
 describe("ClaimsQueuePanel", () => {
-  it("hides when the user cannot approve", () => {
-    canApprove.value = false;
-    const { container } = renderPanel();
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it("hides while loading and when there's nothing pending", () => {
+  it("shimmers while loading, then shows an all-clear note when nothing pends", () => {
     queue.isLoading = true;
-    const { container, rerender } = renderPanel();
-    expect(container).toBeEmptyDOMElement();
+    const { rerender } = renderPanel();
+    expect(screen.getByLabelText("Loading")).toBeInTheDocument();
     queue.isLoading = false; queue.claims = [];
     rerender(<ClaimsQueuePanel actionConfig={config} />);
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText("No claims awaiting approval.")).toBeInTheDocument();
   });
 
   it("lists pending claims with a receipt button only when attached", () => {
     renderPanel();
-    expect(screen.getByText("Pending claims (2)")).toBeInTheDocument();
     expect(screen.getByText(/Fuel · ₹450/)).toBeInTheDocument();
     expect(screen.getByText(/Priya · .* · toll/)).toBeInTheDocument();
     expect(screen.getAllByText("Receipt")).toHaveLength(1); // only c1 has a receipt

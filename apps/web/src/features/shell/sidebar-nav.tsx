@@ -16,6 +16,7 @@ interface BadgeCounts {
   alertsOpen: number;
   ordersNew: number;
   collectionsNew: number;
+  expenditureClaimsPending: number;
 }
 
 /**
@@ -95,6 +96,7 @@ function SidebarNavInner({
     if (key === "tasks") return data.tasksActive;
     if (key === "orders") return data.ordersNew;
     if (key === "collections") return data.collectionsNew;
+    if (key === "expenditures") return data.expenditureClaimsPending;
     return 0;
   };
 

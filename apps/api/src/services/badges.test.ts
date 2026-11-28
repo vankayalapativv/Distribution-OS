@@ -15,6 +15,7 @@ describe("getBadgeCounts", () => {
           collectionsNew: 1,
           visitsNew: 5,
           alertsOpen: 4,
+          expenditureClaimsPending: "7",
           collection: { amount: "1500", customer: "Ravi Motors", executive: "Sandeep" },
           order: { value: 70800, customer: "Sri Auto", executive: "Asha" },
           visit: { customer: "Kumar", executive: "Ravi" },
@@ -22,7 +23,7 @@ describe("getBadgeCounts", () => {
       ],
     });
     const b = await getBadgeCounts(sql, OFFICE);
-    expect(b).toMatchObject({ tasksActive: 3, ordersNew: 2, collectionsNew: 1, visitsNew: 5, alertsOpen: 4 });
+    expect(b).toMatchObject({ tasksActive: 3, ordersNew: 2, collectionsNew: 1, visitsNew: 5, alertsOpen: 4, expenditureClaimsPending: 7 });
     expect(b.latestCollection).toEqual({ amount: 1500, customer: "Ravi Motors", executive: "Sandeep" });
     expect(b.latestOrder).toEqual({ value: 70800, customer: "Sri Auto", executive: "Asha" });
     expect(b.latestVisit).toEqual({ customer: "Kumar", executive: "Ravi" });

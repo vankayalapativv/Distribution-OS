@@ -8,14 +8,14 @@ import type { ActionConfig } from "@/lib/api-client";
 import { SetSalaryDialog } from "./set-salary-dialog";
 import { PaySalaryDialog } from "./pay-salary-dialog";
 import { VoidReasonDialog } from "./void-reason-dialog";
+import { PanelRowsSkeleton } from "./panel-skeleton";
 import type { SalaryRow } from "./salary-api";
 import { useSalary } from "./use-salary";
 
-/** Salary & pay on the Expenditure page: each person's salary, advance outstanding,
- *  and this month's pay status, with Set-salary + Pay. Sensitive — only shown to
- *  Super Admin (or a role granted salary.view). */
+/** Body of the Salary & pay dialog: each person's salary, advance outstanding, and
+ *  this month's pay status, with Set-salary / Pay / Reverse. Shimmer while loading.
+ *  Sensitive — the kebab item is gated by salary.view. */
 export function SalaryPanel({ actionConfig }: { readonly actionConfig: ActionConfig }) {
-  const canView = useCan("action:salary.view");
   const canManage = useCan("action:salary.manage");
   const canVoid = useCan("action:expenditures.void");
   const { rows, staff, isLoading, setSalary, paySalary, voidSalary } = useSalary(actionConfig);
@@ -23,17 +23,16 @@ export function SalaryPanel({ actionConfig }: { readonly actionConfig: ActionCon
   const [paying, setPaying] = useState<SalaryRow | null>(null);
   const [reversing, setReversing] = useState<{ name: string; paymentId: string } | null>(null);
 
-  if (!canView || isLoading) return null;
+  if (isLoading) return <PanelRowsSkeleton />;
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-slate-900">Salary &amp; pay</h2>
+    <div>
+      <div className="mb-3 flex items-center justify-end gap-2">
         {canManage ? <Button size="sm" onClick={() => setSetting(true)}>Set salary</Button> : null}
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No salaries set yet.</p>
+        <p className="py-4 text-center text-sm text-muted-foreground">No salaries set yet.</p>
       ) : (
         <ul className="space-y-2">
           {rows.map((r) => (
@@ -64,6 +63,6 @@ export function SalaryPanel({ actionConfig }: { readonly actionConfig: ActionCon
         onOpenChange={(open) => !open && setReversing(null)}
         onConfirm={async (reason) => { await voidSalary(reversing!.paymentId, reason); setReversing(null); }}
       />
-    </section>
+    </div>
   );
 }

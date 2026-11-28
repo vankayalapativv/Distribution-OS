@@ -409,7 +409,7 @@ describe("expenditures routes", () => {
       const { default: app } = await import("../index");
       const res = await app.request(
         `/api/v1/expenditures/${EXPENDITURE_ID}/void`,
-        { method: "POST", headers: { "Content-Type": "application/json", ...headers("neon-super-admin") }, body: JSON.stringify({ reason: "duplicate" }) },
+        { method: "POST", headers: headers("neon-super-admin"), body: JSON.stringify({ reason: "duplicate" }) },
         env,
       );
       expect(res.status).toBe(200);
@@ -420,9 +420,36 @@ describe("expenditures routes", () => {
       const { default: app } = await import("../index");
       const res = await app.request(
         `/api/v1/expenditures/${EXPENDITURE_ID}/void`,
-        { method: "POST", headers: { "Content-Type": "application/json", ...headers("neon-se") }, body: JSON.stringify({}) },
+        { method: "POST", headers: headers("neon-se"), body: JSON.stringify({}) },
         env,
       );
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("GET /expenditures/ledger", () => {
+    test("returns a person's combined ledger for an office role", async () => {
+      const { default: app } = await import("../index");
+      const res = await app.request(
+        `/api/v1/expenditures/ledger?userId=${SE_ID}`,
+        { headers: headers("neon-super-admin") },
+        env,
+      );
+      expect(res.status).toBe(200);
+      const { data } = await res.json();
+      expect(data).toMatchObject({ salaryIncluded: true, entries: [] });
+      expect(data.summary).toMatchObject({ reimbursementOwed: 0, advanceOutstanding: 0 });
+    });
+
+    test("422 without a userId", async () => {
+      const { default: app } = await import("../index");
+      const res = await app.request("/api/v1/expenditures/ledger", { headers: headers("neon-super-admin") }, env);
+      expect(res.status).toBe(422);
+    });
+
+    test("a sales executive is forbidden", async () => {
+      const { default: app } = await import("../index");
+      const res = await app.request(`/api/v1/expenditures/ledger?userId=${SE_ID}`, { headers: headers("neon-se") }, env);
       expect(res.status).toBe(403);
     });
   });

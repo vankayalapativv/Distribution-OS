@@ -2,8 +2,6 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReimbursementPayable } from "./reimbursements-api";
 
-const canPay = { value: true };
-vi.mock("@/features/shell/use-can", () => ({ useCan: () => canPay.value }));
 const data = {
   owed: [] as ReimbursementPayable[],
   total: 0,
@@ -34,31 +32,25 @@ const renderPanel = () => render(<ReimbursementsPanel actionConfig={config} />);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  canPay.value = true; data.isLoading = false;
+  data.isLoading = false;
   data.owed = [payable(), payable({ id: "p2", userId: "u2", userName: null, amount: 100 })];
   data.total = 550; data.peopleCount = 2;
 });
 afterEach(() => vi.clearAllMocks());
 
 describe("ReimbursementsPanel", () => {
-  it("hides when the user can't pay", () => {
-    canPay.value = false;
-    const { container } = renderPanel();
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it("hides while loading and when nothing is owed", () => {
+  it("shimmers while loading, then shows an all-clear note when nothing is owed", () => {
     data.isLoading = true;
-    const { container, rerender } = renderPanel();
-    expect(container).toBeEmptyDOMElement();
+    const { rerender } = renderPanel();
+    expect(screen.getByLabelText("Loading")).toBeInTheDocument();
     data.isLoading = false; data.owed = [];
     rerender(<ReimbursementsPanel actionConfig={config} />);
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText("Nothing owed to field staff right now.")).toBeInTheDocument();
   });
 
   it("lists owed payables with a total + people count", () => {
     renderPanel();
-    expect(screen.getByText(/Reimbursements to pay — ₹550 to 2 people/)).toBeInTheDocument();
+    expect(screen.getByText(/₹550 to 2 people/)).toBeInTheDocument();
     expect(screen.getByText(/Priya · ₹450/)).toBeInTheDocument();
     expect(screen.getByText(/— · ₹100/)).toBeInTheDocument(); // null userName → dash
   });

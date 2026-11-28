@@ -24,10 +24,7 @@ vi.mock("@/components/page-header", () => ({
   PageHeader: ({ subtitle, action }: any) => <div>{subtitle}{action}</div>,
 }));
 vi.mock("./expenditure-summary", () => ({ ExpenditureSummaryPanel: () => <div>SUMMARY</div> }));
-vi.mock("./claims-queue-panel", () => ({ ClaimsQueuePanel: () => <div>CLAIMS</div> }));
-vi.mock("./reimbursements-panel", () => ({ ReimbursementsPanel: () => <div>REIMB</div> }));
-vi.mock("./advances-panel", () => ({ AdvancesPanel: () => <div>ADVANCES</div> }));
-vi.mock("./salary-panel", () => ({ SalaryPanel: () => <div>SALARY</div> }));
+vi.mock("./expenditure-actions-menu", () => ({ ExpenditureActionsMenu: () => <div>ACTIONS</div> }));
 vi.mock("./expenditure-filters", () => ({ ExpenditureFilters: () => <div>FILTERS</div> }));
 vi.mock("./expenditure-form-dialog", () => ({ ExpenditureFormDialog: () => <div>FORM</div> }));
 vi.mock("./expenditure-category-dialog", () => ({ ExpenditureCategoryDialog: () => <div>CATEGORY</div> }));
@@ -57,7 +54,7 @@ describe("ExpendituresList", () => {
   it("renders the chrome + all sections and wires the header buttons", () => {
     render(<ExpendituresList role="ACCOUNTANT" actionConfig={config} />);
     expect(screen.getByText(/3 entries in this period/)).toBeInTheDocument();
-    for (const t of ["SUMMARY", "FILTERS", "FORM", "CATEGORY", "BILL", "DELETE"]) {
+    for (const t of ["SUMMARY", "ACTIONS", "FILTERS", "FORM", "CATEGORY", "BILL", "DELETE"]) {
       expect(screen.getByText(t)).toBeInTheDocument();
     }
     fireEvent.click(screen.getByRole("button", { name: "+ Category" }));

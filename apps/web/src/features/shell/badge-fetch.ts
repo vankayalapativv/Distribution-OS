@@ -13,6 +13,7 @@ export interface BadgeCountsPayload {
   ordersNew: number;
   collectionsNew: number;
   visitsNew: number;
+  expenditureClaimsPending: number;
   latestCollection: { amount: number; customer: string; executive: string | null } | null;
   latestOrder: { value: number; customer: string; executive: string | null } | null;
   latestVisit: { customer: string; executive: string | null } | null;
@@ -24,6 +25,7 @@ const EMPTY: BadgeCountsPayload = {
   ordersNew: 0,
   collectionsNew: 0,
   visitsNew: 0,
+  expenditureClaimsPending: 0,
   latestCollection: null,
   latestOrder: null,
   latestVisit: null,

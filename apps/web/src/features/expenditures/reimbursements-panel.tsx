@@ -2,40 +2,46 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useCan } from "@/features/shell/use-can";
 import { formatDate, rupeesExact } from "@/lib/format";
 import type { ActionConfig } from "@/lib/api-client";
 import { SettleDialog } from "./settle-dialog";
+import { PanelRowsSkeleton } from "./panel-skeleton";
 import type { ReimbursementPayable } from "./reimbursements-api";
 import { useReimbursements } from "./use-reimbursements";
 
-/** "Reimbursements to pay" on the Expenditure page: approved claims the company
- *  still owes field staff. Hidden when the user can't pay or nothing is owed. */
+/** Body of the Reimbursements dialog: approved claims the company still owes
+ *  field staff, with mark-paid. Shimmer while loading, all-clear when nothing's
+ *  owed. Permission gating lives on the kebab item. */
 export function ReimbursementsPanel({ actionConfig }: { readonly actionConfig: ActionConfig }) {
-  const canPay = useCan("action:expenditures.reimbursements.pay");
   const { owed, total, peopleCount, isLoading, markPaid } = useReimbursements(actionConfig);
   const [settling, setSettling] = useState<ReimbursementPayable | null>(null);
 
-  if (!canPay || isLoading || owed.length === 0) return null;
+  if (isLoading) return <PanelRowsSkeleton />;
 
   return (
-    <section className="rounded-lg border border-sky-200 bg-sky-50/60 p-4">
-      <h2 className="mb-3 text-sm font-semibold text-sky-900">
-        Reimbursements to pay — {rupeesExact(total)} to {peopleCount} {peopleCount === 1 ? "person" : "people"}
-      </h2>
-      <ul className="space-y-2">
-        {owed.map((payable) => (
-          <li key={payable.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{payable.userName ?? "—"} · {rupeesExact(payable.amount)}</p>
-              <p className="truncate text-xs text-muted-foreground">{payable.categoryName} · {payable.code} · {formatDate(payable.date)}</p>
-            </div>
-            <Button size="sm" onClick={() => setSettling(payable)}>Mark paid</Button>
-          </li>
-        ))}
-      </ul>
+    <div>
+      {owed.length === 0 ? (
+        <p className="py-4 text-center text-sm text-muted-foreground">Nothing owed to field staff right now.</p>
+      ) : (
+        <>
+          <p className="mb-3 text-sm font-medium text-muted-foreground">
+            {rupeesExact(total)} to {peopleCount} {peopleCount === 1 ? "person" : "people"}
+          </p>
+          <ul className="space-y-2">
+            {owed.map((payable) => (
+              <li key={payable.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{payable.userName ?? "—"} · {rupeesExact(payable.amount)}</p>
+                  <p className="truncate text-xs text-muted-foreground">{payable.categoryName} · {payable.code} · {formatDate(payable.date)}</p>
+                </div>
+                <Button size="sm" onClick={() => setSettling(payable)}>Mark paid</Button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <SettleDialog payable={settling} onOpenChange={(open) => !open && setSettling(null)} onPay={markPaid} />
-    </section>
+    </div>
   );
 }

@@ -56,6 +56,7 @@ export async function getBadgeCounts(
   ordersNew: number;
   collectionsNew: number;
   visitsNew: number;
+  expenditureClaimsPending: number;
   latestCollection: LatestCollection | null;
   latestOrder: LatestOrder | null;
   latestVisit: LatestVisit | null;
@@ -100,7 +101,9 @@ export async function getBadgeCounts(
          left join users u on u.id = v.executive_id
          where v.check_in_time >= ${todayIst}
          order by v.check_in_time desc limit 1) else null end as "visit",
-      case when ${isAlertsRole} then (select count(*)::int from alerts where status = 'open') else 0 end as "alertsOpen"
+      case when ${isAlertsRole} then (select count(*)::int from alerts where status = 'open') else 0 end as "alertsOpen",
+      case when ${isOffice} then (select count(*)::int from expenditures
+         where status = 'submitted' and reversed_at is null) else 0 end as "expenditureClaimsPending"
   `;
 
   const coll = (row?.collection ?? null) as LatestRow;
@@ -113,6 +116,7 @@ export async function getBadgeCounts(
     ordersNew: num(row?.ordersNew),
     collectionsNew: num(row?.collectionsNew),
     visitsNew: num(row?.visitsNew),
+    expenditureClaimsPending: num(row?.expenditureClaimsPending),
     latestCollection: coll
       ? { amount: num(coll.amount), customer: str(coll.customer), executive: str(coll.executive) || null }
       : null,

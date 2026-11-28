@@ -7,12 +7,13 @@ import { formatDate, rupeesExact } from "@/lib/format";
 import type { ActionConfig } from "@/lib/api-client";
 import { AdvanceDecisionDialog, type AdvanceDecision } from "./advance-decision-dialog";
 import { RecordAdvanceDialog } from "./record-advance-dialog";
+import { PanelRowsSkeleton } from "./panel-skeleton";
 import { useAdvances } from "./use-advances";
 import { useExpenditureLookups } from "./use-expenditure-lookups";
 
-/** Advances on the Expenditure page: approve/reject SE requests, record a direct
- *  advance, and see who still owes an advance. Hidden when the user has neither
- *  advance permission and there's nothing to show. */
+/** Body of the Advances dialog: approve/reject SE requests, record a direct
+ *  advance, and see who still owes one. Shimmer while loading. Permission gating
+ *  lives on the kebab item; Record stays guarded by advances.manage. */
 export function AdvancesPanel({ actionConfig }: { readonly actionConfig: ActionConfig }) {
   const canManage = useCan("action:expenditures.advances.manage");
   const canApprove = useCan("action:expenditures.advances.approve");
@@ -22,15 +23,14 @@ export function AdvancesPanel({ actionConfig }: { readonly actionConfig: ActionC
   const [recording, setRecording] = useState(false);
 
   const visibleRequests = canApprove ? requests : [];
-  if (isLoading) return null;
-  if (!canManage && visibleRequests.length === 0 && balances.length === 0) return null;
+  if (isLoading) return <PanelRowsSkeleton />;
 
   return (
-    <section className="rounded-lg border border-violet-200 bg-violet-50/60 p-4">
+    <div>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-violet-900">
-          Advances{balances.length > 0 ? ` — ${rupeesExact(outstandingTotal)} outstanding across ${balances.length}` : ""}
-        </h2>
+        <p className="text-sm font-medium text-muted-foreground">
+          {balances.length > 0 ? `${rupeesExact(outstandingTotal)} outstanding across ${balances.length}` : "No advances outstanding"}
+        </p>
         {canManage ? <Button size="sm" onClick={() => setRecording(true)}>Record advance</Button> : null}
       </div>
 
@@ -62,6 +62,6 @@ export function AdvancesPanel({ actionConfig }: { readonly actionConfig: ActionC
 
       <AdvanceDecisionDialog decision={decision} onOpenChange={(open) => !open && setDecision(null)} onApprove={approve} onReject={reject} />
       <RecordAdvanceDialog open={recording} people={people} onOpenChange={(open) => !open && setRecording(false)} onRecord={record} />
-    </section>
+    </div>
   );
 }

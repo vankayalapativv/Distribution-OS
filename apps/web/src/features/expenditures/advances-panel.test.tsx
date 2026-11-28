@@ -36,21 +36,22 @@ beforeEach(() => {
 afterEach(() => vi.clearAllMocks());
 
 describe("AdvancesPanel", () => {
-  it("hides with no permission and nothing to show", () => {
+  it("shows an all-clear note with no permission and nothing to show", () => {
     can.manage = false; can.approve = false; data.requests = []; data.balances = [];
-    const { container } = renderPanel();
-    expect(container).toBeEmptyDOMElement();
+    renderPanel();
+    expect(screen.getByText("No advances outstanding")).toBeInTheDocument();
+    expect(screen.queryByText("Record advance")).not.toBeInTheDocument();
   });
 
-  it("hides while loading", () => {
+  it("shimmers while loading", () => {
     data.isLoading = true;
-    const { container } = renderPanel();
-    expect(container).toBeEmptyDOMElement();
+    renderPanel();
+    expect(screen.getByLabelText("Loading")).toBeInTheDocument();
   });
 
   it("shows requests, balances, the Record button, and opens dialogs", () => {
     renderPanel();
-    expect(screen.getByText(/Advances — ₹8,000 outstanding across 1/)).toBeInTheDocument();
+    expect(screen.getByText(/₹8,000 outstanding across 1/)).toBeInTheDocument();
     expect(screen.getByText(/Priya · ₹10,000/)).toBeInTheDocument();
     expect(screen.getByText(/Ravi/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("Approve"));
@@ -77,10 +78,10 @@ describe("AdvancesPanel", () => {
     expect(screen.queryByText("Record advance")).not.toBeInTheDocument(); // no manage perm
   });
 
-  it("uses a bare 'Advances' header and a reject reason fallback when there are no balances", () => {
+  it("shows the no-advances note and a reject reason fallback when there are no balances", () => {
     data.balances = []; data.requests = [adv({ reason: null })];
     renderPanel();
-    expect(screen.getByText("Advances")).toBeInTheDocument();
+    expect(screen.getByText("No advances outstanding")).toBeInTheDocument();
     expect(screen.getByText(/no reason given/)).toBeInTheDocument();
   });
 

@@ -32,14 +32,10 @@ beforeEach(() => { vi.clearAllMocks(); can.view = true; can.manage = true; can.v
 afterEach(() => vi.clearAllMocks());
 
 describe("SalaryPanel", () => {
-  it("hides without salary.view", () => {
-    can.view = false;
-    expect(renderPanel().container).toBeEmptyDOMElement();
-  });
-
-  it("hides while loading", () => {
+  it("shimmers while loading", () => {
     data.isLoading = true;
-    expect(renderPanel().container).toBeEmptyDOMElement();
+    renderPanel();
+    expect(screen.getByLabelText("Loading")).toBeInTheDocument();
   });
 
   it("shows an empty note when no salaries are set", () => {

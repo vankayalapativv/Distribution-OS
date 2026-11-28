@@ -1,4 +1,4 @@
-import { Linking } from "react-native";
+import { openLocationInMaps } from "./open-in-maps";
 
 // A deliverable invoice: order-linked, uploaded, not yet delivered. The driver
 // picks one directly — the customer is carried on the invoice, so there is no
@@ -24,14 +24,13 @@ export function addressLine(inv: DeliverableInvoice): string {
 
 /**
  * Open the customer's location in Google Maps: a dropped pin at the saved
- * coordinates when we have them, otherwise a text search of the address so the
- * driver still gets something useful.
+ * coordinates when we have them, otherwise a text search of the address (or the
+ * customer name) so the driver still gets something useful.
  */
 export function openInMaps(inv: DeliverableInvoice): void {
-  const query =
-    inv.latitude != null && inv.longitude != null
-      ? `${inv.latitude},${inv.longitude}`
-      : encodeURIComponent(addressLine(inv) || inv.customerName || "");
-  if (!query) return;
-  void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`).catch(() => undefined);
+  openLocationInMaps({
+    latitude: inv.latitude,
+    longitude: inv.longitude,
+    address: addressLine(inv) || inv.customerName,
+  });
 }

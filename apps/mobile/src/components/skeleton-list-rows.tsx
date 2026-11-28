@@ -20,6 +20,23 @@ export function BeatStopRowSkeleton() {
   );
 }
 
+/** Expense-claim row: category + status chip on top, date + amount below —
+ *  mirrors ClaimRow on My expenses. */
+export function ClaimRowSkeleton() {
+  return (
+    <View className="rounded-xl border border-border bg-card px-4 py-3">
+      <View className="flex-row items-center justify-between">
+        <Skeleton width="45%" height={15} />
+        <Skeleton width={72} height={18} radius={9} />
+      </View>
+      <View className="mt-2 flex-row items-center justify-between">
+        <Skeleton width="38%" height={11} />
+        <Skeleton width={56} height={14} />
+      </View>
+    </View>
+  );
+}
+
 /** List row with name + trailing code — customer directory. */
 export function ListRowSkeleton() {
   return (

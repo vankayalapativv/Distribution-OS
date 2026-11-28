@@ -1,8 +1,9 @@
 import { router } from "expo-router";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ClaimRow } from "../../../components/expenses/claim-row";
 import { OwedCard } from "../../../components/expenses/owed-card";
+import { ClaimRowSkeleton, SkeletonList } from "../../../components/skeleton";
 import { ErrorState } from "../../../components/error-state";
 import { useMyClaims } from "../../../lib/use-my-claims";
 import { useMyReimbursements } from "../../../lib/use-my-reimbursements";
@@ -39,7 +40,9 @@ export default function MyExpensesScreen() {
       </View>
 
       {loading ? (
-        <View className="flex-1 items-center justify-center"><ActivityIndicator /></View>
+        <View className="flex-1 p-4">
+          <SkeletonList count={5} row={ClaimRowSkeleton} />
+        </View>
       ) : error ? (
         <ErrorState error={error} onRetry={retry} />
       ) : (

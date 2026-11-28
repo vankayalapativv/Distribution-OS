@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
 import {
   BeatStopRowSkeleton,
+  ClaimRowSkeleton,
   ContactRowSkeleton,
   DeliveryPickerRowSkeleton,
   DuesRowSkeleton,
@@ -42,6 +43,7 @@ describe("Skeleton block", () => {
 describe("row-shape skeletons", () => {
   const rows = [
     BeatStopRowSkeleton,
+    ClaimRowSkeleton,
     ContactRowSkeleton,
     DeliveryPickerRowSkeleton,
     DuesRowSkeleton,

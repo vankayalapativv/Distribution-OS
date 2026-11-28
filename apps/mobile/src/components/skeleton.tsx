@@ -18,6 +18,7 @@ export { SkeletonTheme } from "./skeleton-sweep";
 export { Skeleton } from "./skeleton-block";
 export {
   BeatStopRowSkeleton,
+  ClaimRowSkeleton,
   ContactRowSkeleton,
   DeliveryPickerRowSkeleton,
   ListRowSkeleton,

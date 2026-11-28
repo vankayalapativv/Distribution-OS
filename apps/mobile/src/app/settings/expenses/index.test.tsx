@@ -10,6 +10,7 @@ vi.mock("../../../lib/use-my-claims", () => ({ useMyClaims: () => useMyClaims() 
 vi.mock("../../../lib/use-my-reimbursements", () => ({ useMyReimbursements: () => reimb }));
 vi.mock("expo-router", () => ({ router: { push: vi.fn(), back: vi.fn() } }));
 vi.mock("../../../components/error-state", () => ({ ErrorState: () => <span>error-state</span> }));
+vi.mock("../../../components/skeleton", () => ({ SkeletonList: ({ count }: { count: number }) => <span>shimmer-{count}</span>, ClaimRowSkeleton: () => null }));
 vi.mock("../../../components/expenses/claim-row", () => ({
   ClaimRow: ({ claim, onPress }: { claim: { id: string }; onPress: (c: unknown) => void }) => (
     <span onClick={() => onPress(claim)}>claim-{claim.id}</span>
@@ -44,9 +45,10 @@ describe("MyExpensesScreen", () => {
     expect(screen.queryByText("Request an advance")).not.toBeInTheDocument();
   });
 
-  it("shows a spinner while loading (no empty state)", () => {
+  it("shows a shimmer while loading (no empty state)", () => {
     useMyClaims.mockReturnValue({ ...base, loading: true });
     render(<MyExpensesScreen />);
+    expect(screen.getByText("shimmer-5")).toBeInTheDocument();
     expect(screen.queryByText("No claims yet")).not.toBeInTheDocument();
   });
 

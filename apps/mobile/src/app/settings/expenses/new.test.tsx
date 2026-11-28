@@ -29,6 +29,9 @@ const base = {
   editHasReceipt: false,
   billUri: null as string | null,
   authHeaders: undefined as Record<string, string> | undefined,
+  editLoading: false,
+  editError: false,
+  retryEdit: vi.fn(),
   error: null as string | null,
   busy: false,
   save: vi.fn(),
@@ -122,6 +125,21 @@ describe("NewExpenseScreen", () => {
     render(<NewExpenseScreen />);
     expect(screen.getByText("Edit expense")).toBeInTheDocument();
     expect(screen.getByText("Save changes")).toBeInTheDocument();
+  });
+
+  it("shows a spinner (not the form) while a cold-cache claim loads", () => {
+    form.mockReturnValue({ ...base, editId: "r6", editLoading: true });
+    render(<NewExpenseScreen />);
+    expect(screen.queryByText("Save changes")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("₹ 0")).not.toBeInTheDocument();
+  });
+
+  it("shows a retryable error when the claim fails to load", () => {
+    form.mockReturnValue({ ...base, editId: "r6", editError: true });
+    render(<NewExpenseScreen />);
+    expect(screen.getByText(/Couldn.t load this claim/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Retry"));
+    expect(base.retryEdit).toHaveBeenCalled();
   });
 
   it("shows a spinner while categories load", () => {

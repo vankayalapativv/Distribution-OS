@@ -27,6 +27,18 @@ export default function NewExpenseScreen() {
         <Text className="text-xl font-bold text-foreground">{f.editId ? (f.editStatus === "rejected" ? "Edit & resubmit" : "Edit expense") : "New expense"}</Text>
       </View>
 
+      {f.editLoading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator />
+        </View>
+      ) : f.editError ? (
+        <View className="flex-1 items-center justify-center gap-3 px-6">
+          <Text className="text-center text-sm text-muted-foreground">Couldn&apos;t load this claim. Check your connection and try again.</Text>
+          <Pressable className="rounded-full bg-primary px-5 py-2.5" onPress={() => void f.retryEdit()}>
+            <Text className="text-sm font-semibold text-primary-foreground">Retry</Text>
+          </Pressable>
+        </View>
+      ) : (
       <ScrollView className="flex-1" contentContainerClassName="gap-4 px-5 py-4" keyboardShouldPersistTaps="handled">
         <View>
           <Text className="mb-1 text-sm font-medium text-foreground">Category <Text className="text-destructive">*</Text></Text>
@@ -140,6 +152,7 @@ export default function NewExpenseScreen() {
           )}
         </Pressable>
       </ScrollView>
+      )}
       {viewingReceipt && viewUri ? (
         <PhotoZoomViewer uri={viewUri} headers={viewHeaders} onClose={() => setViewingReceipt(false)} />
       ) : null}

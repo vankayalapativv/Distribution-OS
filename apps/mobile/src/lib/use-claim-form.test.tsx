@@ -8,6 +8,8 @@ const h = vi.hoisted(() => ({
   cats: { data: [{ id: "c1", name: "Fuel" }] as unknown, isPending: false },
   cache: { value: [] as unknown[] },
   editClaim: { value: undefined as unknown }, // by-id fetch result (cold cache)
+  editState: { loading: false, error: false }, // claim-by-id query status
+  refetchEdit: vi.fn(() => Promise.resolve()),
   back: vi.fn(),
   invalidate: vi.fn(() => Promise.resolve()),
   submit: vi.fn<(...a: unknown[]) => Promise<void>>(() => Promise.resolve()),
@@ -24,7 +26,13 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: (c: { queryKey?: unknown[]; queryFn?: () => unknown; initialData?: () => unknown }) => {
     c?.queryFn?.();
     if (Array.isArray(c.queryKey) && c.queryKey[0] === "claim") {
-      return { data: c.initialData?.() ?? h.editClaim.value, isPending: false };
+      return {
+        data: c.initialData?.() ?? h.editClaim.value,
+        isPending: false,
+        isLoading: h.editState.loading,
+        isError: h.editState.error,
+        refetch: h.refetchEdit,
+      };
     }
     return { data: h.cats.data, isPending: h.cats.isPending };
   },
@@ -41,7 +49,7 @@ vi.mock("./expense-claims", () => ({
 vi.mock("./photo-picker", () => ({ pickFromCamera: () => h.camera(), pickFromGallery: () => h.gallery() }));
 
 beforeEach(() => {
-  h.token.value = "tok"; h.params.value = {}; h.cache.value = []; h.editClaim.value = undefined; h.cats.data = [{ id: "c1", name: "Fuel" }]; h.cats.isPending = false;
+  h.token.value = "tok"; h.params.value = {}; h.cache.value = []; h.editClaim.value = undefined; h.editState.loading = false; h.editState.error = false; h.cats.data = [{ id: "c1", name: "Fuel" }]; h.cats.isPending = false;
   h.camera.mockResolvedValue({ photos: [{ uri: "file:///r.jpg" }], error: null });
   h.gallery.mockResolvedValue({ photos: [{ uri: "file:///g.jpg" }], error: null });
 });
@@ -216,6 +224,35 @@ describe("useClaimForm — edit", () => {
     h.cache.value = [{ id: "r3", categoryId: "c1", amount: 80, date: "2026-11-20", remarks: null, status: "rejected", hasReceipt: true }];
     const { result } = renderHook(() => useClaimForm());
     expect(result.current.authHeaders).toBeUndefined();
+  });
+
+  it("reports a loading state while a cold-cache claim is fetched by id", () => {
+    h.params.value = { id: "r6" };
+    h.cache.value = []; // nothing seeded
+    h.editState.loading = true;
+    const { result } = renderHook(() => useClaimForm());
+    expect(result.current.editLoading).toBe(true);
+    expect(result.current.editError).toBe(false);
+  });
+
+  it("reports an error state when the cold fetch fails, and exposes retry", () => {
+    h.params.value = { id: "r6" };
+    h.cache.value = [];
+    h.editState.error = true;
+    const { result } = renderHook(() => useClaimForm());
+    expect(result.current.editError).toBe(true);
+    expect(result.current.editLoading).toBe(false);
+    result.current.retryEdit();
+    expect(h.refetchEdit).toHaveBeenCalled();
+  });
+
+  it("is neither loading nor erroring once the claim is in hand", () => {
+    h.params.value = { id: "r3" };
+    h.cache.value = [{ id: "r3", categoryId: "c1", amount: 80, date: "2026-11-20", remarks: null, status: "submitted", hasReceipt: true }];
+    h.editState.loading = true; // ignored because the claim is already seeded
+    const { result } = renderHook(() => useClaimForm());
+    expect(result.current.editLoading).toBe(false);
+    expect(result.current.editError).toBe(false);
   });
 
   it("has no bill URL for a claim without a receipt", () => {

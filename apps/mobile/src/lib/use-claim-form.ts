@@ -49,15 +49,21 @@ export function useClaimForm() {
   });
 
   // The claim being edited: seeded from the list cache when we have it, else
-  // fetched by id so a cold deep-link / restored route still prefills.
+  // fetched by id so a cold deep-link / restored route still prefills. staleTime
+  // keeps the cache seed from triggering a redundant refetch on every open.
   const editClaimQuery = useQuery<ExpenseClaim>({
     queryKey: ["claim", editId],
     queryFn: () => fetchClaim(editId!, token),
     enabled: Boolean(editId && token),
+    staleTime: 60_000,
     initialData: () =>
       (queryClient.getQueryData<ExpenseClaim[]>(["my-claims"]) ?? []).find((c) => c.id === editId),
   });
   const editClaim = editClaimQuery.data;
+  // Surface the by-id fetch's state so a cold-cache edit shows a spinner / a
+  // retryable error instead of a silently blank form.
+  const editLoading = Boolean(editId) && !editClaim && editClaimQuery.isLoading;
+  const editError = Boolean(editId) && !editClaim && editClaimQuery.isError;
 
   useEffect(() => {
     if (!editId || prefilled || !editClaim) return;
@@ -103,6 +109,9 @@ export function useClaimForm() {
     editId,
     editStatus,
     editHasReceipt,
+    editLoading,
+    editError,
+    retryEdit: editClaimQuery.refetch,
     billUri,
     authHeaders: authHeaders(token),
     categories: categoriesQuery.data ?? [],

@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import { claimStatusMeta } from "../../lib/claim-status";
+import { claimMoment, claimStatusMeta } from "../../lib/claim-status";
 import type { ExpenseClaim } from "../../lib/expense-claims";
 
 /** One claim in the "My expenses" list. Rejected claims surface the reason and
@@ -16,7 +16,7 @@ export function ClaimRow({ claim, onPress }: { readonly claim: ExpenseClaim; rea
         <Text className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${meta.chip}`}>{meta.label}</Text>
       </View>
       <View className="mt-0.5 flex-row items-center justify-between">
-        <Text className="text-xs text-muted-foreground">{claim.date}</Text>
+        <Text className="text-xs text-muted-foreground">{claimMoment(claim.createdAt)}</Text>
         <Text className="text-sm font-bold text-card-foreground">
           ₹{claim.amount.toLocaleString("en-IN")}
           {reduced ? (

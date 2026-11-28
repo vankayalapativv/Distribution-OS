@@ -10,14 +10,20 @@ import { useMyClaims } from "../../../lib/use-my-claims";
 import { useMyReimbursements } from "../../../lib/use-my-reimbursements";
 import { useMyAdvances } from "../../../lib/use-my-advances";
 import { useMySalary } from "../../../lib/use-my-salary";
+import { usePullRefresh } from "../../../lib/use-pull-refresh";
 import type { ExpenseClaim } from "../../../lib/expense-claims";
 
 /** My expense claims — submit new ones and track approval status (online-only). */
 export default function MyExpensesScreen() {
-  const { claims, loading, error, retry, refreshing, onRefresh } = useMyClaims();
-  const { owedTotal } = useMyReimbursements();
-  const { outstandingTotal } = useMyAdvances();
-  const { pay } = useMySalary();
+  const { claims, loading, error, retry } = useMyClaims();
+  const { owedTotal, refetch: refetchOwed } = useMyReimbursements();
+  const { outstandingTotal, refetch: refetchAdvances } = useMyAdvances();
+  const { pay, refetch: refetchPay } = useMySalary();
+  // Pull-to-refresh updates the whole screen — claims AND the pay/owed/advance
+  // cards — so a just-approved claim or just-paid salary shows at once.
+  const { refreshing, onRefresh } = usePullRefresh(() =>
+    Promise.all([retry(), refetchOwed(), refetchAdvances(), refetchPay()]),
+  );
 
   function openClaim(claim: ExpenseClaim) {
     // Only a rejected claim is editable → reopen the form to fix + resubmit.

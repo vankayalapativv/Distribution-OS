@@ -16,5 +16,5 @@ export function useMyReimbursements() {
   });
   const refetch = query.refetch;
   useFocusEffect(useCallback(() => { void refetch(); }, [refetch]));
-  return { owedTotal: query.data?.owedTotal ?? 0 };
+  return { owedTotal: query.data?.owedTotal ?? 0, refetch };
 }

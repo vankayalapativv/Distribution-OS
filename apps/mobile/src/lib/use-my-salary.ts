@@ -16,5 +16,5 @@ export function useMySalary() {
   });
   const refetch = query.refetch;
   useFocusEffect(useCallback(() => { void refetch(); }, [refetch]));
-  return { pay: query.data ?? null };
+  return { pay: query.data ?? null, refetch };
 }

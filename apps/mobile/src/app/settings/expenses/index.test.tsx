@@ -3,9 +3,11 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { router } from "expo-router";
 
 const useMyClaims = vi.fn();
-const reimb = { owedTotal: 0 };
-const adv = { outstandingTotal: 0 };
-const sal = { pay: null as { monthlySalary: number | null; advanceOutstanding: number; thisMonth: null } | null };
+const reimb = { owedTotal: 0, refetch: vi.fn(() => Promise.resolve()) };
+const adv = { outstandingTotal: 0, refetch: vi.fn(() => Promise.resolve()) };
+const sal = { pay: null as { monthlySalary: number | null; advanceOutstanding: number; thisMonth: null } | null, refetch: vi.fn(() => Promise.resolve()) };
+let pullFn: (() => Promise<unknown>) | null = null;
+vi.mock("../../../lib/use-pull-refresh", () => ({ usePullRefresh: (fn: () => Promise<unknown>) => { pullFn = fn; return { refreshing: false, onRefresh: fn }; } }));
 vi.mock("../../../lib/use-my-claims", () => ({ useMyClaims: () => useMyClaims() }));
 vi.mock("../../../lib/use-my-reimbursements", () => ({ useMyReimbursements: () => reimb }));
 vi.mock("../../../lib/use-my-advances", () => ({ useMyAdvances: () => adv }));
@@ -20,8 +22,8 @@ vi.mock("../../../components/expenses/claim-row", () => ({
 
 import MyExpensesScreen from "./index";
 
-const base = { claims: [], loading: false, error: null, retry: vi.fn(), refreshing: false, onRefresh: vi.fn() };
-beforeEach(() => { vi.clearAllMocks(); reimb.owedTotal = 0; adv.outstandingTotal = 0; sal.pay = null; useMyClaims.mockReturnValue({ ...base }); });
+const base = { claims: [], loading: false, error: null, retry: vi.fn(() => Promise.resolve()) };
+beforeEach(() => { vi.clearAllMocks(); pullFn = null; reimb.owedTotal = 0; adv.outstandingTotal = 0; sal.pay = null; useMyClaims.mockReturnValue({ ...base }); });
 
 describe("MyExpensesScreen", () => {
   it("shows the empty state, routes to New, and goes back", () => {
@@ -60,6 +62,16 @@ describe("MyExpensesScreen", () => {
     useMyClaims.mockReturnValue({ ...base, loading: true });
     render(<MyExpensesScreen />);
     expect(screen.queryByText("No claims yet")).not.toBeInTheDocument();
+  });
+
+  it("pull-to-refresh refetches claims, pay, owed and advances together", async () => {
+    render(<MyExpensesScreen />);
+    expect(pullFn).toBeTypeOf("function");
+    await pullFn!();
+    expect(base.retry).toHaveBeenCalled();
+    expect(sal.refetch).toHaveBeenCalled();
+    expect(reimb.refetch).toHaveBeenCalled();
+    expect(adv.refetch).toHaveBeenCalled();
   });
 
   it("shows the error state", () => {

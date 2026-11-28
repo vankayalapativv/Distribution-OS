@@ -16,5 +16,5 @@ export function useMyAdvances() {
   });
   const refetch = query.refetch;
   useFocusEffect(useCallback(() => { void refetch(); }, [refetch]));
-  return { outstandingTotal: query.data?.outstandingTotal ?? 0 };
+  return { outstandingTotal: query.data?.outstandingTotal ?? 0, refetch };
 }

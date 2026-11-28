@@ -66,14 +66,16 @@ describe("MyExpensesScreen", () => {
     expect(screen.getByText("error-state")).toBeInTheDocument();
   });
 
-  it("lists claims; tapping a rejected one opens the edit form; a submitted one does nothing", () => {
+  it("lists claims; tapping a not-yet-approved one opens the edit form; an approved one is locked", () => {
     useMyClaims.mockReturnValue({
       ...base,
-      claims: [{ id: "r1", status: "rejected" }, { id: "s1", status: "submitted" }],
+      claims: [{ id: "a1", status: "approved" }, { id: "s1", status: "submitted" }, { id: "r1", status: "rejected" }],
     });
     render(<MyExpensesScreen />);
+    fireEvent.click(screen.getByText("claim-a1"));
+    expect(router.push).not.toHaveBeenCalled(); // approved → locked
     fireEvent.click(screen.getByText("claim-s1"));
-    expect(router.push).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith({ pathname: "/settings/expenses/new", params: { id: "s1" } });
     fireEvent.click(screen.getByText("claim-r1"));
     expect(router.push).toHaveBeenCalledWith({ pathname: "/settings/expenses/new", params: { id: "r1" } });
   });

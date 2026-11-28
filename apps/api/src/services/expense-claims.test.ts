@@ -179,16 +179,21 @@ describe("resubmitClaim", () => {
     const sql = makeSql({ ...variableCat, get_claim: [claimRow({ submittedBy: "other", status: "rejected" })] });
     await expect(resubmitClaim(sql, SE, ID, input)).rejects.toMatchObject({ status: 404 });
   });
-  it("409 when the claim is not rejected", async () => {
-    const sql = makeSql({ ...variableCat, get_claim: [claimRow({ status: "submitted" })] });
+  it("409 once the claim is approved (no longer editable)", async () => {
+    const sql = makeSql({ ...variableCat, get_claim: [claimRow({ status: "approved" })] });
     await expect(resubmitClaim(sql, SE, ID, input)).rejects.toMatchObject({ status: 409 });
   });
-  it("resubmits a rejected claim the SE owns (with and without remarks)", async () => {
+  it("edits a rejected claim the SE owns (with and without remarks)", async () => {
     const sql = makeSql({ ...variableCat, get_claim: [claimRow({ status: "rejected" })] });
     await resubmitClaim(sql, SE, ID, { ...input, remarks: "fixed" });
     expect(calledTag(sql, "resubmit_claim")).toBe(true);
     const sql2 = makeSql({ ...variableCat, get_claim: [claimRow({ status: "rejected" })] });
     await resubmitClaim(sql2, SE, ID, input); // no remarks → ?? null branch
     expect(sql2.calls.find((c) => c.tag === "resubmit_claim")!.params).toContain(null);
+  });
+  it("edits a still-pending (submitted) claim before approval", async () => {
+    const sql = makeSql({ ...variableCat, get_claim: [claimRow({ status: "submitted" })] });
+    await resubmitClaim(sql, SE, ID, input);
+    expect(calledTag(sql, "resubmit_claim")).toBe(true);
   });
 });

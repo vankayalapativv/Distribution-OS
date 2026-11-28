@@ -14,7 +14,7 @@ export default function NewExpenseScreen() {
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Text className="text-2xl text-foreground">‹</Text>
         </Pressable>
-        <Text className="text-xl font-bold text-foreground">{f.editId ? "Edit & resubmit" : "New expense"}</Text>
+        <Text className="text-xl font-bold text-foreground">{f.editId ? (f.editStatus === "rejected" ? "Edit & resubmit" : "Edit expense") : "New expense"}</Text>
       </View>
 
       <ScrollView className="flex-1" contentContainerClassName="gap-4 px-5 py-4" keyboardShouldPersistTaps="handled">
@@ -89,7 +89,7 @@ export default function NewExpenseScreen() {
           onPress={f.save}
         >
           {f.busy ? <ActivityIndicator color="#ffffff" /> : (
-            <Text className="text-base font-semibold text-primary-foreground">{f.editId ? "Resubmit" : "Submit for approval"}</Text>
+            <Text className="text-base font-semibold text-primary-foreground">{f.editId ? (f.editStatus === "rejected" ? "Resubmit" : "Save changes") : "Submit for approval"}</Text>
           )}
         </Pressable>
       </ScrollView>

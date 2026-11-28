@@ -19,8 +19,9 @@ export default function MyExpensesScreen() {
   const { refreshing, onRefresh } = usePullRefresh(() => Promise.all([retry(), refetchOwed()]));
 
   function openClaim(claim: ExpenseClaim) {
-    // Only a rejected claim is editable → reopen the form to fix + resubmit.
-    if (claim.status === "rejected") {
+    // A claim is editable until it's approved — a still-pending one, or a
+    // rejected one being fixed. An approved (reimbursed) claim is locked.
+    if (claim.status !== "approved") {
       router.push({ pathname: "/settings/expenses/new", params: { id: claim.id } });
     }
   }

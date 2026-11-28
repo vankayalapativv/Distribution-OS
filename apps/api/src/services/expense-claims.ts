@@ -187,19 +187,24 @@ export async function rejectClaim(sql: SqlClient, approverId: string, id: string
 }
 
 /** The owner edits a rejected claim and resubmits it for review. */
+/** Edit a claim that isn't approved yet — a still-pending (submitted) one, or a
+ *  rejected one being fixed + resubmitted (2026-11-28). Either way it ends up
+ *  `submitted` awaiting approval; an approved claim can no longer be edited. */
 export async function resubmitClaim(sql: SqlClient, submittedBy: string, id: string, input: ClaimInput) {
   if (!(input.amount > 0)) throw new ApiError("VALIDATION", "Enter an amount greater than 0.", 422);
   await assertFieldCategory(sql, input.categoryId);
   const claim = await getClaim(sql, id);
   if (claim.submittedBy !== submittedBy) throw new ApiError("NOT_FOUND", "Claim not found.", 404);
-  if (claim.status !== "rejected") throw new ApiError("CONFLICT", "Only a rejected claim can be resubmitted.", 409);
+  if (claim.status !== "rejected" && claim.status !== "submitted") {
+    throw new ApiError("CONFLICT", "Only a claim that hasn't been approved yet can be edited.", 409);
+  }
   await sql`
     /* resubmit_claim */
     update expenditures set
       category_id = ${input.categoryId}::uuid, amount = ${input.amount}, claimed_amount = ${input.amount},
       expenditure_date = ${input.expenditureDate}::date, remarks = ${input.remarks ?? null},
       status = 'submitted', reject_reason = null, updated_at = now()
-    where id = ${id}::uuid and submitted_by = ${submittedBy}::uuid and status = 'rejected'
+    where id = ${id}::uuid and submitted_by = ${submittedBy}::uuid and status in ('submitted', 'rejected')
   `;
   return getClaim(sql, id);
 }

@@ -11,6 +11,7 @@ import NewExpenseScreen from "./new";
 
 const base = {
   editId: null as string | null,
+  editStatus: null as "submitted" | "approved" | "rejected" | null,
   categories: [{ id: "c1", name: "Fuel" }],
   categoriesLoading: false,
   categoryId: null as string | null,
@@ -70,12 +71,19 @@ describe("NewExpenseScreen", () => {
     expect(screen.getByText("err:network down")).toBeInTheDocument();
   });
 
-  it("edit mode hides the receipt section and says Resubmit", () => {
-    form.mockReturnValue({ ...base, editId: "r1" });
+  it("edit mode hides the receipt section; a rejected claim says Resubmit", () => {
+    form.mockReturnValue({ ...base, editId: "r1", editStatus: "rejected" });
     render(<NewExpenseScreen />);
     expect(screen.getByText("Edit & resubmit")).toBeInTheDocument();
     expect(screen.getByText("Resubmit")).toBeInTheDocument();
     expect(screen.queryByText("📷 Camera")).not.toBeInTheDocument();
+  });
+
+  it("a still-pending claim edits with Save changes", () => {
+    form.mockReturnValue({ ...base, editId: "s1", editStatus: "submitted" });
+    render(<NewExpenseScreen />);
+    expect(screen.getByText("Edit expense")).toBeInTheDocument();
+    expect(screen.getByText("Save changes")).toBeInTheDocument();
   });
 
   it("shows a spinner while categories load", () => {

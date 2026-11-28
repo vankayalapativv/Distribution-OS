@@ -136,9 +136,10 @@ describe("useClaimForm — new", () => {
 describe("useClaimForm — edit", () => {
   it("prefills from the cached claim and resubmits (no receipt needed)", async () => {
     h.params.value = { id: "r1" };
-    h.cache.value = [{ id: "r1", categoryId: "c1", amount: 300, date: "2026-11-20", remarks: "old" }];
+    h.cache.value = [{ id: "r1", categoryId: "c1", amount: 300, date: "2026-11-20", remarks: "old", status: "submitted" }];
     const { result } = renderHook(() => useClaimForm());
     expect(result.current.editId).toBe("r1");
+    expect(result.current.editStatus).toBe("submitted");
     expect(result.current.categoryId).toBe("c1");
     expect(result.current.amount).toBe("300");
     await act(async () => { await result.current.save(); });

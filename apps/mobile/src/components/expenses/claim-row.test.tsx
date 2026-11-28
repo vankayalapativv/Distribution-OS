@@ -30,4 +30,9 @@ describe("ClaimRow", () => {
     render(<ClaimRow claim={{ ...base, status: "rejected", rejectReason: "blurry bill" }} onPress={vi.fn()} />);
     expect(screen.getByText(/blurry bill/)).toBeInTheDocument();
   });
+
+  it("hints that a pending claim is editable", () => {
+    render(<ClaimRow claim={{ ...base, status: "submitted" }} onPress={vi.fn()} />);
+    expect(screen.getByText(/Tap to edit while it/)).toBeInTheDocument();
+  });
 });

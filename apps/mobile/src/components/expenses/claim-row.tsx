@@ -27,6 +27,9 @@ export function ClaimRow({ claim, onPress }: { readonly claim: ExpenseClaim; rea
       {claim.status === "rejected" && claim.rejectReason ? (
         <Text className="mt-1 text-xs text-red-600">Rejected: {claim.rejectReason} · tap to fix</Text>
       ) : null}
+      {claim.status === "submitted" ? (
+        <Text className="mt-1 text-xs text-muted-foreground">Tap to edit while it&apos;s pending</Text>
+      ) : null}
     </Pressable>
   );
 }

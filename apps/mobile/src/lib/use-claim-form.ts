@@ -29,6 +29,7 @@ export function useClaimForm() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
+  const [editStatus, setEditStatus] = useState<ExpenseClaim["status"] | null>(null);
 
   const categoriesQuery = useQuery<ClaimCategory[]>({
     queryKey: ["claim-categories"],
@@ -44,6 +45,7 @@ export function useClaimForm() {
       setAmount(String(claim.amount));
       setDate(claim.date);
       setRemarks(claim.remarks ?? "");
+      setEditStatus(claim.status);
     }
     setPrefilled(true);
   }, [editId, prefilled, queryClient]);
@@ -75,6 +77,7 @@ export function useClaimForm() {
 
   return {
     editId,
+    editStatus,
     categories: categoriesQuery.data ?? [],
     categoriesLoading: categoriesQuery.isPending,
     categoryId, setCategoryId,

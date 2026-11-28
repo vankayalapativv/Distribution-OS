@@ -50,6 +50,16 @@ export function isOverCap(total: number, available: number): boolean {
   return total > available + 0.005;
 }
 
+/** True when any line's entered quantity exceeds that line's returnable units.
+ *  The qty input's HTML `max` doesn't stop a typed/pasted over-value, so the
+ *  form gate must check it (the server also rejects, this surfaces it inline). */
+export function hasOverReturnable(lines: ReturnLine[], qty: Record<string, string>): boolean {
+  return lines.some((l) => {
+    const q = Number(qty[l.orderItemId] ?? "");
+    return Number.isFinite(q) && q > l.returnableUnits;
+  });
+}
+
 /** Seed the form fields from a loaded return. */
 export function seedReturn(ret: ReturnForEdit): { date: string; reason: string; qty: Record<string, string> } {
   const qty: Record<string, string> = {};
@@ -58,8 +68,9 @@ export function seedReturn(ret: ReturnForEdit): { date: string; reason: string; 
 }
 
 /** Validate the return before submit. Returns an error string or null. */
-export function validateReturn(itemCount: number, overCap: boolean): string | null {
+export function validateReturn(itemCount: number, overCap: boolean, overReturnable = false): string | null {
   if (itemCount === 0) return "Enter a return quantity on at least one line.";
+  if (overReturnable) return "A line's quantity is more than its returnable units.";
   if (overCap) return "Return total exceeds the invoice's outstanding balance.";
   return null;
 }

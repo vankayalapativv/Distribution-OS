@@ -3,7 +3,7 @@
 import { type SyntheticEvent, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiGet, errorMessage, type ActionConfig } from "@/lib/api-client";
-import { isOverCap, returnItems, returnTotal, validateReturn } from "./sales-return-edit-logic";
+import { hasOverReturnable, isOverCap, returnItems, returnTotal, validateReturn } from "./sales-return-edit-logic";
 import {
   createReturnFormData,
   todayIso,
@@ -67,7 +67,7 @@ export function useSalesReturn({
   async function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     const items = returnItems(lines, qty);
-    const invalid = validateReturn(items.length, overCap);
+    const invalid = validateReturn(items.length, overCap, hasOverReturnable(lines, qty));
     if (invalid) return setError(invalid);
     setBusy(true);
     setError(null);

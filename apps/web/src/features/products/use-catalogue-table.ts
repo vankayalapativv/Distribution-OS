@@ -48,7 +48,9 @@ export function useCatalogueTable(category: CatalogueCategory, actionConfig: Act
       if (search.trim() !== url.filters.search) url.setFilter("search", search.trim());
     }, 350);
     return () => clearTimeout(t);
-  }, [search, url]);
+    // Depend on the search value + the stable setter, not the whole `url` object
+    // (recreated each render → the timer would re-arm on every render).
+  }, [search, url.filters.search, url.setFilter]);
 
   const columns = useMemo(
     () => oilColumns({ onEdit: h.onEditProduct, onDelete: h.onDeleteProduct, canManage }),

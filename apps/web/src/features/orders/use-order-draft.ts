@@ -7,6 +7,7 @@ import type { Order } from "./orders-api";
 import type { LockedLine, UseOrderDraftArgs } from "./order-draft-types";
 import { seedLockedLines, seedOilLines } from "./order-draft-seed";
 import { buildOrderPayload, collectDraftItems, validateDraft } from "./order-draft-submit";
+import { parseYmd } from "./orders-list-helpers";
 import { useOilLines } from "./use-oil-lines";
 
 export type { EditableOrder, LockedLine } from "./order-draft-types";
@@ -43,7 +44,9 @@ export function useOrderDraft({
       setCreateError(null);
       setSelectedCustomerId(order?.customerId ?? initialCustomerId ?? "");
       setSelectedSalesExecId(order?.salesExecutiveId ?? "");
-      setOrderDate(order?.orderDate ? new Date(order.orderDate) : undefined);
+      // parseYmd treats a bare YYYY-MM-DD as LOCAL midnight (not UTC), matching
+      // how buildOrderPayload re-formats it, so re-saving can't shift the day.
+      setOrderDate(order?.orderDate ? parseYmd(order.orderDate.slice(0, 10)) : undefined);
       setOrderDateOpen(false);
       setLockedLines(order ? seedLockedLines(order) : []);
     }

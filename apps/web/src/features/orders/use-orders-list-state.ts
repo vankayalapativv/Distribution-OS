@@ -34,7 +34,9 @@ export function useOrdersListState(customers: CustomerOption[]) {
       if (search.trim() !== applied.search) url.setFilter("search", search.trim());
     }, 300);
     return () => clearTimeout(t);
-  }, [search, applied.search, url]);
+    // Depend on the search value + the stable setter, not the whole `url` object
+    // (recreated each render → the timer would re-arm on every render).
+  }, [search, applied.search, url.setFilter]);
 
   const cities = Array.from(
     new Set(customers.map((c) => c.addressCity).filter((v): v is string => !!v)),

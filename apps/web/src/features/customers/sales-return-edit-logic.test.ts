@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  hasOverReturnable,
   isOverCap,
   lineCategory,
   lineTotal,
@@ -70,9 +71,20 @@ describe("seedReturn", () => {
   });
 });
 
+describe("hasOverReturnable", () => {
+  it("flags a line whose entered qty exceeds its returnable units", () => {
+    const l = line({ orderItemId: "oi1", returnableUnits: 5 });
+    expect(hasOverReturnable([l], { oi1: "6" })).toBe(true);
+    expect(hasOverReturnable([l], { oi1: "5" })).toBe(false);
+    expect(hasOverReturnable([l], { oi1: "" })).toBe(false);
+    expect(hasOverReturnable([l], {})).toBe(false);
+  });
+});
+
 describe("validateReturn", () => {
-  it("requires a line, then blocks over-cap, else passes", () => {
+  it("requires a line, then blocks over-returnable and over-cap, else passes", () => {
     expect(validateReturn(0, false)).toBe("Enter a return quantity on at least one line.");
+    expect(validateReturn(1, false, true)).toBe("A line's quantity is more than its returnable units.");
     expect(validateReturn(1, true)).toBe("Return total exceeds the invoice's outstanding balance.");
     expect(validateReturn(1, false)).toBeNull();
   });

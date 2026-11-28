@@ -63,10 +63,12 @@ function ExpendituresInner({ role, actionConfig }: { readonly role: Expenditures
           pageSize={s.pageSize}
           pageCount={s.pageCount}
           empty={s.hasFilters ? "No expenditures match your filters." : "No expenditures recorded in this period."}
-          onRowClick={(entry) => (entry.hasBill ? s.setBillFor(entry) : s.handleEdit(entry))}
+          // Every row opens the Edit form with its data (claim-booked rows included);
+          // a row's receipt stays reachable via its ⋮ Actions → View bill.
+          onRowClick={s.handleEdit}
         />
 
-        <p className="text-xs text-muted-foreground">Click a row to view its bill, or use Edit to change an entry.</p>
+        <p className="text-xs text-muted-foreground">Click a row to edit its details; open a receipt from the row&apos;s ⋮ menu.</p>
       </DashboardShell>
 
       <ExpenditureFormDialog

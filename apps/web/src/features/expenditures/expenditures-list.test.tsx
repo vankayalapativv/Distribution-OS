@@ -63,12 +63,13 @@ describe("ExpendituresList", () => {
     expect(s.openNew).toHaveBeenCalled();
   });
 
-  it("row click opens the bill when there's one, else edits", () => {
+  it("row click always opens the edit form (receipt rows included); receipt stays in the ⋮ menu", () => {
     render(<ExpendituresList role="SUPER_ADMIN" actionConfig={config} />);
-    fireEvent.click(screen.getByText("row-bill"));
-    expect(s.setBillFor).toHaveBeenCalledWith({ id: "e1", hasBill: true });
-    fireEvent.click(screen.getByText("row-edit"));
+    fireEvent.click(screen.getByText("row-bill")); // a row WITH a receipt
+    expect(s.handleEdit).toHaveBeenCalledWith({ id: "e1", hasBill: true });
+    fireEvent.click(screen.getByText("row-edit")); // a row without one
     expect(s.handleEdit).toHaveBeenCalledWith({ id: "e2", hasBill: false });
+    expect(s.setBillFor).not.toHaveBeenCalled(); // row click never opens the bill now
   });
 
   it("the bill dialog's edit/delete close the bill then act; delete-dialog closes", () => {

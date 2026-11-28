@@ -5,10 +5,8 @@ const can: Record<string, boolean> = {};
 vi.mock("@/features/shell/use-can", () => ({ useCan: (k: string) => can[k] ?? false }));
 const claims = { claims: [] as unknown[] };
 vi.mock("./use-claims-queue", () => ({ useClaimsQueue: () => claims }));
-vi.mock("./claims-queue-panel", () => ({ ClaimsQueuePanel: () => <div>CLAIMS-BODY</div> }));
-vi.mock("./advances-panel", () => ({ AdvancesPanel: () => <div>ADV-BODY</div> }));
-vi.mock("./salary-panel", () => ({ SalaryPanel: () => <div>SALARY-BODY</div> }));
-vi.mock("./employee-ledger-dialog", () => ({ EmployeeLedgerDialogBody: () => <div>LEDGER-BODY</div> }));
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 import { ExpenditureActionsMenu } from "./expenditure-actions-menu";
 
@@ -39,27 +37,22 @@ describe("ExpenditureActionsMenu", () => {
     expect(screen.getByText("Claims")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument(); // badge
     expect(screen.getByText("Salary & pay")).toBeInTheDocument();
-    expect(screen.queryByText("Reimbursements")).not.toBeInTheDocument();
     expect(screen.queryByText("Advances")).not.toBeInTheDocument();
     expect(screen.queryByText("Employee ledger")).not.toBeInTheDocument();
   });
 
-  it("opens each permitted dialog from its menu item, and closes it", () => {
+  it("deep-links each item to the desk page at its tab", () => {
     Object.assign(can, ALL);
     render(<ExpenditureActionsMenu actionConfig={config} />);
-    const open = (label: string, body: string) => {
+    const go = (label: string, tab: string) => {
       openMenu();
       fireEvent.click(screen.getByText(label));
-      expect(screen.getByText(body)).toBeInTheDocument();
+      expect(push).toHaveBeenLastCalledWith(`/expenditures/desk?tab=${tab}`);
     };
-    open("Claims", "CLAIMS-BODY");
-    open("Advances", "ADV-BODY");
-    open("Salary & pay", "SALARY-BODY");
-    open("Employee ledger", "LEDGER-BODY");
-
-    // Escape closes the dialog (onOpenChange → setDialog(null)).
-    fireEvent.keyDown(document.body, { key: "Escape" });
-    expect(screen.queryByText("LEDGER-BODY")).not.toBeInTheDocument();
+    go("Claims", "claims");
+    go("Advances", "advances");
+    go("Salary & pay", "salary");
+    go("Employee ledger", "ledger");
   });
 
   it("shows Advances when the user can only approve requests, and no badge at zero", () => {

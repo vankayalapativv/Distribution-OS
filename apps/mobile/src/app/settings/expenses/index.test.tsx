@@ -4,14 +4,10 @@ import { router } from "expo-router";
 
 const useMyClaims = vi.fn();
 const reimb = { owedTotal: 0, refetch: vi.fn(() => Promise.resolve()) };
-const adv = { outstandingTotal: 0, refetch: vi.fn(() => Promise.resolve()) };
-const sal = { pay: null as { monthlySalary: number | null; advanceOutstanding: number; thisMonth: null } | null, refetch: vi.fn(() => Promise.resolve()) };
 let pullFn: (() => Promise<unknown>) | null = null;
 vi.mock("../../../lib/use-pull-refresh", () => ({ usePullRefresh: (fn: () => Promise<unknown>) => { pullFn = fn; return { refreshing: false, onRefresh: fn }; } }));
 vi.mock("../../../lib/use-my-claims", () => ({ useMyClaims: () => useMyClaims() }));
 vi.mock("../../../lib/use-my-reimbursements", () => ({ useMyReimbursements: () => reimb }));
-vi.mock("../../../lib/use-my-advances", () => ({ useMyAdvances: () => adv }));
-vi.mock("../../../lib/use-my-salary", () => ({ useMySalary: () => sal }));
 vi.mock("expo-router", () => ({ router: { push: vi.fn(), back: vi.fn() } }));
 vi.mock("../../../components/error-state", () => ({ ErrorState: () => <span>error-state</span> }));
 vi.mock("../../../components/expenses/claim-row", () => ({
@@ -23,7 +19,7 @@ vi.mock("../../../components/expenses/claim-row", () => ({
 import MyExpensesScreen from "./index";
 
 const base = { claims: [], loading: false, error: null, retry: vi.fn(() => Promise.resolve()) };
-beforeEach(() => { vi.clearAllMocks(); pullFn = null; reimb.owedTotal = 0; adv.outstandingTotal = 0; sal.pay = null; useMyClaims.mockReturnValue({ ...base }); });
+beforeEach(() => { vi.clearAllMocks(); pullFn = null; reimb.owedTotal = 0; useMyClaims.mockReturnValue({ ...base }); });
 
 describe("MyExpensesScreen", () => {
   it("shows the empty state, routes to New, and goes back", () => {
@@ -42,20 +38,10 @@ describe("MyExpensesScreen", () => {
     expect(screen.getByText("₹450")).toBeInTheDocument();
   });
 
-  it("shows the salary card when a salary is set", () => {
-    sal.pay = { monthlySalary: 20000, advanceOutstanding: 0, thisMonth: null };
+  it("shows no salary or advance UI (web-only now)", () => {
     render(<MyExpensesScreen />);
-    expect(screen.getByText("Monthly salary")).toBeInTheDocument();
-    expect(screen.getByText("₹20,000")).toBeInTheDocument();
-  });
-
-  it("shows advance outstanding and routes to the request screen", () => {
-    adv.outstandingTotal = 8000;
-    render(<MyExpensesScreen />);
-    expect(screen.getByText("Advance to repay")).toBeInTheDocument();
-    expect(screen.getByText("₹8,000")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Request an advance"));
-    expect(router.push).toHaveBeenCalledWith("/settings/expenses/advance");
+    expect(screen.queryByText("Monthly salary")).not.toBeInTheDocument();
+    expect(screen.queryByText("Request an advance")).not.toBeInTheDocument();
   });
 
   it("shows a spinner while loading (no empty state)", () => {
@@ -64,14 +50,12 @@ describe("MyExpensesScreen", () => {
     expect(screen.queryByText("No claims yet")).not.toBeInTheDocument();
   });
 
-  it("pull-to-refresh refetches claims, pay, owed and advances together", async () => {
+  it("pull-to-refresh refetches claims and the owed total together", async () => {
     render(<MyExpensesScreen />);
     expect(pullFn).toBeTypeOf("function");
     await pullFn!();
     expect(base.retry).toHaveBeenCalled();
-    expect(sal.refetch).toHaveBeenCalled();
     expect(reimb.refetch).toHaveBeenCalled();
-    expect(adv.refetch).toHaveBeenCalled();
   });
 
   it("shows the error state", () => {

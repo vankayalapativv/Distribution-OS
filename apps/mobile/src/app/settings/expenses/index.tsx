@@ -3,27 +3,19 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ClaimRow } from "../../../components/expenses/claim-row";
 import { OwedCard } from "../../../components/expenses/owed-card";
-import { AdvanceCard } from "../../../components/expenses/advance-card";
-import { PayCard } from "../../../components/expenses/pay-card";
 import { ErrorState } from "../../../components/error-state";
 import { useMyClaims } from "../../../lib/use-my-claims";
 import { useMyReimbursements } from "../../../lib/use-my-reimbursements";
-import { useMyAdvances } from "../../../lib/use-my-advances";
-import { useMySalary } from "../../../lib/use-my-salary";
 import { usePullRefresh } from "../../../lib/use-pull-refresh";
 import type { ExpenseClaim } from "../../../lib/expense-claims";
 
-/** My expense claims — submit new ones and track approval status (online-only). */
+/** My expenses — submit expense claims and track approval (online-only). Salary
+ *  and advances live on the web only; the field app shows expenses alone. */
 export default function MyExpensesScreen() {
   const { claims, loading, error, retry } = useMyClaims();
   const { owedTotal, refetch: refetchOwed } = useMyReimbursements();
-  const { outstandingTotal, refetch: refetchAdvances } = useMyAdvances();
-  const { pay, refetch: refetchPay } = useMySalary();
-  // Pull-to-refresh updates the whole screen — claims AND the pay/owed/advance
-  // cards — so a just-approved claim or just-paid salary shows at once.
-  const { refreshing, onRefresh } = usePullRefresh(() =>
-    Promise.all([retry(), refetchOwed(), refetchAdvances(), refetchPay()]),
-  );
+  // Pull-to-refresh updates the claims and the "owed to you" total together.
+  const { refreshing, onRefresh } = usePullRefresh(() => Promise.all([retry(), refetchOwed()]));
 
   function openClaim(claim: ExpenseClaim) {
     // Only a rejected claim is editable → reopen the form to fix + resubmit.
@@ -56,9 +48,7 @@ export default function MyExpensesScreen() {
           contentContainerClassName="p-4"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
-          <PayCard pay={pay} />
           <OwedCard owedTotal={owedTotal} />
-          <AdvanceCard outstandingTotal={outstandingTotal} onRequest={() => router.push("/settings/expenses/advance")} />
           {claims.length === 0 ? (
             <View className="items-center gap-2 py-16">
               <Text className="text-base font-semibold text-foreground">No claims yet</Text>

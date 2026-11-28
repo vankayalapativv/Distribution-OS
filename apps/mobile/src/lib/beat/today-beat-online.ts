@@ -23,10 +23,12 @@ export interface BeatStop {
   outstanding: number;
   /** Ageing bucket of the oldest unpaid invoice; null when nothing is due. */
   dueBucket: DuesBucket | null;
-  /** Date of this customer's last non-cancelled order; null = never ordered. */
-  lastOrderDate: string | null;
-  /** Date of this customer's last non-rejected collection; null = never collected. */
-  lastCollectionDate: string | null;
+  /** Date of this customer's last non-cancelled order; null = never ordered.
+   *  Optional: a beat payload cached before this field existed omits it (undefined). */
+  lastOrderDate?: string | null;
+  /** Date of this customer's last non-rejected collection; null = never collected.
+   *  Optional: a beat payload cached before this field existed omits it (undefined). */
+  lastCollectionDate?: string | null;
 }
 
 export interface TodayBeat {

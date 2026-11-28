@@ -17,9 +17,8 @@ export function StopRow({ stop }: { readonly stop: BeatStop }) {
   // Recency chips — last order + last collection, graded green→orange→red. A beat
   // payload cached before these fields existed omits them (undefined); hide the
   // chip then rather than show a misleading "No orders/collections yet".
-  const s = stop as Partial<BeatStop>;
-  const orderChip = s.lastOrderDate !== undefined ? activityChip("order", s.lastOrderDate) : null;
-  const collectionChip = s.lastCollectionDate !== undefined ? activityChip("collection", s.lastCollectionDate) : null;
+  const orderChip = stop.lastOrderDate !== undefined ? activityChip("order", stop.lastOrderDate) : null;
+  const collectionChip = stop.lastCollectionDate !== undefined ? activityChip("collection", stop.lastCollectionDate) : null;
   return (
     <Pressable
       className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-4"

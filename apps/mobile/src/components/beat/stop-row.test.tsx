@@ -72,7 +72,7 @@ describe("StopRow", () => {
     expect(screen.getByText("Last collection today")).toBeInTheDocument();
   });
 
-  const undef = undefined as unknown as null;
+  const undef = undefined;
 
   it("hides both recency chips when the beat payload omits them (stale cache)", () => {
     render(<StopRow stop={stop({ lastOrderDate: undef, lastCollectionDate: undef })} />);

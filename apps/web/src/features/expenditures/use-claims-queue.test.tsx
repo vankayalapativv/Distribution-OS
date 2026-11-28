@@ -40,16 +40,16 @@ describe("useClaimsQueue", () => {
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["expenditure-summary"] });
   });
 
-  it("approves in full carrying just the mode", async () => {
+  it("always sends the approved amount with the mode", async () => {
     const { result } = renderHook(() => useClaimsQueue(config));
-    await result.current.approve("x1", null, "upi");
-    expect(apiRequest).toHaveBeenCalledWith(config, "POST", "/expense-claims/x1/approve", { paymentMode: "upi" });
+    await result.current.approve("x1", 500, "upi");
+    expect(apiRequest).toHaveBeenCalledWith(config, "POST", "/expense-claims/x1/approve", { paymentMode: "upi", approvedAmount: 500 });
   });
 
   it("wraps an approve failure", async () => {
     apiRequest.mockRejectedValueOnce(new Error("boom"));
     const { result } = renderHook(() => useClaimsQueue(config));
-    await expect(result.current.approve("x1", null, "cash")).rejects.toThrow("boom");
+    await expect(result.current.approve("x1", 100, "cash")).rejects.toThrow("boom");
   });
 
   it("rejects with a reason and refreshes", async () => {

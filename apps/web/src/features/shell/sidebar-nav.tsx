@@ -9,15 +9,14 @@ import { buildNavSections, type DashboardRole, type NavKey } from "./dashboard-n
 import { useServerPermissions } from "./permissions-context";
 import { useSidebarCollapsed } from "./sidebar-state";
 import { BADGE_REFRESH_EVENT } from "./badge-refresh";
-import { fetchBadgeCounts } from "./badge-fetch";
+import { fetchBadgeCounts, type BadgeCountsPayload } from "./badge-fetch";
 
-interface BadgeCounts {
-  tasksActive: number;
-  alertsOpen: number;
-  ordersNew: number;
-  collectionsNew: number;
-  expenditureClaimsPending: number;
-}
+// The subset of badge counts the sidebar reads — derived from the single source
+// (BadgeCountsPayload) so a new count field can't drift out of sync here.
+type BadgeCounts = Pick<
+  BadgeCountsPayload,
+  "tasksActive" | "alertsOpen" | "ordersNew" | "collectionsNew" | "expenditureClaimsPending"
+>;
 
 /**
  * Sidebar with live notification badges. It polls the same-origin

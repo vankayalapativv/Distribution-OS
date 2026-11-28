@@ -21,9 +21,9 @@ export function useClaimsQueue(actionConfig: ActionConfig) {
     refreshBadges(); // approving clears a pending claim → update the sidebar badge now
   }
 
-  async function approve(id: string, approvedAmount: number | null, paymentMode: string): Promise<void> {
+  async function approve(id: string, approvedAmount: number, paymentMode: string): Promise<void> {
     try {
-      await apiRequest(actionConfig, "POST", `/expense-claims/${id}/approve`, { paymentMode, ...(approvedAmount != null ? { approvedAmount } : {}) });
+      await apiRequest(actionConfig, "POST", `/expense-claims/${id}/approve`, { paymentMode, approvedAmount });
     } catch (e) {
       throw new Error(errorMessage(e, "Could not approve the claim."));
     }

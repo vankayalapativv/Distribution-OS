@@ -43,7 +43,7 @@ function ExpendituresInner({ role, actionConfig }: { readonly role: Expenditures
         <div className="flex flex-wrap items-center justify-between gap-3">
           <ExpenditureFilters s={s} categories={s.categories} />
           <div className="flex items-center gap-2">
-            <ClaimsNavButton actionConfig={actionConfig} />
+            <ClaimsNavButton />
             {canManage && <Button variant="outline" onClick={() => s.setCategoryOpen(true)}>+ Category</Button>}
             {canManage && <Button onClick={s.openNew}>+ Record Expenditure</Button>}
           </div>

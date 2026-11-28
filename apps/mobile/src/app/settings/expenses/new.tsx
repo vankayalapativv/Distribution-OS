@@ -1,12 +1,22 @@
+import { Image as ExpoImage } from "expo-image";
 import { router } from "expo-router";
+import { useState } from "react";
 import { ActivityIndicator, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ErrorBanner } from "../../../components/error-banner";
+import { PhotoZoomViewer } from "../../../components/photo-zoom-viewer";
 import { useClaimForm } from "../../../lib/use-claim-form";
 
 /** Submit a new expense claim (receipt required), or edit + resubmit a rejected one. */
 export default function NewExpenseScreen() {
   const f = useClaimForm();
+  const [viewingReceipt, setViewingReceipt] = useState(false);
+  // Show the already-attached receipt (authed) until the user picks a replacement.
+  const showAttached = Boolean(f.editId && f.editHasReceipt && f.billUri && !f.receiptUri);
+  // Whichever receipt is currently on the form is the one the viewer opens: a
+  // freshly-picked local image (no auth), else the attached server copy (authed).
+  const viewUri = f.receiptUri ?? (showAttached ? f.billUri : null);
+  const viewHeaders = f.receiptUri ? undefined : f.authHeaders;
 
   return (
     <SafeAreaView className="flex-1 bg-secondary" edges={["top"]}>
@@ -53,7 +63,31 @@ export default function NewExpenseScreen() {
             {f.editId ? "Replace receipt (optional)" : <>Receipt <Text className="text-destructive">*</Text></>}
           </Text>
           {f.receiptUri ? (
-            <Image source={{ uri: f.receiptUri }} className="h-40 w-full rounded-2xl" resizeMode="cover" />
+            // The freshly-picked receipt — tap to view full-screen (pinch-zoom).
+            <View className="overflow-hidden rounded-2xl border border-border bg-card">
+              <Pressable onPress={() => setViewingReceipt(true)} accessibilityLabel="View receipt">
+                <Image source={{ uri: f.receiptUri }} className="h-40 w-full" resizeMode="cover" />
+              </Pressable>
+              <View className="px-3 py-2">
+                <Text className="text-xs text-muted-foreground">Receipt added · tap to view</Text>
+              </View>
+            </View>
+          ) : showAttached && f.billUri ? (
+            // The receipt already on file — tap to view full-screen (pinch-zoom).
+            <View className="overflow-hidden rounded-2xl border border-border bg-card">
+              <Pressable onPress={() => setViewingReceipt(true)} accessibilityLabel="View receipt">
+                <ExpoImage
+                  source={{ uri: f.billUri, headers: f.authHeaders }}
+                  style={{ width: "100%", height: 160, backgroundColor: "#f3f4f6" }}
+                  contentFit="cover"
+                  cachePolicy="none"
+                  transition={150}
+                />
+              </Pressable>
+              <View className="px-3 py-2">
+                <Text className="text-xs text-muted-foreground">Receipt attached · tap to view</Text>
+              </View>
+            </View>
           ) : (
             <View className="flex-row gap-2">
               <Pressable className="flex-1 items-center rounded-2xl border border-dashed border-primary bg-card py-4" onPress={() => f.pickReceipt("camera")}>
@@ -69,7 +103,17 @@ export default function NewExpenseScreen() {
               <Text className="text-xs font-semibold text-primary">Retake</Text>
             </Pressable>
           ) : null}
-          {f.editId && !f.receiptUri ? (
+          {showAttached ? (
+            <View className="mt-2 flex-row gap-4">
+              <Pressable onPress={() => f.pickReceipt("camera")}>
+                <Text className="text-xs font-semibold text-primary">📷 Replace with photo</Text>
+              </Pressable>
+              <Pressable onPress={() => f.pickReceipt("gallery")}>
+                <Text className="text-xs font-semibold text-primary">🖼 Replace from gallery</Text>
+              </Pressable>
+            </View>
+          ) : null}
+          {f.editId && !f.receiptUri && !showAttached ? (
             <Text className="mt-1 text-xs text-muted-foreground">Keep the attached receipt, or pick a new one to replace it.</Text>
           ) : null}
         </View>
@@ -96,6 +140,9 @@ export default function NewExpenseScreen() {
           )}
         </Pressable>
       </ScrollView>
+      {viewingReceipt && viewUri ? (
+        <PhotoZoomViewer uri={viewUri} headers={viewHeaders} onClose={() => setViewingReceipt(false)} />
+      ) : null}
     </SafeAreaView>
   );
 }

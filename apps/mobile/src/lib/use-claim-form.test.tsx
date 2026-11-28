@@ -3,6 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { useClaimForm } from "./use-claim-form";
 
 const h = vi.hoisted(() => ({
+  token: { value: "tok" as string | null },
   params: { value: {} as { id?: string } },
   cats: { data: [{ id: "c1", name: "Fuel" }] as unknown, isPending: false },
   cache: { value: [] as unknown[] },
@@ -20,7 +21,7 @@ vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ getQueryData: () => h.cache.value, invalidateQueries: h.invalidate }),
 }));
 vi.mock("expo-router", () => ({ useLocalSearchParams: () => h.params.value, router: { back: () => h.back() } }));
-vi.mock("./auth", () => ({ useAuth: (sel: (s: { token: string }) => unknown) => sel({ token: "tok" }) }));
+vi.mock("./auth", () => ({ useAuth: (sel: (s: { token: string | null }) => unknown) => sel({ token: h.token.value }) }));
 vi.mock("./expense-claims", () => ({
   fetchClaimCategories: vi.fn(),
   submitExpenseClaim: (...a: unknown[]) => h.submit(...a),
@@ -29,7 +30,7 @@ vi.mock("./expense-claims", () => ({
 vi.mock("./photo-picker", () => ({ pickFromCamera: () => h.camera(), pickFromGallery: () => h.gallery() }));
 
 beforeEach(() => {
-  h.params.value = {}; h.cache.value = []; h.cats.data = [{ id: "c1", name: "Fuel" }]; h.cats.isPending = false;
+  h.token.value = "tok"; h.params.value = {}; h.cache.value = []; h.cats.data = [{ id: "c1", name: "Fuel" }]; h.cats.isPending = false;
   h.camera.mockResolvedValue({ photos: [{ uri: "file:///r.jpg" }], error: null });
   h.gallery.mockResolvedValue({ photos: [{ uri: "file:///g.jpg" }], error: null });
 });
@@ -174,5 +175,30 @@ describe("useClaimForm — edit", () => {
     h.cats.data = undefined;
     const { result } = renderHook(() => useClaimForm());
     expect(result.current.categories).toEqual([]);
+  });
+
+  it("exposes the attached receipt as an authed, cache-busted bill URL", () => {
+    h.params.value = { id: "r3" };
+    h.cache.value = [{ id: "r3", categoryId: "c1", amount: 80, date: "2026-11-20", remarks: null, status: "rejected", hasReceipt: true }];
+    const { result } = renderHook(() => useClaimForm());
+    expect(result.current.editHasReceipt).toBe(true);
+    expect(result.current.authHeaders).toEqual({ Authorization: "Bearer tok" });
+    expect(result.current.billUri).toMatch(/\/expense-claims\/r3\/bill\?t=\d+$/);
+  });
+
+  it("omits auth headers when there is no token", () => {
+    h.token.value = null;
+    h.params.value = { id: "r3" };
+    h.cache.value = [{ id: "r3", categoryId: "c1", amount: 80, date: "2026-11-20", remarks: null, status: "rejected", hasReceipt: true }];
+    const { result } = renderHook(() => useClaimForm());
+    expect(result.current.authHeaders).toBeUndefined();
+  });
+
+  it("has no bill URL for a claim without a receipt", () => {
+    h.params.value = { id: "r4" };
+    h.cache.value = [{ id: "r4", categoryId: "c1", amount: 80, date: "2026-11-20", remarks: null, status: "submitted", hasReceipt: false }];
+    const { result } = renderHook(() => useClaimForm());
+    expect(result.current.editHasReceipt).toBe(false);
+    expect(result.current.billUri).toBeNull();
   });
 });

@@ -2,6 +2,7 @@ import * as Crypto from "expo-crypto";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "./api";
 import { useAuth } from "./auth";
 import {
   fetchClaimCategories,
@@ -30,6 +31,11 @@ export function useClaimForm() {
   const [busy, setBusy] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
   const [editStatus, setEditStatus] = useState<ExpenseClaim["status"] | null>(null);
+  const [editHasReceipt, setEditHasReceipt] = useState(false);
+  // Per-open cache-bust so the attached-receipt thumbnail always reflects the
+  // latest upload (the /bill URL is stable per claim, so a replaced receipt
+  // would otherwise show the stale cached image on the next open).
+  const [openedAt] = useState(() => Date.now());
 
   const categoriesQuery = useQuery<ClaimCategory[]>({
     queryKey: ["claim-categories"],
@@ -46,6 +52,7 @@ export function useClaimForm() {
       setDate(claim.date);
       setRemarks(claim.remarks ?? "");
       setEditStatus(claim.status);
+      setEditHasReceipt(claim.hasReceipt);
     }
     setPrefilled(true);
   }, [editId, prefilled, queryClient]);
@@ -75,9 +82,17 @@ export function useClaimForm() {
     }
   }
 
+  // The attached receipt lives behind an authed endpoint — view it with Bearer
+  // auth headers (same pattern as market-intelligence photos).
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : undefined;
+  const billUri = editId && editHasReceipt ? `${API_BASE_URL}/expense-claims/${editId}/bill?t=${openedAt}` : null;
+
   return {
     editId,
     editStatus,
+    editHasReceipt,
+    billUri,
+    authHeaders,
     categories: categoriesQuery.data ?? [],
     categoriesLoading: categoriesQuery.isPending,
     categoryId, setCategoryId,

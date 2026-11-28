@@ -4,7 +4,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 const form = vi.fn();
 vi.mock("../../../lib/use-claim-form", () => ({ useClaimForm: () => form() }));
 vi.mock("expo-router", () => ({ router: { back: vi.fn() } }));
+vi.mock("expo-image", () => ({ Image: (p: { source: { uri: string } }) => <span>img:{p.source.uri}</span> }));
 vi.mock("../../../components/error-banner", () => ({ ErrorBanner: ({ message }: { message: string }) => <span>err:{message}</span> }));
+vi.mock("../../../components/photo-zoom-viewer", () => ({ PhotoZoomViewer: ({ uri, onClose }: { uri: string; onClose: () => void }) => <button onClick={onClose}>zoom:{uri}</button> }));
 
 import { router } from "expo-router";
 import NewExpenseScreen from "./new";
@@ -24,6 +26,9 @@ const base = {
   setRemarks: vi.fn(),
   receiptUri: null as string | null,
   pickReceipt: vi.fn(),
+  editHasReceipt: false,
+  billUri: null as string | null,
+  authHeaders: undefined as Record<string, string> | undefined,
   error: null as string | null,
   busy: false,
   save: vi.fn(),
@@ -58,10 +63,19 @@ describe("NewExpenseScreen", () => {
     form.mockReturnValue({ ...base, receiptUri: "file:///r.jpg" });
     render(<NewExpenseScreen />);
     expect(screen.queryByText("📷 Camera")).not.toBeInTheDocument();
+    expect(screen.getByText(/Receipt added/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("Retake"));
     expect(base.pickReceipt).toHaveBeenCalledWith("camera");
     fireEvent.click(screen.getByText("‹"));
     expect(router.back).toHaveBeenCalled();
+  });
+
+  it("opens the full-screen viewer on the just-picked receipt (no auth headers)", () => {
+    form.mockReturnValue({ ...base, receiptUri: "file:///r.jpg", authHeaders: { Authorization: "Bearer tok" } });
+    render(<NewExpenseScreen />);
+    fireEvent.click(screen.getByLabelText("View receipt"));
+    // Local pick → the viewer shows the file URI (not a server bill URL).
+    expect(screen.getByText("zoom:file:///r.jpg")).toBeInTheDocument();
   });
 
   it("shows a spinner while busy + surfaces errors", () => {
@@ -79,6 +93,28 @@ describe("NewExpenseScreen", () => {
     expect(screen.getByText("Replace receipt (optional)")).toBeInTheDocument();
     expect(screen.getByText("📷 Camera")).toBeInTheDocument();
     expect(screen.getByText(/Keep the attached receipt/)).toBeInTheDocument();
+  });
+
+  it("shows the attached receipt (tap to view full-screen) with replace options", () => {
+    form.mockReturnValue({
+      ...base, editId: "r1", editStatus: "rejected",
+      editHasReceipt: true, billUri: "http://api/expense-claims/r1/bill?t=1", authHeaders: { Authorization: "Bearer tok" },
+    });
+    render(<NewExpenseScreen />);
+    expect(screen.getByText(/Receipt attached/)).toBeInTheDocument();
+    expect(screen.getByText("img:http://api/expense-claims/r1/bill?t=1")).toBeInTheDocument();
+    // No plain Camera/Gallery pickers while the attached receipt is shown.
+    expect(screen.queryByText("📷 Camera")).not.toBeInTheDocument();
+    // Tap the thumbnail → full-screen zoom viewer, then close it.
+    fireEvent.click(screen.getByLabelText("View receipt"));
+    expect(screen.getByText("zoom:http://api/expense-claims/r1/bill?t=1")).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/^zoom:/));
+    expect(screen.queryByText(/^zoom:/)).not.toBeInTheDocument();
+    // Replace controls swap in a new receipt.
+    fireEvent.click(screen.getByText("🖼 Replace from gallery"));
+    expect(base.pickReceipt).toHaveBeenCalledWith("gallery");
+    fireEvent.click(screen.getByText("📷 Replace with photo"));
+    expect(base.pickReceipt).toHaveBeenCalledWith("camera");
   });
 
   it("a still-pending claim edits with Save changes", () => {

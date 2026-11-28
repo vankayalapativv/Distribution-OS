@@ -16,7 +16,7 @@ import { ExpenditureCategoryDialog } from "./expenditure-category-dialog";
 import { ExpenditureBillDialog } from "./expenditure-bill-dialog";
 import { ExpenditureDeleteDialog } from "./expenditure-delete-dialog";
 import { VoidReasonDialog } from "./void-reason-dialog";
-import { ExpenditureActionsMenu } from "./expenditure-actions-menu";
+import { ClaimsNavButton } from "./claims-nav-button";
 import { useExpendituresList } from "./use-expenditures-list";
 
 function entryWord(n: number): string {
@@ -43,9 +43,9 @@ function ExpendituresInner({ role, actionConfig }: { readonly role: Expenditures
         <div className="flex flex-wrap items-center justify-between gap-3">
           <ExpenditureFilters s={s} categories={s.categories} />
           <div className="flex items-center gap-2">
+            <ClaimsNavButton actionConfig={actionConfig} />
             {canManage && <Button variant="outline" onClick={() => s.setCategoryOpen(true)}>+ Category</Button>}
             {canManage && <Button onClick={s.openNew}>+ Record Expenditure</Button>}
-            <ExpenditureActionsMenu actionConfig={actionConfig} />
           </div>
         </div>
 

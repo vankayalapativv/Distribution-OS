@@ -18,7 +18,6 @@ export function useClaimsQueue(actionConfig: ActionConfig) {
     await queryClient.invalidateQueries({ queryKey: ["expense-claims"] });
     void queryClient.invalidateQueries({ queryKey: ["expenditures"] });
     void queryClient.invalidateQueries({ queryKey: ["expenditure-summary"] });
-    void queryClient.invalidateQueries({ queryKey: ["employee-ledger"] });
     refreshBadges(); // approving clears a pending claim → update the sidebar badge now
   }
 

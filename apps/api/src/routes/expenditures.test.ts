@@ -426,31 +426,4 @@ describe("expenditures routes", () => {
       expect(res.status).toBe(403);
     });
   });
-
-  describe("GET /expenditures/ledger", () => {
-    test("returns a person's combined ledger for an office role", async () => {
-      const { default: app } = await import("../index");
-      const res = await app.request(
-        `/api/v1/expenditures/ledger?userId=${SE_ID}`,
-        { headers: headers("neon-super-admin") },
-        env,
-      );
-      expect(res.status).toBe(200);
-      const { data } = await res.json();
-      expect(data).toMatchObject({ salaryIncluded: true, entries: [] });
-      expect(data.summary).toMatchObject({ reimbursementOwed: 0, advanceOutstanding: 0 });
-    });
-
-    test("422 without a userId", async () => {
-      const { default: app } = await import("../index");
-      const res = await app.request("/api/v1/expenditures/ledger", { headers: headers("neon-super-admin") }, env);
-      expect(res.status).toBe(422);
-    });
-
-    test("a sales executive is forbidden", async () => {
-      const { default: app } = await import("../index");
-      const res = await app.request(`/api/v1/expenditures/ledger?userId=${SE_ID}`, { headers: headers("neon-se") }, env);
-      expect(res.status).toBe(403);
-    });
-  });
 });

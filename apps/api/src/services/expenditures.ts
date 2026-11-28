@@ -387,21 +387,17 @@ export async function deleteExpenditure(
   return { deleted: true };
 }
 
-/** Void a booked expenditure (Phase 5): keep the row for audit but set
- *  reversed_at so it drops out of every total. A claim's reimbursement payable is
- *  reversed alongside. A salary run must be reversed via the salary payment (so
- *  its advance recovery is restored) — refuse it here with a hint. */
+/** Void a booked expenditure: keep the row for audit but set reversed_at so it
+ *  drops out of every total. A claim's reimbursement payable is reversed alongside. */
 export async function voidExpenditure(sql: SqlClient, officeId: string, id: string, reason: string | null) {
   const [row] = (await sql`
     /* get_expenditure_for_void */
-    select e.id, e.status, e.reversed_at as "reversedAt",
-      exists(select 1 from salary_payments sp where sp.expenditure_id = e.id and sp.reversed_at is null) as "isSalaryRun"
+    select e.id, e.status, e.reversed_at as "reversedAt"
     from expenditures e where e.id = ${id}::uuid limit 1
   `) as Row[];
   if (!row) throw new ApiError("NOT_FOUND", "Expenditure not found.", 404);
   if (row.reversedAt != null) throw new ApiError("CONFLICT", "This entry is already reversed.", 409);
   if (str(row.status) !== "approved") throw new ApiError("CONFLICT", "Only a booked (approved) entry can be reversed.", 409);
-  if (row.isSalaryRun === true) throw new ApiError("CONFLICT", "Reverse the salary payment instead — it restores the advance recovery.", 409);
 
   await sql.transaction([
     sql`/* reverse_expenditure */ update expenditures set reversed_at = now(), reversed_by = ${officeId}::uuid where id = ${id}::uuid and reversed_at is null`,

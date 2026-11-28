@@ -149,7 +149,7 @@ describe("deleteExpenditure", () => {
 });
 
 describe("voidExpenditure", () => {
-  const row = (over: Record<string, unknown> = {}) => ({ get_expenditure_for_void: [{ id: "e1", status: "approved", reversedAt: null, isSalaryRun: false, ...over }] });
+  const row = (over: Record<string, unknown> = {}) => ({ get_expenditure_for_void: [{ id: "e1", status: "approved", reversedAt: null, ...over }] });
   it("404 when missing", async () => {
     await expect(voidExpenditure(makeSql({ get_expenditure_for_void: [] }), "off", "x", null)).rejects.toMatchObject({ status: 404 });
   });
@@ -158,9 +158,6 @@ describe("voidExpenditure", () => {
   });
   it("409 when not an approved (booked) entry", async () => {
     await expect(voidExpenditure(makeSql(row({ status: "submitted" })), "off", "e1", null)).rejects.toMatchObject({ status: 409 });
-  });
-  it("409 when it is a salary run (reverse the salary payment instead)", async () => {
-    await expect(voidExpenditure(makeSql(row({ isSalaryRun: true })), "off", "e1", null)).rejects.toMatchObject({ status: 409 });
   });
   it("reverses the expenditure and its payable", async () => {
     const sql = makeSql(row());

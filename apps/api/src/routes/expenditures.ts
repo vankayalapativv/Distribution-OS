@@ -28,8 +28,6 @@ import {
   type ExpenditureInput,
   type ExpenditureType,
 } from "../services/expenditures";
-import { employeeLedger } from "../services/employee-ledger";
-import { effectivePermissionsForRole, isConfigurableRole } from "../services/permissions";
 import type { ApiEnv, Role } from "../types";
 
 /** All three office roles record and edit expenditures (decided 2026-07-24). */
@@ -103,18 +101,6 @@ export const expendituresRoutes = new Hono<ApiEnv>()
       to: url.searchParams.get("to"),
     });
     return c.json(success(c, summary));
-  })
-
-  // One person's combined expense ledger (claims, advances, recoveries, salary).
-  // Salary figures only when the caller holds salary.view (else omitted).
-  .get("/ledger", async (c) => {
-    const auth = await requireCapability(c, "action:expenditures.manage", OFFICE_ROLES);
-    const userId = c.req.query("userId");
-    if (!userId) throw new ApiError("VALIDATION", "A userId is required.", 422);
-    const sql = getSqlClient(c);
-    const includeSalary = !isConfigurableRole(auth.role)
-      || (await effectivePermissionsForRole(sql, auth.role))["action:salary.view"] === true;
-    return c.json(success(c, await employeeLedger(sql, userId, includeSalary)));
   })
 
   .get("/", async (c) => {

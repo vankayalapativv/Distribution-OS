@@ -38,7 +38,6 @@ describe("useClaimsQueue", () => {
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["expense-claims"] });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["expenditures"] });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["expenditure-summary"] });
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["employee-ledger"] });
   });
 
   it("approves in full carrying just the mode", async () => {

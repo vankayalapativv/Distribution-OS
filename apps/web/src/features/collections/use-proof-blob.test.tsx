@@ -15,7 +15,7 @@ describe("useProofBlob", () => {
     vi.stubGlobal("fetch", fetchMock);
     const { result } = renderHook(() => useProofBlob("c1", config));
     await waitFor(() => expect(result.current.src).toBe("blob:x"));
-    expect(fetchMock).toHaveBeenCalledWith("http://api/collections/c1/proof", { headers: { Authorization: "Bearer tok" } });
+    expect(fetchMock).toHaveBeenCalledWith("http://api/collections/c1/proof", expect.objectContaining({ method: "GET", headers: { Authorization: "Bearer tok" } }));
     expect(result.current.failed).toBe(false);
   });
 

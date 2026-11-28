@@ -2,7 +2,7 @@
 
 import { type SyntheticEvent, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiRequest, errorMessage, type ActionConfig } from "@/lib/api-client";
+import { apiGet, apiRequest, apiUpload, errorMessage, type ActionConfig } from "@/lib/api-client";
 import type { Collection, Collector } from "./collections-types";
 import { buildCreditNotePayload, creditNoteCanSubmit, emptyCreditNoteForm, type CreditNoteForm } from "./credit-note-payload";
 
@@ -50,12 +50,11 @@ export function useCreditNote({ open, customerId, actionConfig, onCreated, onDon
   async function uploadProof(id: string) {
     const body = new FormData();
     body.append("photo", proofFile as File);
-    const res = await fetch(`${actionConfig.apiBaseUrl}/collections/${id}/proof`, {
-      method: "POST", headers: { Authorization: `Bearer ${actionConfig.authToken}` }, body,
-    });
-    if (!res.ok) {
-      const detail = await res.json().catch(() => null);
-      throw new Error(detail?.error?.message ?? "Failed to upload the document.");
+    // apiUpload carries the live token + refreshes it on a 401 (long-open dialog).
+    try {
+      await apiUpload(actionConfig, "POST", `/collections/${id}/proof`, body);
+    } catch (e) {
+      throw new Error(errorMessage(e, "Failed to upload the document."));
     }
   }
 

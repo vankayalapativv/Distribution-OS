@@ -3,8 +3,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const apiRequest = vi.fn();
+const apiUpload = vi.fn();
 vi.mock("@/lib/api-client", () => ({
   apiRequest: (...a: unknown[]) => apiRequest(...a),
+  apiUpload: (...a: unknown[]) => apiUpload(...a),
   errorMessage: (_e: unknown, fallback: string) => fallback,
 }));
 const draftClear = vi.fn();
@@ -24,12 +26,13 @@ const setup = (onDone = vi.fn(), onCreated = vi.fn()) =>
 
 beforeEach(() => {
   apiRequest.mockResolvedValue({ id: "col1" });
+  apiUpload.mockResolvedValue(undefined);
   vi.stubGlobal("crypto", { ...globalThis.crypto, randomUUID: () => "uuid-x" });
-  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({ ok: true })));
 });
 afterEach(() => {
   vi.unstubAllGlobals();
   apiRequest.mockClear();
+  apiUpload.mockClear();
   draftClear.mockClear();
 });
 
@@ -58,13 +61,13 @@ describe("useCollectionCreate", () => {
     await act(async () => result.current.handleCreate({ preventDefault: vi.fn() } as never));
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(apiRequest).toHaveBeenCalledWith(config, "POST", "/collections", expect.objectContaining({ customerId: "cu1", clientUuid: "uuid-x" }));
-    expect(fetch).toHaveBeenCalledWith("http://api/collections/col1/proof", expect.objectContaining({ method: "POST" }));
+    expect(apiUpload).toHaveBeenCalledWith(config, "POST", "/collections/col1/proof", expect.any(FormData));
     expect(draftClear).toHaveBeenCalled();
     expect(onCreated).toHaveBeenCalled();
   });
 
   it("surfaces a failed proof upload as an error", async () => {
-    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({ ok: false, json: () => Promise.resolve(null) })));
+    apiUpload.mockRejectedValueOnce(new Error("upload failed"));
     const { result } = setup();
     act(() => result.current.setForm((f) => ({ ...f, customerId: "cu1", collectedByUserId: "u1", collectionAmount: "50" })));
     act(() => result.current.setProofFile(new File(["x"], "p.png", { type: "image/png" })));

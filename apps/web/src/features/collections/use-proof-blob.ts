@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ActionConfig } from "@/lib/api-client";
+import { apiDownload, type ActionConfig } from "@/lib/api-client";
 
 /** Fetches a collection's auth-gated payment proof as an object URL (bearer
  *  token → blob). Returns `{ src, failed }`; the URL is revoked on cleanup. */
@@ -12,18 +12,13 @@ export function useProofBlob(collectionId: string, actionConfig: ActionConfig) {
   useEffect(() => {
     let objectUrl: string | null = null;
     let cancelled = false;
-    void fetch(`${actionConfig.apiBaseUrl}/collections/${collectionId}/proof`, {
-      headers: { Authorization: `Bearer ${actionConfig.authToken}` },
-    })
-      .then((r) => (r.ok ? r.blob() : null))
+    // apiDownload carries the live token and refreshes it on a 401, so the proof
+    // still loads on a long-open page past the ~15-min token TTL.
+    void apiDownload(actionConfig, `/collections/${collectionId}/proof`)
       .then((blob) => {
         if (cancelled) return;
-        if (blob) {
-          objectUrl = URL.createObjectURL(blob);
-          setSrc(objectUrl);
-        } else {
-          setFailed(true);
-        }
+        objectUrl = URL.createObjectURL(blob);
+        setSrc(objectUrl);
       })
       .catch(() => {
         if (!cancelled) setFailed(true);

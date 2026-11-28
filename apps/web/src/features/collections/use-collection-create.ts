@@ -2,7 +2,7 @@
 
 import { type SyntheticEvent, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { apiRequest, errorMessage, type ActionConfig } from "@/lib/api-client";
+import { apiRequest, apiUpload, errorMessage, type ActionConfig } from "@/lib/api-client";
 import { readDraft, useFormDraft } from "@/components/form/use-form-draft";
 import type { Collection } from "./collections-types";
 import { EMPTY_COLLECTION_FORM, type CollectionForm } from "./collection-form-types";
@@ -54,12 +54,12 @@ export function useCollectionCreate({ open, actionConfig, initialCustomerId, onC
   async function uploadProof(collectionId: string) {
     const body = new FormData();
     body.append("photo", proofFile as File);
-    const res = await fetch(`${actionConfig.apiBaseUrl}/collections/${collectionId}/proof`, {
-      method: "POST", headers: { Authorization: `Bearer ${actionConfig.authToken}` }, body,
-    });
-    if (!res.ok) {
-      const detail = await res.json().catch(() => null);
-      throw new Error(detail?.error?.message ?? "Failed to upload payment proof.");
+    // apiUpload carries the live token + refreshes it on a 401, so an upload from
+    // a long-open dialog doesn't fail after the baked token's ~15-min TTL.
+    try {
+      await apiUpload(actionConfig, "POST", `/collections/${collectionId}/proof`, body);
+    } catch (e) {
+      throw new Error(errorMessage(e, "Failed to upload payment proof."));
     }
   }
 

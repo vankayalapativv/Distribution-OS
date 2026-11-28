@@ -209,6 +209,54 @@ async function downloadWithToken(config: ActionConfig, path: string, token: stri
   }
 }
 
+/** POST/PATCH a multipart `FormData` body (e.g. a file upload) with the same
+ *  silent 401-refresh + single retry as apiRequest. We send only Authorization —
+ *  the browser sets the multipart Content-Type + boundary. Returns the API's
+ *  `data` (callers that only care about success can ignore it). */
+export function apiUpload<T = unknown>(
+  config: ActionConfig,
+  method: "POST" | "PATCH",
+  path: string,
+  body: FormData,
+): Promise<T> {
+  return uploadWithToken<T>(config, method, path, body, liveToken ?? config.authToken, false);
+}
+
+async function uploadWithToken<T>(
+  config: ActionConfig,
+  method: "POST" | "PATCH",
+  path: string,
+  body: FormData,
+  token: string,
+  isRetry: boolean,
+): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${config.apiBaseUrl}${path}`, {
+      method,
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+      body,
+      signal: controller.signal,
+    });
+    if (response.status === 401 && !isRetry) {
+      clearTimeout(timeout);
+      const fresh = await refreshAuthToken();
+      if (fresh) return await uploadWithToken<T>(config, method, path, body, fresh, true);
+      if (typeof window !== "undefined") window.location.href = "/login";
+      throw new ApiRequestError("Your session has expired. Please sign in again.", 401);
+    }
+    if (!response.ok) throw await toApiError(response);
+    const payload = (await response.json().catch(() => ({ data: undefined }))) as ApiSuccess<T>;
+    return payload.data;
+  } catch (error) {
+    throw toRequestError(error, controller.signal.aborted);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 /** Read `err.message` from a thrown value, with a fallback. */
 export function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;

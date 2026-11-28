@@ -17,7 +17,9 @@ export function ClaimsNavButton() {
     queryKey: ["badge-counts"],
     queryFn: () => fetchBadgeCounts(),
     enabled: canApprove,
-    refetchInterval: 60_000,
+    // No refetchInterval — the count seldom moves mid-page; a fetch on mount,
+    // on window focus, and on remount (navigating back from the Claims page) is
+    // enough, and avoids a third independent 60s poll of /api/badge-counts.
     refetchOnWindowFocus: true,
   });
 

@@ -7,30 +7,41 @@ const h = vi.hoisted(() => ({
   params: { value: {} as { id?: string } },
   cats: { data: [{ id: "c1", name: "Fuel" }] as unknown, isPending: false },
   cache: { value: [] as unknown[] },
+  editClaim: { value: undefined as unknown }, // by-id fetch result (cold cache)
   back: vi.fn(),
   invalidate: vi.fn(() => Promise.resolve()),
   submit: vi.fn<(...a: unknown[]) => Promise<void>>(() => Promise.resolve()),
   resubmit: vi.fn<(...a: unknown[]) => Promise<unknown>>(() => Promise.resolve({})),
+  fetchClaim: vi.fn<(...a: unknown[]) => Promise<unknown>>(() => Promise.resolve({})),
   camera: vi.fn<() => Promise<{ photos: { uri: string }[]; error: string | null }>>(),
   gallery: vi.fn<() => Promise<{ photos: { uri: string }[]; error: string | null }>>(),
 }));
 
 vi.mock("expo-crypto", () => ({ randomUUID: () => "uuid-1" }));
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: (c: { queryFn?: () => unknown }) => { c?.queryFn?.(); return { data: h.cats.data, isPending: h.cats.isPending }; },
+  // The claim-by-id query seeds from initialData (list cache) and falls back to
+  // h.editClaim (a simulated by-id fetch); the categories query returns h.cats.
+  useQuery: (c: { queryKey?: unknown[]; queryFn?: () => unknown; initialData?: () => unknown }) => {
+    c?.queryFn?.();
+    if (Array.isArray(c.queryKey) && c.queryKey[0] === "claim") {
+      return { data: c.initialData?.() ?? h.editClaim.value, isPending: false };
+    }
+    return { data: h.cats.data, isPending: h.cats.isPending };
+  },
   useQueryClient: () => ({ getQueryData: () => h.cache.value, invalidateQueries: h.invalidate }),
 }));
 vi.mock("expo-router", () => ({ useLocalSearchParams: () => h.params.value, router: { back: () => h.back() } }));
 vi.mock("./auth", () => ({ useAuth: (sel: (s: { token: string | null }) => unknown) => sel({ token: h.token.value }) }));
 vi.mock("./expense-claims", () => ({
   fetchClaimCategories: vi.fn(),
+  fetchClaim: (...a: unknown[]) => h.fetchClaim(...a),
   submitExpenseClaim: (...a: unknown[]) => h.submit(...a),
   resubmitClaim: (...a: unknown[]) => h.resubmit(...a),
 }));
 vi.mock("./photo-picker", () => ({ pickFromCamera: () => h.camera(), pickFromGallery: () => h.gallery() }));
 
 beforeEach(() => {
-  h.token.value = "tok"; h.params.value = {}; h.cache.value = []; h.cats.data = [{ id: "c1", name: "Fuel" }]; h.cats.isPending = false;
+  h.token.value = "tok"; h.params.value = {}; h.cache.value = []; h.editClaim.value = undefined; h.cats.data = [{ id: "c1", name: "Fuel" }]; h.cats.isPending = false;
   h.camera.mockResolvedValue({ photos: [{ uri: "file:///r.jpg" }], error: null });
   h.gallery.mockResolvedValue({ photos: [{ uri: "file:///g.jpg" }], error: null });
 });
@@ -160,6 +171,19 @@ describe("useClaimForm — edit", () => {
     h.cache.value = undefined as unknown as unknown[]; // getQueryData → undefined → ?? []
     const { result } = renderHook(() => useClaimForm());
     expect(result.current.categoryId).toBeNull();
+  });
+
+  it("fetches the claim by id when it isn't in the list cache, normalizing the date", () => {
+    h.params.value = { id: "r5" };
+    h.cache.value = []; // cold cache — not found
+    h.editClaim.value = { id: "r5", categoryId: "c1", amount: 120, date: "2026-11-20T00:00:00.000Z", remarks: null, status: "rejected", hasReceipt: true };
+    const { result } = renderHook(() => useClaimForm());
+    expect(h.fetchClaim).toHaveBeenCalledWith("r5", "tok");
+    expect(result.current.categoryId).toBe("c1");
+    expect(result.current.amount).toBe("120");
+    expect(result.current.date).toBe("2026-11-20"); // ISO timestamp → YYYY-MM-DD
+    expect(result.current.editStatus).toBe("rejected");
+    expect(result.current.editHasReceipt).toBe(true);
   });
 
   it("does not re-prefill after the first pass", () => {

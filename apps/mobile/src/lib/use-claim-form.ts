@@ -3,8 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "./api";
+import { authHeaders } from "./auth-headers";
 import { useAuth } from "./auth";
 import {
+  fetchClaim,
   fetchClaimCategories,
   resubmitClaim,
   submitExpenseClaim,
@@ -13,7 +15,10 @@ import {
 } from "./expense-claims";
 import { pickFromCamera, pickFromGallery } from "./photo-picker";
 
-const todayISO = (): string => new Date().toISOString().slice(0, 10);
+/** Today's date as "YYYY-MM-DD" in IST — the business day the rest of the system
+ *  uses (the API derives dates from `now() at time zone 'Asia/Kolkata'`). Using
+ *  UTC here would mis-stamp claims filed between IST midnight and 05:30. */
+const todayISO = (): string => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 
 /** State + submit/resubmit for the expense-claim form. Doubles as the edit form
  *  when an `id` param is passed (prefills from the cached claims list). */
@@ -43,19 +48,27 @@ export function useClaimForm() {
     enabled: Boolean(token),
   });
 
+  // The claim being edited: seeded from the list cache when we have it, else
+  // fetched by id so a cold deep-link / restored route still prefills.
+  const editClaimQuery = useQuery<ExpenseClaim>({
+    queryKey: ["claim", editId],
+    queryFn: () => fetchClaim(editId!, token),
+    enabled: Boolean(editId && token),
+    initialData: () =>
+      (queryClient.getQueryData<ExpenseClaim[]>(["my-claims"]) ?? []).find((c) => c.id === editId),
+  });
+  const editClaim = editClaimQuery.data;
+
   useEffect(() => {
-    if (!editId || prefilled) return;
-    const claim = (queryClient.getQueryData<ExpenseClaim[]>(["my-claims"]) ?? []).find((c) => c.id === editId);
-    if (claim) {
-      setCategoryId(claim.categoryId);
-      setAmount(String(claim.amount));
-      setDate(claim.date);
-      setRemarks(claim.remarks ?? "");
-      setEditStatus(claim.status);
-      setEditHasReceipt(claim.hasReceipt);
-    }
+    if (!editId || prefilled || !editClaim) return;
+    setCategoryId(editClaim.categoryId);
+    setAmount(String(editClaim.amount));
+    setDate(editClaim.date.slice(0, 10)); // normalize an ISO timestamp to YYYY-MM-DD
+    setRemarks(editClaim.remarks ?? "");
+    setEditStatus(editClaim.status);
+    setEditHasReceipt(editClaim.hasReceipt);
     setPrefilled(true);
-  }, [editId, prefilled, queryClient]);
+  }, [editId, prefilled, editClaim]);
 
   async function pickReceipt(from: "camera" | "gallery") {
     const res = from === "camera" ? await pickFromCamera() : await pickFromGallery(1);
@@ -84,7 +97,6 @@ export function useClaimForm() {
 
   // The attached receipt lives behind an authed endpoint — view it with Bearer
   // auth headers (same pattern as market-intelligence photos).
-  const authHeaders = token ? { Authorization: `Bearer ${token}` } : undefined;
   const billUri = editId && editHasReceipt ? `${API_BASE_URL}/expense-claims/${editId}/bill?t=${openedAt}` : null;
 
   return {
@@ -92,7 +104,7 @@ export function useClaimForm() {
     editStatus,
     editHasReceipt,
     billUri,
-    authHeaders,
+    authHeaders: authHeaders(token),
     categories: categoriesQuery.data ?? [],
     categoriesLoading: categoriesQuery.isPending,
     categoryId, setCategoryId,

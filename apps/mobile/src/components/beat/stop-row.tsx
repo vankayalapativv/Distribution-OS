@@ -14,9 +14,12 @@ export function StopRow({ stop }: { readonly stop: BeatStop }) {
   const city = stop.city || "";
   const phone = stop.contactPhone || "";
   const due = stop.outstanding > 0 ? dueBucketMeta(stop.dueBucket) : null;
-  // Recency chips — last order + last collection, graded green→orange→red.
-  const orderChip = activityChip("order", stop.lastOrderDate);
-  const collectionChip = activityChip("collection", stop.lastCollectionDate);
+  // Recency chips — last order + last collection, graded green→orange→red. A beat
+  // payload cached before these fields existed omits them (undefined); hide the
+  // chip then rather than show a misleading "No orders/collections yet".
+  const s = stop as Partial<BeatStop>;
+  const orderChip = s.lastOrderDate !== undefined ? activityChip("order", s.lastOrderDate) : null;
+  const collectionChip = s.lastCollectionDate !== undefined ? activityChip("collection", s.lastCollectionDate) : null;
   return (
     <Pressable
       className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-4"
@@ -58,14 +61,20 @@ export function StopRow({ stop }: { readonly stop: BeatStop }) {
           </View>
         ) : null}
         {/* Last order / last collection recency, side by side. */}
-        <View className="mt-1.5 flex-row flex-wrap gap-1.5">
-          <View className={`self-start rounded-full px-2 py-0.5 ${orderChip.bgClass}`}>
-            <Text className={`text-[11px] font-semibold ${orderChip.textClass}`}>{orderChip.text}</Text>
+        {orderChip || collectionChip ? (
+          <View className="mt-1.5 flex-row flex-wrap gap-1.5">
+            {orderChip ? (
+              <View className={`self-start rounded-full px-2 py-0.5 ${orderChip.bgClass}`}>
+                <Text className={`text-[11px] font-semibold ${orderChip.textClass}`}>{orderChip.text}</Text>
+              </View>
+            ) : null}
+            {collectionChip ? (
+              <View className={`self-start rounded-full px-2 py-0.5 ${collectionChip.bgClass}`}>
+                <Text className={`text-[11px] font-semibold ${collectionChip.textClass}`}>{collectionChip.text}</Text>
+              </View>
+            ) : null}
           </View>
-          <View className={`self-start rounded-full px-2 py-0.5 ${collectionChip.bgClass}`}>
-            <Text className={`text-[11px] font-semibold ${collectionChip.textClass}`}>{collectionChip.text}</Text>
-          </View>
-        </View>
+        ) : null}
       </View>
       <StatusPill status={effectiveStopStatus(stop.stopStatus)} />
     </Pressable>

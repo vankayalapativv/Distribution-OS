@@ -72,6 +72,26 @@ describe("StopRow", () => {
     expect(screen.getByText("Last collection today")).toBeInTheDocument();
   });
 
+  const undef = undefined as unknown as null;
+
+  it("hides both recency chips when the beat payload omits them (stale cache)", () => {
+    render(<StopRow stop={stop({ lastOrderDate: undef, lastCollectionDate: undef })} />);
+    expect(screen.queryByText(/No orders yet/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No collections yet/)).not.toBeInTheDocument();
+  });
+
+  it("hides only the order chip when just that field is absent", () => {
+    render(<StopRow stop={stop({ lastOrderDate: undef, lastCollectionDate: null })} />);
+    expect(screen.queryByText(/No orders yet/)).not.toBeInTheDocument();
+    expect(screen.getByText("No collections yet")).toBeInTheDocument();
+  });
+
+  it("hides only the collection chip when just that field is absent", () => {
+    render(<StopRow stop={stop({ lastOrderDate: null, lastCollectionDate: undef })} />);
+    expect(screen.getByText("No orders yet")).toBeInTheDocument();
+    expect(screen.queryByText(/No collections yet/)).not.toBeInTheDocument();
+  });
+
   it("falls back for a missing city / name / due-bucket meta", () => {
     (expoRouter.push as ReturnType<typeof vi.fn>).mockClear?.();
     render(

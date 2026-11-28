@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  fetchClaim,
   fetchClaimCategories,
   fetchMyClaims,
   resubmitClaim,
@@ -22,6 +23,12 @@ describe("fetch helpers", () => {
     expect(apiFetch).toHaveBeenCalledWith("/expense-claims/categories", { token: "tok" });
     await fetchMyClaims("tok");
     expect(apiFetch).toHaveBeenCalledWith("/expense-claims/mine", { token: "tok" });
+  });
+
+  it("GETs one claim by id", async () => {
+    apiFetch.mockResolvedValue({ id: "r5" });
+    await fetchClaim("r5", "tok");
+    expect(apiFetch).toHaveBeenCalledWith("/expense-claims/r5", { token: "tok" });
   });
 });
 

@@ -7,6 +7,7 @@ import { PhotoShimmer } from "../../photo-shimmer";
 import { PhotoZoomViewer } from "../../photo-zoom-viewer";
 import { Skeleton } from "../../skeleton";
 import { API_BASE_URL } from "../../../lib/api";
+import { authHeaders } from "../../../lib/auth-headers";
 import type { EditPhotos } from "../../../lib/customer/use-edit-photos";
 
 /** Customer photos grid with add (camera/gallery) and confirm-to-delete. */
@@ -20,7 +21,7 @@ export function CustomerPhotosEditor({
   const dialog = useDialog();
   const { query, photoBusy, onAddPhotos, onDeletePhoto } = photos;
   const [viewerUri, setViewerUri] = useState<string | null>(null);
-  const authHeaders = token ? { Authorization: `Bearer ${token}` } : undefined;
+  const headers = authHeaders(token);
   return (
     <View className="gap-1">
       <Text className="text-sm font-medium text-foreground">Customer photos</Text>
@@ -53,7 +54,7 @@ export function CustomerPhotosEditor({
                 accessibilityLabel="View photo"
               >
                 <Image
-                  source={{ uri: `${API_BASE_URL}/photos/${photo.id}`, headers: authHeaders }}
+                  source={{ uri: `${API_BASE_URL}/photos/${photo.id}`, headers }}
                   contentFit="cover"
                   transition={150}
                   style={{ width: 88, height: 88, borderRadius: 10, backgroundColor: "#f3f4f6" }}
@@ -90,7 +91,7 @@ export function CustomerPhotosEditor({
       ); return (
         <Text className="text-xs text-muted-foreground">No customer photos yet.</Text>
       ); })()}
-      {viewerUri ? <PhotoZoomViewer uri={viewerUri} headers={authHeaders} onClose={() => setViewerUri(null)} /> : null}
+      {viewerUri ? <PhotoZoomViewer uri={viewerUri} headers={headers} onClose={() => setViewerUri(null)} /> : null}
     </View>
   );
 }

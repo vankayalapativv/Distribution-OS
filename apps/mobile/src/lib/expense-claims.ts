@@ -48,6 +48,12 @@ export function fetchMyClaims(token: string | null): Promise<ExpenseClaim[]> {
   return apiFetch<ExpenseClaim[]>("/expense-claims/mine", { token });
 }
 
+/** One claim by id — the edit form's fallback when it isn't in the list cache
+ *  (cold deep-link, restored route, or the list query hasn't resolved yet). */
+export function fetchClaim(id: string, token: string | null): Promise<ExpenseClaim> {
+  return apiFetch<ExpenseClaim>(`/expense-claims/${id}`, { token });
+}
+
 /** Submit a claim with its required receipt in one multipart request. */
 export async function submitExpenseClaim(input: NewClaim, token: string | null): Promise<void> {
   const form = new FormData();

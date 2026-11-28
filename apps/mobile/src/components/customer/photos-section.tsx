@@ -7,6 +7,7 @@ import { PhotoShimmer } from "../photo-shimmer";
 import { PhotoZoomViewer } from "../photo-zoom-viewer";
 import { Skeleton } from "../skeleton";
 import { API_BASE_URL } from "../../lib/api";
+import { authHeaders } from "../../lib/auth-headers";
 import type { PhotosState } from "../../lib/customer/use-photos";
 import { ErrorState } from "../error-state";
 import { SectionTitle } from "./section-bits";
@@ -23,7 +24,7 @@ export function PhotosSection({
   const { query, uploading, uploadError, onDelete } = state;
   const photos = query.data ?? [];
   const [viewerUri, setViewerUri] = useState<string | null>(null);
-  const authHeaders = token ? { Authorization: `Bearer ${token}` } : undefined;
+  const headers = authHeaders(token);
   return (
     <View className="gap-2">
       <View className="flex-row items-center gap-2">
@@ -58,7 +59,7 @@ export function PhotosSection({
                 accessibilityLabel="View photo"
               >
                 <Image
-                  source={{ uri: `${API_BASE_URL}/photos/${photo.id}`, headers: authHeaders }}
+                  source={{ uri: `${API_BASE_URL}/photos/${photo.id}`, headers }}
                   contentFit="cover"
                   transition={150}
                   style={{ width: 104, height: 104, borderRadius: 12, backgroundColor: "#f3f4f6" }}
@@ -87,7 +88,7 @@ export function PhotosSection({
           ))}
         </View>
       ); })()}
-      {viewerUri ? <PhotoZoomViewer uri={viewerUri} headers={authHeaders} onClose={() => setViewerUri(null)} /> : null}
+      {viewerUri ? <PhotoZoomViewer uri={viewerUri} headers={headers} onClose={() => setViewerUri(null)} /> : null}
     </View>
   );
 }

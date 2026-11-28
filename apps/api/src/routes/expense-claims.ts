@@ -106,18 +106,19 @@ export const expenseClaimsRoutes = new Hono<ApiEnv>()
     return c.json(success(c, claim));
   })
 
-  // Office: approve (optionally reduced) — gated by the claims.approve permission.
+  // Office: approve (optionally reduced) AND reimburse in one step — gated by the
+  // claims.approve permission. The payment mode is required (it's the reimbursement).
   .post("/:id/approve", async (c) => {
     const auth = await requireCapability(c, APPROVE, OFFICE_ROLES);
     const body = await readJsonObject(c).catch(() => ({}));
     const sql = getSqlClient(c);
-    const claim = await approveClaim(sql, auth.userId!, c.req.param("id"), optionalNumber(body, "approvedAmount"));
+    const claim = await approveClaim(sql, auth.userId!, c.req.param("id"), optionalNumber(body, "approvedAmount"), optionalString(body, "paymentMode"));
     await logAudit(sql, actorOf(auth), {
       action: "expense_claim.approve",
       entityType: "expenditure",
       entityId: claim.id,
       entityLabel: claim.categoryName,
-      summary: `Approved a claim — ₹${claim.amount.toLocaleString("en-IN")}`,
+      summary: `Approved + reimbursed a claim — ₹${claim.amount.toLocaleString("en-IN")}`,
       metadata: { amount: claim.amount },
     });
     return c.json(success(c, claim));

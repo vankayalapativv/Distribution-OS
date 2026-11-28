@@ -153,24 +153,26 @@ describe("expense-claims routes", () => {
     expect((await app.request(`/api/v1/expense-claims/${OTHER_ID}`, { headers: authHeaders("neon-se") }, env)).status).toBe(404);
   });
 
-  test("manager approves; SE is forbidden", async () => {
+  test("manager approves + reimburses; SE is forbidden", async () => {
     const { default: app } = await import("../index");
-    const ok = await app.request(`/api/v1/expense-claims/${CLAIM_ID}/approve`, { method: "POST", headers: jsonHeaders("neon-manager"), body: JSON.stringify({ approvedAmount: 400 }) }, env);
+    const ok = await app.request(`/api/v1/expense-claims/${CLAIM_ID}/approve`, { method: "POST", headers: jsonHeaders("neon-manager"), body: JSON.stringify({ approvedAmount: 400, paymentMode: "cash" }) }, env);
     expect(ok.status).toBe(200);
     const no = await app.request(`/api/v1/expense-claims/${CLAIM_ID}/approve`, { method: "POST", headers: jsonHeaders("neon-se"), body: "{}" }, env);
     expect(no.status).toBe(403);
   });
 
-  test("approve with no body approves in full", async () => {
+  test("approve in full with a mode (no amount)", async () => {
     const { default: app } = await import("../index");
-    const res = await app.request(`/api/v1/expense-claims/${CLAIM_ID}/approve`, { method: "POST", headers: authHeaders("neon-super-admin") }, env);
+    const res = await app.request(`/api/v1/expense-claims/${CLAIM_ID}/approve`, { method: "POST", headers: jsonHeaders("neon-super-admin"), body: JSON.stringify({ paymentMode: "upi" }) }, env);
     expect(res.status).toBe(200);
   });
 
-  test("approve tolerates a malformed JSON body", async () => {
+  test("approve without a payment mode is rejected (422), even with a malformed body", async () => {
     const { default: app } = await import("../index");
-    const res = await app.request(`/api/v1/expense-claims/${CLAIM_ID}/approve`, { method: "POST", headers: jsonHeaders("neon-manager"), body: "{not json" }, env);
-    expect(res.status).toBe(200);
+    const noMode = await app.request(`/api/v1/expense-claims/${CLAIM_ID}/approve`, { method: "POST", headers: authHeaders("neon-super-admin") }, env);
+    expect(noMode.status).toBe(422);
+    const malformed = await app.request(`/api/v1/expense-claims/${CLAIM_ID}/approve`, { method: "POST", headers: jsonHeaders("neon-manager"), body: "{not json" }, env);
+    expect(malformed.status).toBe(422); // graceful validation, not a crash
   });
 
   test("reject needs a reason", async () => {

@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiRequest, errorMessage, type ActionConfig } from "@/lib/api-client";
+import { refreshBadges } from "@/features/shell/badge-refresh";
 import type { ExpenseClaim } from "./expense-claims-api";
 
 /** The office claims review queue: pending claims + approve/reject, which both
@@ -17,11 +18,13 @@ export function useClaimsQueue(actionConfig: ActionConfig) {
     await queryClient.invalidateQueries({ queryKey: ["expense-claims"] });
     void queryClient.invalidateQueries({ queryKey: ["expenditures"] });
     void queryClient.invalidateQueries({ queryKey: ["expenditure-summary"] });
+    void queryClient.invalidateQueries({ queryKey: ["employee-ledger"] });
+    refreshBadges(); // approving clears a pending claim → update the sidebar badge now
   }
 
-  async function approve(id: string, approvedAmount: number | null): Promise<void> {
+  async function approve(id: string, approvedAmount: number | null, paymentMode: string): Promise<void> {
     try {
-      await apiRequest(actionConfig, "POST", `/expense-claims/${id}/approve`, approvedAmount != null ? { approvedAmount } : {});
+      await apiRequest(actionConfig, "POST", `/expense-claims/${id}/approve`, { paymentMode, ...(approvedAmount != null ? { approvedAmount } : {}) });
     } catch (e) {
       throw new Error(errorMessage(e, "Could not approve the claim."));
     }

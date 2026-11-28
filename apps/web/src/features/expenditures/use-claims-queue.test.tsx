@@ -31,25 +31,26 @@ describe("useClaimsQueue", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("approves at a reduced amount and refreshes the ledger", async () => {
+  it("approves + reimburses at a reduced amount and refreshes the ledger", async () => {
     const { result } = renderHook(() => useClaimsQueue(config));
-    await result.current.approve("x1", 300);
-    expect(apiRequest).toHaveBeenCalledWith(config, "POST", "/expense-claims/x1/approve", { approvedAmount: 300 });
+    await result.current.approve("x1", 300, "cash");
+    expect(apiRequest).toHaveBeenCalledWith(config, "POST", "/expense-claims/x1/approve", { paymentMode: "cash", approvedAmount: 300 });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["expense-claims"] });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["expenditures"] });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["expenditure-summary"] });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ["employee-ledger"] });
   });
 
-  it("approves in full with an empty body", async () => {
+  it("approves in full carrying just the mode", async () => {
     const { result } = renderHook(() => useClaimsQueue(config));
-    await result.current.approve("x1", null);
-    expect(apiRequest).toHaveBeenCalledWith(config, "POST", "/expense-claims/x1/approve", {});
+    await result.current.approve("x1", null, "upi");
+    expect(apiRequest).toHaveBeenCalledWith(config, "POST", "/expense-claims/x1/approve", { paymentMode: "upi" });
   });
 
   it("wraps an approve failure", async () => {
     apiRequest.mockRejectedValueOnce(new Error("boom"));
     const { result } = renderHook(() => useClaimsQueue(config));
-    await expect(result.current.approve("x1", null)).rejects.toThrow("boom");
+    await expect(result.current.approve("x1", null, "cash")).rejects.toThrow("boom");
   });
 
   it("rejects with a reason and refreshes", async () => {

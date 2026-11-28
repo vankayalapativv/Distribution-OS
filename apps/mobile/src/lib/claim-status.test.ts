@@ -14,11 +14,11 @@ describe("claimMoment", () => {
 
 describe("claimStatusMeta", () => {
   it("labels and tones each status", () => {
-    expect(claimStatusMeta("approved")).toMatchObject({ label: "Approved" });
+    expect(claimStatusMeta("approved")).toMatchObject({ label: "Reimbursed" });
     expect(claimStatusMeta("approved").chip).toContain("emerald");
     expect(claimStatusMeta("rejected")).toMatchObject({ label: "Rejected" });
     expect(claimStatusMeta("rejected").chip).toContain("red");
-    expect(claimStatusMeta("submitted")).toMatchObject({ label: "Submitted" });
+    expect(claimStatusMeta("submitted")).toMatchObject({ label: "Pending" });
     expect(claimStatusMeta("submitted").chip).toContain("amber");
   });
 });

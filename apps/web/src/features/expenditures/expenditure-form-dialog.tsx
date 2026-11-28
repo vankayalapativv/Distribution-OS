@@ -16,6 +16,7 @@ import { type ActionConfig } from "@/lib/api-client";
 import type { Expenditure, ExpenditureCategory } from "./expenditures-api";
 import { ExpenditureFormSpend } from "./expenditure-form-spend";
 import { ExpenditureFormDetails } from "./expenditure-form-details";
+import { ExpenditureFormProof } from "./expenditure-form-proof";
 import { useExpenditureForm } from "./use-expenditure-form";
 import { saveLabel } from "@/lib/format";
 
@@ -55,6 +56,12 @@ export function ExpenditureFormDialog({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="exp-bill">Bill / receipt</Label>
+                  {editing?.hasBill && !f.bill ? (
+                    <div className="space-y-1.5">
+                      <ExpenditureFormProof actionConfig={actionConfig} entryId={editing.id} />
+                      <p className="text-xs text-muted-foreground">Attached receipt. Choose a file below to replace it.</p>
+                    </div>
+                  ) : null}
                   <Input
                     id="exp-bill"
                     type="file"
@@ -62,8 +69,7 @@ export function ExpenditureFormDialog({
                     onChange={(e) => f.setBill(e.target.files?.[0] ?? null)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Optional — image or PDF, up to 10 MB.
-                    {editing?.hasBill && !f.bill ? " A bill is already attached." : ""}
+                    {editing?.hasBill ? "Optional — replace with an image or PDF, up to 10 MB." : "Optional — image or PDF, up to 10 MB."}
                   </p>
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">

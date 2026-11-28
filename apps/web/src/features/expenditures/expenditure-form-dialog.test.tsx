@@ -10,6 +10,7 @@ const f = {
 vi.mock("./use-expenditure-form", () => ({ useExpenditureForm: () => f }));
 vi.mock("./expenditure-form-spend", () => ({ ExpenditureFormSpend: () => <div>SPEND</div> }));
 vi.mock("./expenditure-form-details", () => ({ ExpenditureFormDetails: () => <div>DETAILS</div> }));
+vi.mock("./expenditure-form-proof", () => ({ ExpenditureFormProof: () => <div>PROOF</div> }));
 
 import { ExpenditureFormDialog } from "./expenditure-form-dialog";
 
@@ -35,7 +36,8 @@ describe("ExpenditureFormDialog", () => {
     const editing = { id: "e1", hasBill: true } as Expenditure;
     const { rerender } = render(<ExpenditureFormDialog {...props} onOpenChange={onOpenChange} editing={editing} />);
     expect(screen.getByRole("heading", { name: "Edit expenditure" })).toBeInTheDocument();
-    expect(screen.getByText(/A bill is already attached/)).toBeInTheDocument();
+    expect(screen.getByText("PROOF")).toBeInTheDocument(); // inline receipt preview
+    expect(screen.getByText(/Choose a file below to replace it/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
     f.busy = true;
@@ -50,15 +52,15 @@ describe("ExpenditureFormDialog", () => {
     expect(f.setBill).toHaveBeenCalledWith(null);
   });
 
-  it("shows no attachment note for an editing entry that has no bill", () => {
+  it("shows no proof preview for an editing entry that has no bill", () => {
     render(<ExpenditureFormDialog {...props} editing={{ id: "e2", hasBill: false } as Expenditure} />);
-    expect(screen.queryByText(/A bill is already attached/)).not.toBeInTheDocument();
+    expect(screen.queryByText("PROOF")).not.toBeInTheDocument();
   });
 
-  it("drops the 'already attached' note once a replacement bill is chosen", () => {
+  it("drops the proof preview once a replacement bill is chosen", () => {
     f.bill = new File(["x"], "b.png");
     render(<ExpenditureFormDialog {...props} editing={{ id: "e1", hasBill: true } as Expenditure} />);
-    expect(screen.queryByText(/A bill is already attached/)).not.toBeInTheDocument();
+    expect(screen.queryByText("PROOF")).not.toBeInTheDocument();
     f.bill = null;
   });
 

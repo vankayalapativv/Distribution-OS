@@ -17,28 +17,11 @@ export function ClaimsQueuePanel({ actionConfig }: { readonly actionConfig: Acti
   const { claims, isLoading, approve, reject } = useClaimsQueue(actionConfig);
   const [decision, setDecision] = useState<ClaimDecision | null>(null);
   const [receipt, setReceipt] = useState<ExpenseClaim | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   if (isLoading) return <PanelRowsSkeleton />;
 
-  async function approveFull(claim: ExpenseClaim) {
-    setBusyId(claim.id);
-    setError(null);
-    try {
-      await approve(claim.id, null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not approve the claim.");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   return (
     <div>
-      {error ? (
-        <p className="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
-      ) : null}
       {claims.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">No claims awaiting approval.</p>
       ) : (
@@ -54,8 +37,7 @@ export function ClaimsQueuePanel({ actionConfig }: { readonly actionConfig: Acti
               {claim.hasReceipt ? (
                 <Button variant="outline" size="sm" onClick={() => setReceipt(claim)}>Receipt</Button>
               ) : null}
-              <Button size="sm" disabled={busyId === claim.id} onClick={() => void approveFull(claim)}>Approve</Button>
-              <Button variant="outline" size="sm" onClick={() => setDecision({ claim, mode: "reduce" })}>Reduce</Button>
+              <Button size="sm" onClick={() => setDecision({ claim, mode: "approve" })}>Approve</Button>
               <Button variant="outline" size="sm" className="text-destructive" onClick={() => setDecision({ claim, mode: "reject" })}>Reject</Button>
             </li>
           ))}

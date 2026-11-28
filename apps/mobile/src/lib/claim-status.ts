@@ -10,14 +10,15 @@ export function claimMoment(iso: string): string {
   return `${date}, ${time.toLowerCase()}`;
 }
 
-/** Label + Tailwind tone classes for a claim's status chip. */
+/** Label + Tailwind tone classes for a claim's status chip. Approval reimburses in
+ *  one step (2026-11-28), so an approved claim reads "Reimbursed". */
 export function claimStatusMeta(status: ClaimStatus): { label: string; chip: string } {
   switch (status) {
     case "approved":
-      return { label: "Approved", chip: "bg-emerald-50 text-emerald-700" };
+      return { label: "Reimbursed", chip: "bg-emerald-50 text-emerald-700" };
     case "rejected":
       return { label: "Rejected", chip: "bg-red-50 text-red-600" };
     default:
-      return { label: "Submitted", chip: "bg-amber-50 text-amber-700" };
+      return { label: "Pending", chip: "bg-amber-50 text-amber-700" };
   }
 }

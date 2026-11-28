@@ -8,17 +8,15 @@ import { useCan } from "@/features/shell/use-can";
 import { cn } from "@/lib/utils";
 import type { ActionConfig } from "@/lib/api-client";
 import { ClaimsQueuePanel } from "./claims-queue-panel";
-import { ReimbursementsPanel } from "./reimbursements-panel";
 import { AdvancesPanel } from "./advances-panel";
 import { SalaryPanel } from "./salary-panel";
 import { EmployeeLedgerDialogBody } from "./employee-ledger-dialog";
 import { useClaimsQueue } from "./use-claims-queue";
 
-type DialogKey = "claims" | "reimbursements" | "advances" | "salary" | "ledger";
+type DialogKey = "claims" | "advances" | "salary" | "ledger";
 
 const TITLES: Record<DialogKey, string> = {
-  claims: "Claims",
-  reimbursements: "Reimbursements to pay",
+  claims: "Claims to approve",
   advances: "Advances",
   salary: "Salary & pay",
   ledger: "Employee ledger",
@@ -29,7 +27,6 @@ const TITLES: Record<DialogKey, string> = {
  *  item carries a red pending-count badge. */
 export function ExpenditureActionsMenu({ actionConfig }: { readonly actionConfig: ActionConfig }) {
   const canClaims = useCan("action:expenditures.claims.approve");
-  const canReimb = useCan("action:expenditures.reimbursements.pay");
   const canAdvManage = useCan("action:expenditures.advances.manage");
   const canAdvApprove = useCan("action:expenditures.advances.approve");
   const canSalary = useCan("action:salary.view");
@@ -40,7 +37,6 @@ export function ExpenditureActionsMenu({ actionConfig }: { readonly actionConfig
 
   const items: { key: DialogKey; label: string; show: boolean; badge?: number }[] = [
     { key: "claims", label: "Claims", show: canClaims, badge: claims.length },
-    { key: "reimbursements", label: "Reimbursements", show: canReimb },
     { key: "advances", label: "Advances", show: canAdvManage || canAdvApprove },
     { key: "salary", label: "Salary & pay", show: canSalary },
     { key: "ledger", label: "Employee ledger", show: canLedger },
@@ -84,7 +80,6 @@ export function ExpenditureActionsMenu({ actionConfig }: { readonly actionConfig
           </DialogHeader>
           <DialogBody>
             {dialog === "claims" ? <ClaimsQueuePanel actionConfig={actionConfig} /> : null}
-            {dialog === "reimbursements" ? <ReimbursementsPanel actionConfig={actionConfig} /> : null}
             {dialog === "advances" ? <AdvancesPanel actionConfig={actionConfig} /> : null}
             {dialog === "salary" ? <SalaryPanel actionConfig={actionConfig} /> : null}
             {dialog === "ledger" ? <EmployeeLedgerDialogBody actionConfig={actionConfig} /> : null}

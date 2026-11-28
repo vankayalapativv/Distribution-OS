@@ -1,5 +1,6 @@
 import type { SqlClient } from "../lib/db";
 import { ApiError } from "../lib/errors";
+import { VALID_EXPENDITURE_PAYMENT_MODES } from "./expenditures";
 
 /**
  * Field expense CLAIMS — the submit + review lifecycle on top of `expenditures`
@@ -131,11 +132,16 @@ export async function listClaims(
 /** Approve a submitted claim, optionally at a reduced amount → it books as spend
  *  AND creates a reimbursement payable (company owes the submitter). One payable
  *  per claim; the book + payable are written in one transaction (Phase 2). */
+/** Approve a claim and reimburse it in one step (decided 2026-11-28): the claim
+ *  books into the ledger at the approved amount WITH the chosen payment mode, and
+ *  its reimbursement payable is created already `paid` (paid_at = now). There is
+ *  no separate "owed → settle" step anymore — approval is the reimbursement. */
 export async function approveClaim(
   sql: SqlClient,
   approverId: string,
   id: string,
   approvedAmount: number | null,
+  paymentMode: string | null,
 ) {
   const claim = await getClaim(sql, id);
   if (claim.status !== "submitted") throw new ApiError("CONFLICT", "Only a submitted claim can be approved.", 409);
@@ -143,20 +149,23 @@ export async function approveClaim(
   if (approvedAmount != null && !(approvedAmount > 0 && approvedAmount <= claim.claimedAmount)) {
     throw new ApiError("VALIDATION", "Approved amount must be between 0 and the claimed amount.", 422);
   }
+  if (!paymentMode || !(VALID_EXPENDITURE_PAYMENT_MODES as readonly string[]).includes(paymentMode)) {
+    throw new ApiError("VALIDATION", "Pick how the claim was reimbursed.", 422);
+  }
   const approved = approvedAmount ?? claim.claimedAmount;
   await sql.transaction([
     sql`
       /* approve_claim */
       update expenditures set
-        status = 'approved', amount = ${approved},
+        status = 'approved', amount = ${approved}, payment_mode = ${paymentMode},
         approved_by = ${approverId}::uuid, approved_at = now(),
         reject_reason = null, updated_at = now()
       where id = ${id}::uuid and status = 'submitted'
     `,
     sql`
-      /* create_reimbursement_payable */
-      insert into reimbursement_payables (expenditure_id, user_id, amount, status)
-      values (${id}::uuid, ${claim.submittedBy}::uuid, ${approved}, 'owed')
+      /* reimburse_on_approval */
+      insert into reimbursement_payables (expenditure_id, user_id, amount, status, payment_mode, paid_at, paid_by)
+      values (${id}::uuid, ${claim.submittedBy}::uuid, ${approved}, 'paid', ${paymentMode}, now(), ${approverId}::uuid)
       on conflict (expenditure_id) do nothing
     `,
   ]);

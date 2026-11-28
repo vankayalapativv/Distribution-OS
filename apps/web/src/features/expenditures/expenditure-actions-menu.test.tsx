@@ -6,7 +6,6 @@ vi.mock("@/features/shell/use-can", () => ({ useCan: (k: string) => can[k] ?? fa
 const claims = { claims: [] as unknown[] };
 vi.mock("./use-claims-queue", () => ({ useClaimsQueue: () => claims }));
 vi.mock("./claims-queue-panel", () => ({ ClaimsQueuePanel: () => <div>CLAIMS-BODY</div> }));
-vi.mock("./reimbursements-panel", () => ({ ReimbursementsPanel: () => <div>REIMB-BODY</div> }));
 vi.mock("./advances-panel", () => ({ AdvancesPanel: () => <div>ADV-BODY</div> }));
 vi.mock("./salary-panel", () => ({ SalaryPanel: () => <div>SALARY-BODY</div> }));
 vi.mock("./employee-ledger-dialog", () => ({ EmployeeLedgerDialogBody: () => <div>LEDGER-BODY</div> }));
@@ -16,7 +15,6 @@ import { ExpenditureActionsMenu } from "./expenditure-actions-menu";
 const config = { apiBaseUrl: "", authToken: "" };
 const ALL = {
   "action:expenditures.claims.approve": true,
-  "action:expenditures.reimbursements.pay": true,
   "action:expenditures.advances.manage": true,
   "action:expenditures.advances.approve": true,
   "action:salary.view": true,
@@ -55,7 +53,6 @@ describe("ExpenditureActionsMenu", () => {
       expect(screen.getByText(body)).toBeInTheDocument();
     };
     open("Claims", "CLAIMS-BODY");
-    open("Reimbursements", "REIMB-BODY");
     open("Advances", "ADV-BODY");
     open("Salary & pay", "SALARY-BODY");
     open("Employee ledger", "LEDGER-BODY");

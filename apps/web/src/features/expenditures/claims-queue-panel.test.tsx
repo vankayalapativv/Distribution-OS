@@ -13,13 +13,13 @@ vi.mock("./claim-decision-dialog", () => ({
   ClaimDecisionDialog: ({ decision, onOpenChange, onApprove, onReject }: {
     decision: { mode: string; claim: { id: string } } | null;
     onOpenChange: (o: boolean) => void;
-    onApprove: (id: string, a: number) => Promise<void>;
+    onApprove: (id: string, a: number, m: string) => Promise<void>;
     onReject: (id: string, r: string) => Promise<void>;
   }) => decision ? (
     <div>
       DECISION:{decision.mode}:{decision.claim.id}
       <button onClick={() => onOpenChange(false)}>close-decision</button>
-      <button onClick={() => void onApprove(decision.claim.id, 1)}>do-approve</button>
+      <button onClick={() => void onApprove(decision.claim.id, 1, "cash")}>do-approve</button>
       <button onClick={() => void onReject(decision.claim.id, "r")}>do-reject</button>
     </div>
   ) : null,
@@ -64,25 +64,10 @@ describe("ClaimsQueuePanel", () => {
     expect(screen.getAllByText("Receipt")).toHaveLength(1); // only c1 has a receipt
   });
 
-  it("approves in full and surfaces an error if it fails", async () => {
-    queue.approve.mockRejectedValueOnce(new Error("offline"));
+  it("opens the approve and reject dialogs", () => {
     renderPanel();
     fireEvent.click(screen.getAllByText("Approve")[0]);
-    await waitFor(() => expect(screen.getByText("offline")).toBeInTheDocument());
-    expect(queue.approve).toHaveBeenCalledWith("c1", null);
-  });
-
-  it("uses a generic message for a non-Error approve failure", async () => {
-    queue.approve.mockRejectedValueOnce("boom");
-    renderPanel();
-    fireEvent.click(screen.getAllByText("Approve")[0]);
-    await waitFor(() => expect(screen.getByText("Could not approve the claim.")).toBeInTheDocument());
-  });
-
-  it("opens the reduce and reject dialogs", () => {
-    renderPanel();
-    fireEvent.click(screen.getAllByText("Reduce")[0]);
-    expect(screen.getByText("DECISION:reduce:c1")).toBeInTheDocument();
+    expect(screen.getByText("DECISION:approve:c1")).toBeInTheDocument();
     fireEvent.click(screen.getAllByText("Reject")[1]);
     expect(screen.getByText("DECISION:reject:c2")).toBeInTheDocument();
   });
@@ -97,9 +82,9 @@ describe("ClaimsQueuePanel", () => {
 
   it("wires the decision dialog to approve/reject and close", async () => {
     renderPanel();
-    fireEvent.click(screen.getAllByText("Reduce")[0]);
+    fireEvent.click(screen.getAllByText("Approve")[0]);
     fireEvent.click(screen.getByText("do-approve"));
-    expect(queue.approve).toHaveBeenCalledWith("c1", 1);
+    expect(queue.approve).toHaveBeenCalledWith("c1", 1, "cash");
     fireEvent.click(screen.getByText("do-reject"));
     expect(queue.reject).toHaveBeenCalledWith("c1", "r");
     fireEvent.click(screen.getByText("close-decision"));

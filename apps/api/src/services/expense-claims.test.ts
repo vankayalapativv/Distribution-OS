@@ -118,32 +118,39 @@ describe("listClaims", () => {
 
 describe("approveClaim", () => {
   it("409 when the claim is not submitted", async () => {
-    await expect(approveClaim(makeSql({ get_claim: [claimRow({ status: "approved" })] }), "mgr", ID, null))
+    await expect(approveClaim(makeSql({ get_claim: [claimRow({ status: "approved" })] }), "mgr", ID, null, "cash"))
       .rejects.toMatchObject({ status: 409 });
   });
   it("422 when the reduced amount is out of range", async () => {
     const sql = makeSql({ get_claim: [claimRow({ claimedAmount: "450" })] });
-    await expect(approveClaim(sql, "mgr", ID, 500)).rejects.toMatchObject({ status: 422 });
-    await expect(approveClaim(sql, "mgr", ID, 0)).rejects.toMatchObject({ status: 422 });
+    await expect(approveClaim(sql, "mgr", ID, 500, "cash")).rejects.toMatchObject({ status: 422 });
+    await expect(approveClaim(sql, "mgr", ID, 0, "cash")).rejects.toMatchObject({ status: 422 });
   });
-  it("approves in full (null → claimed amount) and creates the payable", async () => {
+  it("422 when the payment mode is missing or invalid", async () => {
     const sql = makeSql({ get_claim: [claimRow()] });
-    const claim = await approveClaim(sql, "mgr", ID, null);
+    await expect(approveClaim(sql, "mgr", ID, null, null)).rejects.toMatchObject({ status: 422 });
+    await expect(approveClaim(sql, "mgr", ID, null, "gold")).rejects.toMatchObject({ status: 422 });
+  });
+  it("approves in full and books the reimbursement as paid with the mode", async () => {
+    const sql = makeSql({ get_claim: [claimRow()] });
+    const claim = await approveClaim(sql, "mgr", ID, null, "cash");
     expect(calledTag(sql, "approve_claim")).toBe(true);
-    expect(calledTag(sql, "create_reimbursement_payable")).toBe(true);
-    const payable = sql.calls.find((c) => c.tag === "create_reimbursement_payable")!;
-    expect(payable.params).toEqual([ID, SE, 450]); // expenditure, user, approved amount
+    const approve = sql.calls.find((c) => c.tag === "approve_claim")!;
+    expect(approve.params).toEqual([450, "cash", "mgr", ID]); // amount, mode, approver, id
+    const payable = sql.calls.find((c) => c.tag === "reimburse_on_approval")!;
+    expect(payable.params).toEqual([ID, SE, 450, "cash", "mgr"]); // expenditure, user, amount, mode, payer
     expect(claim.id).toBe(ID);
   });
 
   it("409 when a submitted claim somehow has no submitter", async () => {
-    await expect(approveClaim(makeSql({ get_claim: [claimRow({ submittedBy: null })] }), "mgr", ID, null))
+    await expect(approveClaim(makeSql({ get_claim: [claimRow({ submittedBy: null })] }), "mgr", ID, null, "cash"))
       .rejects.toMatchObject({ status: 409 });
   });
   it("approves a reduced amount within range", async () => {
     const sql = makeSql({ get_claim: [claimRow({ claimedAmount: "450" })] });
-    await approveClaim(sql, "mgr", ID, 300);
-    expect(sql.calls.find((c) => c.tag === "approve_claim")).toBeTruthy();
+    await approveClaim(sql, "mgr", ID, 300, "upi");
+    const approve = sql.calls.find((c) => c.tag === "approve_claim")!;
+    expect(approve.params).toEqual([300, "upi", "mgr", ID]);
   });
 });
 

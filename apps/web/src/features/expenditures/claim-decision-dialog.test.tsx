@@ -33,23 +33,26 @@ describe("ClaimDecisionDialog", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("approves at the claimed amount by default, and a reduced amount when lowered", () => {
-    render2({ claim, mode: "reduce" });
-    expect(screen.getByText("Approve claim")).toBeInTheDocument();
+  it("approves at the claimed amount + default mode, a reduced amount and a chosen mode when changed", () => {
+    render2({ claim, mode: "approve" });
+    expect(screen.getByText("Approve & reimburse")).toBeInTheDocument();
     const input = screen.getByLabelText(/Approved amount/) as HTMLInputElement;
     expect(input.value).toBe("450");
+    fireEvent.click(screen.getByText("Approve & pay"));
+    expect(onApprove).toHaveBeenLastCalledWith("c1", 450, "cash"); // defaults
     fireEvent.change(input, { target: { value: "300" } });
-    fireEvent.click(screen.getByText("Approve"));
-    expect(onApprove).toHaveBeenCalledWith("c1", 300);
+    fireEvent.change(screen.getByLabelText("Reimburse via"), { target: { value: "upi" } });
+    fireEvent.click(screen.getByText("Approve & pay"));
+    expect(onApprove).toHaveBeenLastCalledWith("c1", 300, "upi");
   });
 
   it("disables Approve for an amount of 0 or above the claimed amount", () => {
-    render2({ claim, mode: "reduce" });
+    render2({ claim, mode: "approve" });
     const input = screen.getByLabelText(/Approved amount/);
     fireEvent.change(input, { target: { value: "0" } });
-    expect(screen.getByText("Approve")).toBeDisabled();
+    expect(screen.getByText("Approve & pay")).toBeDisabled();
     fireEvent.change(input, { target: { value: "600" } });
-    expect(screen.getByText("Approve")).toBeDisabled();
+    expect(screen.getByText("Approve & pay")).toBeDisabled();
   });
 
   it("rejects with a trimmed reason, and blocks a blank one", () => {
@@ -62,13 +65,13 @@ describe("ClaimDecisionDialog", () => {
   });
 
   it("resets the amount when the target claim changes or closes", () => {
-    const { rerender } = render2({ claim, mode: "reduce" });
+    const { rerender } = render2({ claim, mode: "approve" });
     fireEvent.change(screen.getByLabelText(/Approved amount/), { target: { value: "100" } });
     const other = { ...claim, id: "c2", claimedAmount: 999 };
-    rerender(<ClaimDecisionDialog decision={{ claim: other, mode: "reduce" }} onOpenChange={onOpenChange} onApprove={onApprove} onReject={onReject} />);
+    rerender(<ClaimDecisionDialog decision={{ claim: other, mode: "approve" }} onOpenChange={onOpenChange} onApprove={onApprove} onReject={onReject} />);
     expect((screen.getByLabelText(/Approved amount/) as HTMLInputElement).value).toBe("999");
     // Closing (decision → null) clears the fields and renders nothing.
     rerender(<ClaimDecisionDialog decision={null} onOpenChange={onOpenChange} onApprove={onApprove} onReject={onReject} />);
-    expect(screen.queryByText("Approve claim")).not.toBeInTheDocument();
+    expect(screen.queryByText("Approve & reimburse")).not.toBeInTheDocument();
   });
 });

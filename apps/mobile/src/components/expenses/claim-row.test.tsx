@@ -14,7 +14,7 @@ describe("ClaimRow", () => {
     const onPress = vi.fn();
     render(<ClaimRow claim={base} onPress={onPress} />);
     expect(screen.getByText("Fuel")).toBeInTheDocument();
-    expect(screen.getByText("Submitted")).toBeInTheDocument();
+    expect(screen.getByText("Pending")).toBeInTheDocument();
     expect(screen.getByText(/₹450/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("Fuel"));
     expect(onPress).toHaveBeenCalledWith(base);
@@ -22,7 +22,7 @@ describe("ClaimRow", () => {
 
   it("shows the reduced-amount hint when approved for less", () => {
     render(<ClaimRow claim={{ ...base, status: "approved", amount: 300, claimedAmount: 450 }} onPress={vi.fn()} />);
-    expect(screen.getByText("Approved")).toBeInTheDocument();
+    expect(screen.getByText("Reimbursed")).toBeInTheDocument();
     expect(screen.getByText(/of ₹450/)).toBeInTheDocument();
   });
 

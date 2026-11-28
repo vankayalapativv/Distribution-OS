@@ -258,10 +258,18 @@ export function backfillLineSegments(lines: InvoiceFormLine[], skus: Sku[]): Inv
 }
 
 /** The generate/edit payload: only complete, priced lines, as the API shape. Pure. */
+/** The single "this line is complete and will be billed" predicate: a SKU + pack
+ *  are picked AND it has a positive qty and rate. Shared by `toGenerateLines`
+ *  (the lines actually sent to the server), the summary figures, and the line
+ *  table's amount/footer — so the reviewed Grand total, the per-row amounts, and
+ *  what generate sends can never disagree. */
+export const isPricedLine = (l: InvoiceFormLine): boolean =>
+  !!l.productId && l.packSizeLitres > 0 && (Number(l.qty) || 0) > 0 && l.rate.trim() !== "" && (Number(l.rate) || 0) > 0;
+
 export function toGenerateLines(lines: InvoiceFormLine[]): GenerateLine[] {
   const n = (v: string) => Number(v) || 0;
   return lines
-    .filter((l) => l.productId && l.packSizeLitres > 0 && n(l.qty) > 0 && l.rate.trim() !== "")
+    .filter(isPricedLine)
     .map((l) => ({
       productId: l.productId, packSizeLitres: l.packSizeLitres, brand: l.brand, segment: l.segment, hsnCode: l.hsnCode,
       qtyUnits: n(l.qty), rate: n(l.rate), mrp: l.mrp.trim() ? n(l.mrp) : null, discountPct: n(l.discountPct), orderItemId: l.orderItemId,

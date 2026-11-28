@@ -28,6 +28,10 @@ describe("summaryFigures", () => {
   it("ignores unpriced lines in the taxable total", () => {
     expect(summaryFigures([line({ qty: "2", rate: "" })], "intra").taxable).toBe(0);
   });
+  it("excludes a qty+rate line that has no SKU picked (would be dropped on generate)", () => {
+    const f = summaryFigures([line({ qty: "2", rate: "100", productId: "", packSizeLitres: 0 })], "intra");
+    expect(f).toMatchObject({ taxable: 0, grand: 0, litres: 0 });
+  });
 });
 
 describe("generateState", () => {
@@ -58,5 +62,9 @@ describe("generateState", () => {
   });
   it("blocks when no customer is selected", () => {
     expect(generateState(props({ hasCustomer: false, lines: [line({ qty: "1", rate: "50" })] })).blocked).toBe(true);
+  });
+  it("blocks a qty+rate line with no SKU picked (so the total can't overstate the invoice)", () => {
+    const s = generateState(props({ lines: [line({ qty: "1", rate: "50", productId: "", packSizeLitres: 0 })] }));
+    expect(s.blocked).toBe(true);
   });
 });

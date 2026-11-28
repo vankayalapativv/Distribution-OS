@@ -5,7 +5,7 @@ import { PackagePlus, Zap } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { lineTax, round2, type InvoiceFormLine } from "./invoice-generate-api";
+import { isPricedLine, lineTax, round2, type InvoiceFormLine } from "./invoice-generate-api";
 
 function busyGenerateLabel(editing: boolean | undefined): string {
   return editing ? "Saving…" : "Generating…";
@@ -47,7 +47,7 @@ export interface SummaryFigures { taxable: number; cgst: number; sgst: number; g
 /** Taxable/GST/transport/grand + total litres for the priced lines (pure — unit
  *  tested). The transport charge is added to the grand as-is (no GST on it). */
 export function summaryFigures(lines: InvoiceFormLine[], supply: "intra" | "inter", transportCharge = 0): SummaryFigures {
-  const priced = lines.filter((l) => num(l.qty) > 0 && l.rate.trim() !== "" && num(l.rate) > 0);
+  const priced = lines.filter(isPricedLine);
   let taxable = 0;
   for (const l of priced) taxable += lineTax(num(l.qty), num(l.rate), supply, num(l.discountPct)).taxable;
   taxable = round2(taxable);
@@ -56,7 +56,7 @@ export function summaryFigures(lines: InvoiceFormLine[], supply: "intra" | "inte
   const sgst = round2(gst - cgst);
   const transport = round2(Math.max(0, transportCharge || 0));
   const grand = round2(taxable + gst + transport);
-  const litres = round2(lines.reduce((s, l) => s + num(l.qty) * l.packSizeLitres, 0));
+  const litres = round2(priced.reduce((s, l) => s + num(l.qty) * l.packSizeLitres, 0));
   return { taxable, cgst, sgst, gst, transport, grand, litres };
 }
 
@@ -72,7 +72,7 @@ export interface GenerateState { blocked: boolean; label: string; shortCount: nu
 
 /** Whether Generate is allowed + the button label (pure — unit tested). */
 export function generateState(p: SummaryProps): GenerateState {
-  const priced = p.lines.filter((l) => num(l.qty) > 0 && l.rate.trim() !== "" && num(l.rate) > 0);
+  const priced = p.lines.filter(isPricedLine);
   const shortCount = !p.editing && p.balancesReady
     ? p.lines.filter((l) => { const s = p.stockMap.get(keyOf(l)); return s !== undefined && num(l.qty) > s; }).length
     : 0;

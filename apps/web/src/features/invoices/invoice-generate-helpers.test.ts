@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { backfillLineSegments, toGenerateLines, initialFormLines } from "./invoice-generate-api";
+import { backfillLineSegments, isPricedLine, toGenerateLines, initialFormLines } from "./invoice-generate-api";
 import type { InvoiceFormLine, InvoiceEditData, OrderInvoiceSeed } from "./invoice-generate-api";
 import type { Sku } from "@/features/stock/stock-api";
 
@@ -9,6 +9,21 @@ const formLine = (over: Partial<InvoiceFormLine> = {}): InvoiceFormLine => ({
 });
 const sku = (over: Partial<Sku> = {}): Sku =>
   ({ productId: "p", productName: "P", brand: "Fuchs", hsnCode: null, packSizeLitres: 1, unit: "litres", segment: "Car", ...over } as Sku);
+
+describe("isPricedLine", () => {
+  it("is true only for a complete, priced line (SKU + pack + qty + rate)", () => {
+    expect(isPricedLine(formLine({ productId: "p1", packSizeLitres: 5, qty: "3", rate: "100" }))).toBe(true);
+  });
+  it("is false without a SKU, even when qty and rate are set", () => {
+    expect(isPricedLine(formLine({ productId: "", qty: "3", rate: "100" }))).toBe(false);
+  });
+  it("is false with no pack, zero qty, blank rate, or zero rate", () => {
+    expect(isPricedLine(formLine({ productId: "p1", packSizeLitres: 0, qty: "3", rate: "100" }))).toBe(false);
+    expect(isPricedLine(formLine({ productId: "p1", packSizeLitres: 5, qty: "0", rate: "100" }))).toBe(false);
+    expect(isPricedLine(formLine({ productId: "p1", packSizeLitres: 5, qty: "3", rate: "" }))).toBe(false);
+    expect(isPricedLine(formLine({ productId: "p1", packSizeLitres: 5, qty: "3", rate: "0" }))).toBe(false);
+  });
+});
 
 describe("toGenerateLines", () => {
   it("drops incomplete / unpriced lines", () => {

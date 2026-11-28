@@ -7,7 +7,7 @@ import { SearchSelect } from "@/components/ui/search-select";
 import { litres } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Sku } from "@/features/stock/stock-api";
-import { lineTax, round2, type InvoiceFormLine } from "./invoice-generate-api";
+import { isPricedLine, lineTax, round2, type InvoiceFormLine } from "./invoice-generate-api";
 
 const num = (v: string) => Number(v) || 0;
 const inr = (v: number) => `₹${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -60,7 +60,7 @@ export function InvoiceLineTable({
   };
 
   let taxable = 0;
-  for (const l of lines) if (num(l.qty) > 0 && num(l.rate) > 0) taxable += lineTax(num(l.qty), num(l.rate), supply, num(l.discountPct)).taxable;
+  for (const l of lines) if (isPricedLine(l)) taxable += lineTax(num(l.qty), num(l.rate), supply, num(l.discountPct)).taxable;
   taxable = round2(taxable);
 
   // Shared cell padding so the header label's right edge lines up with the
@@ -93,7 +93,7 @@ export function InvoiceLineTable({
             ) : lines.map((l, i) => {
               const stock = l.productId && l.packSizeLitres > 0 && balancesReady ? (stockMap.get(`${l.productId}|${l.packSizeLitres}`) ?? 0) : undefined;
               const short = stock !== undefined && num(l.qty) > stock;
-              const priced = num(l.qty) > 0 && num(l.rate) > 0;
+              const priced = isPricedLine(l);
               return (
                 <tr key={l.uid} className="border-b border-border/60 align-top last:border-0">
                   <td className={cell}>

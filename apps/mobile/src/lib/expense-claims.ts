@@ -65,15 +65,25 @@ export async function submitExpenseClaim(input: NewClaim, token: string | null):
   );
 }
 
-/** Edit a rejected claim and resubmit it (keeps the original receipt). */
-export function resubmitClaim(
+/** Edit a not-yet-approved claim (multipart). Pass `receiptUri` to replace the
+ *  attached receipt; omit it to keep the existing one. */
+export async function resubmitClaim(
   id: string,
-  input: { categoryId: string; amount: number; expenditureDate: string; remarks?: string | null },
+  input: { categoryId: string; amount: number; expenditureDate: string; remarks?: string | null; receiptUri?: string | null },
   token: string | null,
-): Promise<ExpenseClaim> {
-  return apiFetch<ExpenseClaim>(`/expense-claims/${id}/resubmit`, {
-    method: "POST",
-    token,
-    body: input,
-  });
+): Promise<void> {
+  const form = new FormData();
+  form.append("categoryId", input.categoryId);
+  form.append("amount", String(input.amount));
+  form.append("expenditureDate", input.expenditureDate);
+  if (input.remarks) form.append("remarks", input.remarks);
+  if (input.receiptUri) {
+    const name = input.receiptUri.split("/").pop() || "receipt.jpg";
+    form.append("file", new File(input.receiptUri) as unknown as Blob, name);
+  }
+  await postPhotoUpload(
+    `${API_BASE_URL}/expense-claims/${id}/resubmit`,
+    token ? { Authorization: `Bearer ${token}` } : undefined,
+    form,
+  );
 }

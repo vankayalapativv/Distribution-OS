@@ -71,12 +71,14 @@ describe("NewExpenseScreen", () => {
     expect(screen.getByText("err:network down")).toBeInTheDocument();
   });
 
-  it("edit mode hides the receipt section; a rejected claim says Resubmit", () => {
+  it("edit mode shows an optional replace-receipt section; a rejected claim says Resubmit", () => {
     form.mockReturnValue({ ...base, editId: "r1", editStatus: "rejected" });
     render(<NewExpenseScreen />);
     expect(screen.getByText("Edit & resubmit")).toBeInTheDocument();
     expect(screen.getByText("Resubmit")).toBeInTheDocument();
-    expect(screen.queryByText("📷 Camera")).not.toBeInTheDocument();
+    expect(screen.getByText("Replace receipt (optional)")).toBeInTheDocument();
+    expect(screen.getByText("📷 Camera")).toBeInTheDocument();
+    expect(screen.getByText(/Keep the attached receipt/)).toBeInTheDocument();
   });
 
   it("a still-pending claim edits with Save changes", () => {

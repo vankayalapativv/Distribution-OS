@@ -65,7 +65,7 @@ export function useClaimForm() {
     setBusy(true);
     try {
       const common = { categoryId, amount: amountNum, expenditureDate: date, remarks: remarks || null };
-      if (editId) await resubmitClaim(editId, common, token);
+      if (editId) await resubmitClaim(editId, { ...common, receiptUri }, token);
       else await submitExpenseClaim({ ...common, receiptUri: receiptUri!, clientUuid: Crypto.randomUUID() }, token);
       await queryClient.invalidateQueries({ queryKey: ["my-claims"] });
       router.back();

@@ -48,28 +48,31 @@ export default function NewExpenseScreen() {
           />
         </View>
 
-        {f.editId ? null : (
-          <View>
-            <Text className="mb-1 text-sm font-medium text-foreground">Receipt <Text className="text-destructive">*</Text></Text>
-            {f.receiptUri ? (
-              <Image source={{ uri: f.receiptUri }} className="h-40 w-full rounded-2xl" resizeMode="cover" />
-            ) : (
-              <View className="flex-row gap-2">
-                <Pressable className="flex-1 items-center rounded-2xl border border-dashed border-primary bg-card py-4" onPress={() => f.pickReceipt("camera")}>
-                  <Text className="text-sm font-semibold text-primary">📷 Camera</Text>
-                </Pressable>
-                <Pressable className="flex-1 items-center rounded-2xl border border-dashed border-primary bg-card py-4" onPress={() => f.pickReceipt("gallery")}>
-                  <Text className="text-sm font-semibold text-primary">🖼 Gallery</Text>
-                </Pressable>
-              </View>
-            )}
-            {f.receiptUri ? (
-              <Pressable className="mt-2 self-start" onPress={() => f.pickReceipt("camera")}>
-                <Text className="text-xs font-semibold text-primary">Retake</Text>
+        <View>
+          <Text className="mb-1 text-sm font-medium text-foreground">
+            {f.editId ? "Replace receipt (optional)" : <>Receipt <Text className="text-destructive">*</Text></>}
+          </Text>
+          {f.receiptUri ? (
+            <Image source={{ uri: f.receiptUri }} className="h-40 w-full rounded-2xl" resizeMode="cover" />
+          ) : (
+            <View className="flex-row gap-2">
+              <Pressable className="flex-1 items-center rounded-2xl border border-dashed border-primary bg-card py-4" onPress={() => f.pickReceipt("camera")}>
+                <Text className="text-sm font-semibold text-primary">📷 Camera</Text>
               </Pressable>
-            ) : null}
-          </View>
-        )}
+              <Pressable className="flex-1 items-center rounded-2xl border border-dashed border-primary bg-card py-4" onPress={() => f.pickReceipt("gallery")}>
+                <Text className="text-sm font-semibold text-primary">🖼 Gallery</Text>
+              </Pressable>
+            </View>
+          )}
+          {f.receiptUri ? (
+            <Pressable className="mt-2 self-start" onPress={() => f.pickReceipt("camera")}>
+              <Text className="text-xs font-semibold text-primary">Retake</Text>
+            </Pressable>
+          ) : null}
+          {f.editId && !f.receiptUri ? (
+            <Text className="mt-1 text-xs text-muted-foreground">Keep the attached receipt, or pick a new one to replace it.</Text>
+          ) : null}
+        </View>
 
         <View>
           <Text className="mb-1 text-sm font-medium text-foreground">Note (optional)</Text>

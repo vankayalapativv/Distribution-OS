@@ -75,18 +75,28 @@ export const expenseClaimsRoutes = new Hono<ApiEnv>()
     return c.json(success(c, await listClaims(getSqlClient(c), { submittedBy: auth.userId! })));
   })
 
-  // Field: edit a rejected claim and resubmit (keeps the existing receipt).
+  // Field: edit a not-yet-approved claim (multipart). Sends the fields and an
+  // OPTIONAL replacement receipt — omit the file to keep the existing one.
   .post("/:id/resubmit", async (c) => {
     const auth = requireRole(c, FIELD_ROLES);
-    const body = await readJsonObject(c);
-    const input: ClaimInput = {
-      categoryId: requiredString(body, "categoryId"),
-      amount: optionalNumber(body, "amount") ?? 0,
-      expenditureDate: requiredString(body, "expenditureDate"),
-      remarks: optionalString(body, "remarks"),
-    };
-    const claim = await resubmitClaim(getSqlClient(c), auth.userId!, c.req.param("id"), input);
-    return c.json(success(c, claim));
+    const sql = getSqlClient(c);
+    const form = await c.req.formData().catch(() => null);
+    if (!form) throw new ApiError("VALIDATION", "Expected form data.", 422);
+    const id = c.req.param("id");
+    const claim = await resubmitClaim(sql, auth.userId!, id, claimFromForm(form));
+    const file = form.get("file");
+    const replaced = file instanceof File && file.size > 0;
+    const result = replaced
+      ? await uploadExpenditureBill(sql, requireBucket(c.env.PHOTOS), id, file).then(() => getClaim(sql, id))
+      : claim;
+    await logAudit(sql, actorOf(auth), {
+      action: "expense_claim.edit",
+      entityType: "expenditure",
+      entityId: id,
+      entityLabel: result.categoryName,
+      summary: `Edited a claim — ₹${result.amount.toLocaleString("en-IN")}${replaced ? " (receipt replaced)" : ""}`,
+    });
+    return c.json(success(c, result));
   })
 
   // Office: the review queue (default = pending).

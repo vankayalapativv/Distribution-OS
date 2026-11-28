@@ -57,13 +57,27 @@ describe("submitExpenseClaim", () => {
 });
 
 describe("resubmitClaim", () => {
-  it("POSTs the edited fields to the resubmit route", async () => {
-    apiFetch.mockResolvedValue({ id: "r1" });
-    await resubmitClaim("r1", { categoryId: "c2", amount: 99, expenditureDate: "2026-11-28", remarks: null }, "tok");
-    expect(apiFetch).toHaveBeenCalledWith("/expense-claims/r1/resubmit", {
-      method: "POST",
-      token: "tok",
-      body: { categoryId: "c2", amount: 99, expenditureDate: "2026-11-28", remarks: null },
-    });
+  it("POSTs the edited fields as multipart, with no file when the receipt is unchanged", async () => {
+    await resubmitClaim("r1", { categoryId: "c2", amount: 99, expenditureDate: "2026-11-28", remarks: "fix" }, "tok");
+    const [url, headers, form] = postPhotoUpload.mock.calls[0] as [string, Record<string, string>, FormData];
+    expect(url).toBe("http://x/api/v1/expense-claims/r1/resubmit");
+    expect(headers).toEqual({ Authorization: "Bearer tok" });
+    expect(form.get("categoryId")).toBe("c2");
+    expect(form.get("amount")).toBe("99");
+    expect(form.get("remarks")).toBe("fix");
+    expect(form.get("file")).toBeNull(); // receipt kept
+  });
+
+  it("attaches a new receipt file when one is picked, and omits blank remarks + auth", async () => {
+    await resubmitClaim("r1", { categoryId: "c2", amount: 99, expenditureDate: "2026-11-28", remarks: null, receiptUri: "file:///p/new.png" }, null);
+    const [, headers, form] = postPhotoUpload.mock.calls[0] as [string, undefined, FormData];
+    expect(headers).toBeUndefined();
+    expect(form.get("remarks")).toBeNull();
+    expect(form.get("file")).toBeTruthy();
+  });
+
+  it("falls back to a default receipt filename when the uri has no basename", async () => {
+    await resubmitClaim("r1", { categoryId: "c2", amount: 99, expenditureDate: "2026-11-28", receiptUri: "file:///p/" }, "tok");
+    expect((postPhotoUpload.mock.calls[0][2] as FormData).get("file")).toBeTruthy();
   });
 });

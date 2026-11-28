@@ -99,7 +99,10 @@ describe("expense-claims routes", () => {
 
   test("resubmit with no amount is 422", async () => {
     const { default: app } = await import("../index");
-    const res = await app.request(`/api/v1/expense-claims/${REJECTED_ID}/resubmit`, { method: "POST", headers: jsonHeaders("neon-se"), body: JSON.stringify({ categoryId: CATEGORY_ID, expenditureDate: "2026-11-28" }) }, env);
+    const fd = new FormData();
+    fd.append("categoryId", CATEGORY_ID);
+    fd.append("expenditureDate", "2026-11-28");
+    const res = await app.request(`/api/v1/expense-claims/${REJECTED_ID}/resubmit`, { method: "POST", headers: authHeaders("neon-se"), body: fd }, env);
     expect(res.status).toBe(422);
   });
 
@@ -183,9 +186,25 @@ describe("expense-claims routes", () => {
     expect(bad.status).toBe(422);
   });
 
-  test("SE resubmits a rejected claim", async () => {
+  test("SE edits a claim (no new receipt)", async () => {
     const { default: app } = await import("../index");
-    const res = await app.request(`/api/v1/expense-claims/${REJECTED_ID}/resubmit`, { method: "POST", headers: jsonHeaders("neon-se"), body: JSON.stringify({ categoryId: CATEGORY_ID, amount: 450, expenditureDate: "2026-11-28", remarks: "clearer bill" }) }, env);
+    const fd = new FormData();
+    fd.append("categoryId", CATEGORY_ID);
+    fd.append("amount", "450");
+    fd.append("expenditureDate", "2026-11-28");
+    fd.append("remarks", "clearer bill");
+    const res = await app.request(`/api/v1/expense-claims/${REJECTED_ID}/resubmit`, { method: "POST", headers: authHeaders("neon-se"), body: fd }, env);
+    expect(res.status).toBe(200);
+  });
+
+  test("SE edits a claim AND replaces the receipt", async () => {
+    const { default: app } = await import("../index");
+    const fd = new FormData();
+    fd.append("categoryId", CATEGORY_ID);
+    fd.append("amount", "450");
+    fd.append("expenditureDate", "2026-11-28");
+    fd.append("file", new File([new Uint8Array([1, 2, 3])], "new.png", { type: "image/png" }));
+    const res = await app.request(`/api/v1/expense-claims/${REJECTED_ID}/resubmit`, { method: "POST", headers: authHeaders("neon-se"), body: fd }, env);
     expect(res.status).toBe(200);
   });
 

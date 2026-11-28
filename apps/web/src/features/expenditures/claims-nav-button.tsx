@@ -17,9 +17,12 @@ export function ClaimsNavButton() {
     queryKey: ["badge-counts"],
     queryFn: () => fetchBadgeCounts(),
     enabled: canApprove,
-    // No refetchInterval — the count seldom moves mid-page; a fetch on mount,
-    // on window focus, and on remount (navigating back from the Claims page) is
-    // enough, and avoids a third independent 60s poll of /api/badge-counts.
+    // Poll on its own: this button lives in the Expenditure page's isolated
+    // QueryClient, so the sidebar's badge-counts poll (a separate client) never
+    // refreshes this cache, and fetchBadgeCounts only de-dupes in-flight requests.
+    // Without this the pending badge would go stale while the page stays open and
+    // new claims arrive from the field. fetchBadgeCounts merges concurrent calls.
+    refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   });
 

@@ -47,4 +47,31 @@ describe("HeroCard", () => {
     );
     expect(screen.getByText(/0-day credit period/)).toBeInTheDocument();
   });
+
+  it("opens Google Maps at the saved coordinates from the location pin", () => {
+    const spy = vi.spyOn(Linking, "openURL").mockResolvedValue(undefined as never);
+    render(<HeroCard header={header({ latitude: 17.25, longitude: 80.15 })} credit={null} creditPending={false} />);
+    fireEvent.click(screen.getByLabelText("Open location in Google Maps"));
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining("query=17.25,80.15"));
+    spy.mockRestore();
+  });
+
+  it("falls back to an address search from the pin when there are no coordinates", () => {
+    const spy = vi.spyOn(Linking, "openURL").mockResolvedValue(undefined as never);
+    render(<HeroCard header={header({ latitude: null, longitude: null })} credit={null} creditPending={false} />);
+    fireEvent.click(screen.getByLabelText("Open location in Google Maps"));
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining(encodeURIComponent("1 Main St, Hyd")));
+    spy.mockRestore();
+  });
+
+  it("hides the location pin when there is no address or coordinates", () => {
+    render(
+      <HeroCard
+        header={header({ addressStreet: null, addressCity: null, latitude: null, longitude: null })}
+        credit={null}
+        creditPending={false}
+      />,
+    );
+    expect(screen.queryByLabelText("Open location in Google Maps")).not.toBeInTheDocument();
+  });
 });
